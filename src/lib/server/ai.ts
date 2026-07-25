@@ -91,13 +91,18 @@ async function askClaude(leader: LeaderGrounding, question: string): Promise<str
 		model: 'claude-sonnet-5',
 		max_tokens: 1024,
 		thinking: { type: 'adaptive' },
+		// Two cache breakpoints (docs/ai-chat-costs.md), not one: the platform +
+		// leader system prompts are identical for every leader and every citizen
+		// site-wide, so they stay warm almost permanently regardless of any one
+		// leader's own traffic. Grounding is its own breakpoint on top of that
+		// shared prefix since it's only stable per-leader (changes whenever that
+		// leader edits their Knowledge tab/manifesto). 5m TTL (the default) refreshes
+		// on every cache hit, so either block only re-writes at full price after a
+		// true idle gap, not on a fixed schedule.
 		system: [
-			settings.platformSystemPrompt,
-			'',
-			settings.leaderSystemPrompt,
-			'',
-			groundingText(leader, settings.maxGroundingChars)
-		].join('\n'),
+			{ type: 'text', text: `${settings.platformSystemPrompt}\n\n${settings.leaderSystemPrompt}`, cache_control: { type: 'ephemeral' } },
+			{ type: 'text', text: groundingText(leader, settings.maxGroundingChars), cache_control: { type: 'ephemeral' } }
+		],
 		messages: [{ role: 'user', content: question }]
 	});
 	if (response.stop_reason === 'refusal') {
