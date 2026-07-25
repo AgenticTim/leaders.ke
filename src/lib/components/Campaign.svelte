@@ -365,7 +365,7 @@
 							<input type="hidden" name="constituency" value={data.viewerProfile.constituencySlug} />
 							<input type="hidden" name="ward" value={data.viewerProfile.wardSlug} />
 						{:else}
-							<p class="text-xs text-muted">Optional - receive area-targeted updates.</p>
+							<p class="text-xs text-muted">Receive updates targeted to your area.</p>
 							<GeoSelect bind:county={followCounty} bind:constituency={followConstituency} bind:ward={followWard} />
 							<input type="hidden" name="county" value={followCounty} />
 							<input type="hidden" name="constituency" value={followConstituency} />

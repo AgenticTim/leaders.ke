@@ -15,7 +15,7 @@ export const load: PageServerLoad = async (event) => {
 	// A brand-new profile with neither a held term nor a run yet has no position —
 	// positionId is NOT NULL on campaigns, so there's no run to attach fundraising
 	// to until one is picked on the Leader/Campaign tab.
-	if (!ctx.position) redirectWithFlash(event.cookies, `../campaign`, 'Set a position before using Fundraising.');
+	if (!ctx.position) redirectWithFlash(event.cookies, `./campaign`, 'Set a position before using Fundraising.');
 
 	// Fundraising belongs to the run: goal + ledger live on the main campaign.
 	const campaign = await getOrCreateRunCampaign(ctx.profileUser.id, ctx.position.id, ctx.profileUser.id, fullName(ctx.profileUser));

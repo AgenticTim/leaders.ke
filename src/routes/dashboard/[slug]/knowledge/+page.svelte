@@ -26,7 +26,7 @@
 
 <div>
 	<h2 class="text-xl font-bold text-heading">Knowledge</h2>
-	<p class="text-sm text-muted">What the AI Chat feature knows and answers from — nothing more, nothing less.</p>
+	<p class="text-sm text-muted">What the AI Chat feature knows and answers from.</p>
 
 	<!-- Friendly, plain-language framing up front — this is the single place most
 	     leaders/managers will misjudge or fear the AI feature, so it's addressed
@@ -34,10 +34,10 @@
 	<div class="mt-4 rounded-2xl border border-border bg-surface-2 p-5 text-sm text-muted">
 		<p class="font-semibold text-heading">How this works, in plain terms</p>
 		<ul class="mt-2 list-disc space-y-1 pl-5">
-			<li>Citizens can ask an AI questions about {data.faqs.length > 0 || data.documents.length > 0 ? 'this campaign' : 'campaigns'} on the public profile page.</li>
-			<li>The AI only answers from what's on this page, plus the Leader, Contacts, Delivery, Campaign, News, Broadcasts, Reviews and Competition tabs — never anything it wasn't given.</li>
+			<li>Citizens can ask questions and get instant answers on your public profile and campaign page.</li>
+			<li>AI generates answers from the content on your profile and this tab. Never anything it wasn't given.</li>
 			<li>It never invents facts, promises, or positions. If something isn't written here, it says so and points citizens to follow the campaign instead.</li>
-			<li>Nothing here is published on its own — it only ever surfaces as an AI-written answer to a citizen's specific question.</li>
+			<li>All content you upload here only ever surfaces as an AI-written answer to a citizen's specific question. It is never published or shared elsewhere.</li>
 		</ul>
 	</div>
 
@@ -48,7 +48,7 @@
 	<!-- FAQ builder -->
 	<div class="mt-6 rounded-2xl border border-border bg-surface p-5">
 		<h3 class="font-semibold text-heading">Frequently asked questions</h3>
-		<p class="mt-1 text-sm text-muted">Answer the questions citizens ask most — the AI leans on these first.</p>
+		<p class="mt-1 text-sm text-muted">Answer the questions citizens ask most - the AI leans on these first.</p>
 
 		{#if data.faqs.length === 0}
 			<p class="mt-3 text-sm text-muted">No FAQs yet.</p>
