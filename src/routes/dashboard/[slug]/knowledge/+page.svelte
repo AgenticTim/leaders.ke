@@ -8,19 +8,124 @@
 	let uploading = $state(false);
 	let faqQuestion = $state('');
 	let faqAnswer = $state('');
-	let docTitle = $state('');
 	let fileInputEl: HTMLInputElement | undefined = $state();
+	const MAX_UPLOAD_MB = 5;
+	let fileTooLarge = $state(false);
+	let hasFile = $state(false);
 
 	let linkUrl = $state('');
 	let fetchingLink = $state(false);
-	let savingLink = $state(false);
-	// The fetched-but-not-yet-saved preview — editable before the team commits it
-	// as a document. Reset whenever a fresh fetch succeeds or the save completes.
-	let linkPreview = $state<{ kind: 'youtube' | 'link'; title: string; content: string; sourceUrl: string } | null>(null);
+	let savingReview = $state(false);
+
+	// The one open review — a not-yet-saved file/link preview, or an existing
+	// document opened for editing (clicking its title in the list). Only one at a
+	// time: opening another replaces whichever was open. `mode` picks the save
+	// action and which hidden fields go with it (see the reviewForm snippet).
+	type Review =
+		| { mode: 'document'; title: string; content: string; sourceUrl: string; mimeType: string }
+		| { mode: 'link'; kind: 'youtube' | 'link'; title: string; content: string; sourceUrl: string }
+		| { mode: 'edit'; id: number; title: string; content: string };
+	let review = $state<Review | null>(null);
+
 	$effect(() => {
-		if (form && 'previewed' in form && form.previewed) linkPreview = { ...form.preview };
+		if (!form || !('previewed' in form) || !form.previewed) return;
+		const p = form.preview;
+		review =
+			p.kind === 'document'
+				? { mode: 'document', title: p.title, content: p.content, sourceUrl: p.sourceUrl, mimeType: p.mimeType }
+				: { mode: 'link', kind: p.kind, title: p.title, content: p.content, sourceUrl: p.sourceUrl };
 	});
 </script>
+
+{#snippet reviewForm(r: Review)}
+	<div class="mt-4 rounded-xl border border-border bg-surface-2 p-4">
+		<p class="text-xs font-semibold text-muted uppercase">
+			{r.mode === 'edit' ? 'Edit document' : r.mode === 'link' && r.kind === 'youtube' ? 'YouTube — review before saving' : 'Review before saving'}
+		</p>
+		<label class="mt-2 block">
+			<span class="text-xs font-medium text-muted">Title</span>
+			<input
+				type="text"
+				value={r.title}
+				oninput={(e) => (r.title = e.currentTarget.value)}
+				class="mt-1 w-full rounded-xl border border-border bg-surface px-4 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+			/>
+		</label>
+		<label class="mt-2 block">
+			<span class="text-xs font-medium text-muted">Extracted text (edit freely before saving)</span>
+			<textarea
+				value={r.content}
+				oninput={(e) => (r.content = e.currentTarget.value)}
+				rows="8"
+				class="mt-1 w-full rounded-xl border border-border bg-surface px-4 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+			></textarea>
+		</label>
+		<div class="mt-3 flex gap-2">
+			{#if r.mode === 'edit'}
+				<form
+					method="post"
+					action="?/updateDocument"
+					use:enhance={() => {
+						savingReview = true;
+						return async ({ result, update }) => {
+							savingReview = false;
+							if (result.type === 'success') review = null;
+							await update({ reset: false });
+						};
+					}}
+				>
+					<input type="hidden" name="id" value={r.id} />
+					<input type="hidden" name="title" value={r.title} />
+					<input type="hidden" name="content" value={r.content} />
+					<button
+						type="submit"
+						disabled={!r.title.trim() || !r.content.trim() || savingReview}
+						class="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95 disabled:opacity-60"
+					>
+						{savingReview ? 'Saving…' : 'Save changes'}
+					</button>
+				</form>
+			{:else}
+				<form
+					method="post"
+					action="?/saveDocument"
+					use:enhance={() => {
+						savingReview = true;
+						return async ({ result, update }) => {
+							savingReview = false;
+							if (result.type === 'success') {
+								review = null;
+								linkUrl = '';
+								hasFile = false;
+								if (fileInputEl) fileInputEl.value = '';
+							}
+							await update({ reset: false });
+						};
+					}}
+				>
+					<input type="hidden" name="title" value={r.title} />
+					<input type="hidden" name="content" value={r.content} />
+					<input type="hidden" name="sourceUrl" value={r.sourceUrl} />
+					<input type="hidden" name="mimeType" value={r.mode === 'document' ? r.mimeType : 'text/plain'} />
+					<button
+						type="submit"
+						disabled={!r.title.trim() || !r.content.trim() || savingReview}
+						class="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95 disabled:opacity-60"
+					>
+						{savingReview ? 'Saving…' : 'Save as document'}
+					</button>
+				</form>
+			{/if}
+			<button
+				type="button"
+				onclick={() => (review = null)}
+				class="rounded-full border border-border bg-surface px-5 py-2 text-sm font-semibold text-heading transition hover:bg-surface-2"
+			>
+				{r.mode === 'edit' ? 'Cancel' : 'Discard'}
+			</button>
+		</div>
+	</div>
+{/snippet}
 
 <svelte:head><title>Knowledge — leaders.ke</title></svelte:head>
 
@@ -124,32 +229,53 @@
 	<!-- Document uploads -->
 	<div class="mt-6 rounded-2xl border border-border bg-surface p-5">
 		<h3 class="font-semibold text-heading">Source documents</h3>
-		<p class="mt-1 text-sm text-muted">
-			Manifestos, policy briefs, position papers. PDF, .txt or .md — under 10 MB. Text is pulled out automatically and
-			feeds the AI right away; a scanned PDF with no real text layer won't have anything to extract.
-		</p>
+		
+		<ul class="mt-1 ml-1 text-sm text-muted list-disc list-inside">
+			<li>Upload manifestos, policy briefs, PDF, .txt or .md - each under 5 MB.</li>
+			<li>Text is pulled out automatically and feeds the AI right away.</li>
+			<li>Files that are mostly textual and relevant tend to perform better</li>
+			<li>Scanned files with no real text layer won't have anything to extract</li>
+		</ul>
 
 		{#if data.documents.length === 0}
 			<p class="mt-3 text-sm text-muted">No documents yet.</p>
 		{:else}
 			<ul class="mt-3 space-y-2">
 				{#each data.documents as doc (doc.id)}
-					<li class="flex items-center justify-between gap-3 rounded-xl bg-surface-2 p-4 text-sm">
-						<div class="min-w-0">
-							<a href={doc.fileUrl} target="_blank" rel="noopener" class="font-medium text-heading hover:underline">{doc.title}</a>
-							<p class="mt-0.5 text-xs text-muted">
-								{doc.mimeType}
-								{#if doc.textReady}· feeding the AI{:else}· not readable by the AI yet{/if}
-							</p>
+					<li class="rounded-xl bg-surface-2 p-4 text-sm">
+						<div class="flex items-center justify-between gap-3">
+							<div class="min-w-0">
+								<button
+									type="button"
+									onclick={() =>
+										(review =
+											review?.mode === 'edit' && review.id === doc.id
+												? null
+												: { mode: 'edit', id: doc.id, title: doc.title, content: doc.text })}
+									class="text-left font-medium text-heading hover:underline"
+								>
+									{doc.title}
+								</button>
+								<p class="mt-0.5 text-xs text-muted">
+									{doc.mimeType}
+									{#if doc.textReady}· feeding the AI{:else}· not readable by the AI yet{/if}
+								</p>
+							</div>
+							<div class="flex shrink-0 items-center gap-3">
+								<a href={doc.fileUrl} target="_blank" rel="noopener" class="text-xs font-semibold text-muted hover:text-heading">Source</a>
+								<form
+									method="post"
+									action="?/removeDocument"
+									use:enhance={() => async ({ update }) => update()}
+								>
+									<input type="hidden" name="id" value={doc.id} />
+									<button type="submit" class="text-xs font-semibold text-muted hover:text-heading">Remove</button>
+								</form>
+							</div>
 						</div>
-						<form
-							method="post"
-							action="?/removeDocument"
-							use:enhance={() => async ({ update }) => update()}
-						>
-							<input type="hidden" name="id" value={doc.id} />
-							<button type="submit" class="shrink-0 text-xs font-semibold text-muted hover:text-heading">Remove</button>
-						</form>
+						{#if review?.mode === 'edit' && review.id === doc.id}
+							{@render reviewForm(review)}
+						{/if}
 					</li>
 				{/each}
 			</ul>
@@ -157,49 +283,50 @@
 
 		<form
 			method="post"
-			action="?/uploadDocument"
+			action="?/previewDocument"
 			enctype="multipart/form-data"
-			class="mt-4 space-y-3 border-t border-border pt-4"
+			class="mt-4 border-t border-border pt-4"
 			use:enhance={() => {
 				uploading = true;
-				return async ({ result, update }) => {
+				review = null;
+				return async ({ update }) => {
 					uploading = false;
-					if (result.type === 'success') {
-						docTitle = '';
-						if (fileInputEl) fileInputEl.value = '';
-					}
 					await update({ reset: false });
 				};
 			}}
 		>
 			<label class="block">
-				<span class="text-sm font-medium text-heading">Title</span>
-				<input
-					type="text"
-					name="title"
-					bind:value={docTitle}
-					placeholder="2027 Manifesto (full)"
-					class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-				/>
-			</label>
-			<label class="block">
 				<span class="text-sm font-medium text-heading">File</span>
-				<input
-					type="file"
-					name="file"
-					accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown"
-					bind:this={fileInputEl}
-					class="mt-1.5 block w-full text-sm text-muted file:mr-3 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-on-primary"
-				/>
+				<div class="mt-1.5 flex flex-wrap items-center justify-between gap-3">
+					<input
+						type="file"
+						name="file"
+						accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown"
+						bind:this={fileInputEl}
+						onchange={() => {
+							const chosen = fileInputEl?.files?.[0];
+							hasFile = !!chosen;
+							fileTooLarge = !!chosen && chosen.size > MAX_UPLOAD_MB * 1024 * 1024;
+						}}
+						class="block flex-1 text-sm text-muted file:mr-3 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-on-primary"
+					/>
+					<button
+						type="submit"
+						disabled={!hasFile || uploading || fileTooLarge}
+						class="shrink-0 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95 disabled:opacity-60"
+					>
+						{uploading ? 'Uploading…' : 'Upload document'}
+					</button>
+				</div>
+				{#if fileTooLarge}
+					<p class="mt-1.5 text-xs font-medium text-red-600">That file is over {MAX_UPLOAD_MB} MB — choose a smaller one.</p>
+				{/if}
 			</label>
-			<button
-				type="submit"
-				disabled={!docTitle.trim() || uploading}
-				class="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95 disabled:opacity-60"
-			>
-				{uploading ? 'Uploading…' : 'Upload document'}
-			</button>
 		</form>
+
+		{#if review?.mode === 'document'}
+			{@render reviewForm(review)}
+		{/if}
 
 		<!-- From a link: fetches and shows the extracted text for review — nothing is
 		     saved until the team confirms, since a page's text can come out messy and
@@ -216,7 +343,7 @@
 				class="mt-3 flex flex-col gap-2 sm:flex-row"
 				use:enhance={() => {
 					fetchingLink = true;
-					linkPreview = null;
+					review = null;
 					return async ({ update }) => {
 						fetchingLink = false;
 						await update({ reset: false });
@@ -239,63 +366,8 @@
 				</button>
 			</form>
 
-			{#if linkPreview}
-				<div class="mt-4 rounded-xl border border-border bg-surface-2 p-4">
-					<p class="text-xs font-semibold text-muted uppercase">
-						{linkPreview.kind === 'youtube' ? 'YouTube — review before saving' : 'Review before saving'}
-					</p>
-					<label class="mt-2 block">
-						<span class="text-xs font-medium text-muted">Title</span>
-						<input
-							type="text"
-							bind:value={linkPreview.title}
-							class="mt-1 w-full rounded-xl border border-border bg-surface px-4 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-						/>
-					</label>
-					<label class="mt-2 block">
-						<span class="text-xs font-medium text-muted">Extracted text (edit freely before saving)</span>
-						<textarea
-							bind:value={linkPreview.content}
-							rows="8"
-							class="mt-1 w-full rounded-xl border border-border bg-surface px-4 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-						></textarea>
-					</label>
-					<div class="mt-3 flex gap-2">
-						<form
-							method="post"
-							action="?/addLink"
-							use:enhance={() => {
-								savingLink = true;
-								return async ({ result, update }) => {
-									savingLink = false;
-									if (result.type === 'success') {
-										linkPreview = null;
-										linkUrl = '';
-									}
-									await update({ reset: false });
-								};
-							}}
-						>
-							<input type="hidden" name="title" value={linkPreview.title} />
-							<input type="hidden" name="content" value={linkPreview.content} />
-							<input type="hidden" name="sourceUrl" value={linkPreview.sourceUrl} />
-							<button
-								type="submit"
-								disabled={!linkPreview.title.trim() || !linkPreview.content.trim() || savingLink}
-								class="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95 disabled:opacity-60"
-							>
-								{savingLink ? 'Saving…' : 'Save as document'}
-							</button>
-						</form>
-						<button
-							type="button"
-							onclick={() => (linkPreview = null)}
-							class="rounded-full border border-border bg-surface px-5 py-2 text-sm font-semibold text-heading transition hover:bg-surface-2"
-						>
-							Discard
-						</button>
-					</div>
-				</div>
+			{#if review?.mode === 'link'}
+				{@render reviewForm(review)}
 			{/if}
 		</div>
 	</div>

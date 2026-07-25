@@ -26,7 +26,13 @@ export const load: PageServerLoad = async (event) => {
 			.where(and(eq(faqEntries.subjectUserId, ctx.profileUser.id), isNull(faqEntries.deletedAt)))
 			.orderBy(asc(faqEntries.sortOrder), asc(faqEntries.id)),
 		db
-			.select({ id: knowledgeDocuments.id, title: knowledgeDocuments.title, fileUrl: knowledgeDocuments.fileUrl, mimeType: knowledgeDocuments.mimeType, hasText: knowledgeDocuments.extractedText })
+			.select({
+				id: knowledgeDocuments.id,
+				title: knowledgeDocuments.title,
+				fileUrl: knowledgeDocuments.fileUrl,
+				mimeType: knowledgeDocuments.mimeType,
+				text: knowledgeDocuments.extractedText
+			})
 			.from(knowledgeDocuments)
 			.where(and(eq(knowledgeDocuments.subjectUserId, ctx.profileUser.id), isNull(knowledgeDocuments.deletedAt)))
 			.orderBy(asc(knowledgeDocuments.id))
@@ -34,7 +40,7 @@ export const load: PageServerLoad = async (event) => {
 
 	return {
 		faqs: faqRows,
-		documents: documentRows.map((d) => ({ id: d.id, title: d.title, fileUrl: d.fileUrl, mimeType: d.mimeType, textReady: !!d.hasText }))
+		documents: documentRows.map((d) => ({ id: d.id, title: d.title, fileUrl: d.fileUrl, mimeType: d.mimeType, text: d.text ?? '', textReady: !!d.text }))
 	};
 };
 
@@ -66,22 +72,70 @@ export const actions: Actions = {
 		return { saved: true };
 	},
 
-	uploadDocument: async (event) => {
+	// Step 1 of the file flow, mirrors previewLink: writes the file to disk and
+	// extracts its text, but doesn't save a knowledgeDocuments row yet — the team
+	// reviews (and can edit) the title/text below before it becomes AI grounding.
+	previewDocument: async (event) => {
 		const { ctx } = await requireLeader(event);
 		if (!ctx.verified) return fail(400, { error: 'Verify your profile first.' });
 		const form = await event.request.formData();
-		const title = String(form.get('title') ?? '').trim();
 		const file = form.get('file');
-		if (!title) return fail(400, { error: 'Give the document a title.' });
 		if (!(file instanceof File) || file.size === 0) return fail(400, { error: 'Choose a file to upload.' });
 
 		try {
 			const { fileUrl, extractedText } = await saveKnowledgeDocument(ctx.profileUser.id, file);
-			await db.insert(knowledgeDocuments).values({ subjectUserId: ctx.profileUser.id, title, fileUrl, mimeType: file.type, extractedText });
+			return {
+				previewed: true,
+				preview: {
+					kind: 'document' as const,
+					title: file.name.replace(/\.[^.]+$/, ''),
+					content: extractedText ?? '',
+					sourceUrl: fileUrl,
+					mimeType: file.type
+				}
+			};
 		} catch (err) {
 			return fail(400, { error: err instanceof Error ? err.message : 'Upload failed.' });
 		}
+	},
+
+	// Step 2, shared by both the file and link flows: commits the (possibly
+	// hand-edited) preview as a document. sourceUrl is the saved file's own
+	// /uploads/knowledge/... URL for an upload, or the original page/video link for
+	// a link — either way there's nothing left to fetch, just save what's shown.
+	saveDocument: async (event) => {
+		const { ctx } = await requireLeader(event);
+		if (!ctx.verified) return fail(400, { error: 'Verify your profile first.' });
+		const form = await event.request.formData();
+		const title = String(form.get('title') ?? '').trim();
+		const content = String(form.get('content') ?? '').trim();
+		const sourceUrl = String(form.get('sourceUrl') ?? '').trim();
+		const mimeType = String(form.get('mimeType') ?? 'text/plain').trim();
+		if (!title) return fail(400, { error: 'Give the document a title.' });
+		if (!content) return fail(400, { error: 'There is no text to save.' });
+		if (!sourceUrl) return fail(400, { error: 'Missing source.' });
+
+		await db.insert(knowledgeDocuments).values({ subjectUserId: ctx.profileUser.id, title, fileUrl: sourceUrl, mimeType, extractedText: content });
 		return { saved: true };
+	},
+
+	// Edits an already-saved document's title/text in place (opened by clicking its
+	// title in the list) — the underlying file/link (fileUrl, mimeType) doesn't change.
+	updateDocument: async (event) => {
+		const { ctx } = await requireLeader(event);
+		const form = await event.request.formData();
+		const id = Number(form.get('id') ?? 0);
+		const title = String(form.get('title') ?? '').trim();
+		const content = String(form.get('content') ?? '').trim();
+		if (!id) return fail(400, { error: 'Nothing to update.' });
+		if (!title) return fail(400, { error: 'Give the document a title.' });
+		if (!content) return fail(400, { error: 'The document needs text.' });
+
+		await db
+			.update(knowledgeDocuments)
+			.set({ title, extractedText: content })
+			.where(and(eq(knowledgeDocuments.id, id), eq(knowledgeDocuments.subjectUserId, ctx.profileUser.id)));
+		return { updated: true };
 	},
 
 	removeDocument: async (event) => {
@@ -111,23 +165,7 @@ export const actions: Actions = {
 		} catch (err) {
 			return fail(400, { error: err instanceof Error ? err.message : 'Could not fetch that link.' });
 		}
-	},
-
-	// Step 2: save the (possibly hand-edited) preview as a document. fileUrl points
-	// at the original source link itself, not a locally hosted file — there's
-	// nothing to serve, the team can already open the source directly.
-	addLink: async (event) => {
-		const { ctx } = await requireLeader(event);
-		if (!ctx.verified) return fail(400, { error: 'Verify your profile first.' });
-		const form = await event.request.formData();
-		const title = String(form.get('title') ?? '').trim();
-		const content = String(form.get('content') ?? '').trim();
-		const sourceUrl = String(form.get('sourceUrl') ?? '').trim();
-		if (!title) return fail(400, { error: 'Give the document a title.' });
-		if (!content) return fail(400, { error: 'There is no text to save — fetch a link first.' });
-		if (!sourceUrl) return fail(400, { error: 'Missing source link.' });
-
-		await db.insert(knowledgeDocuments).values({ subjectUserId: ctx.profileUser.id, title, fileUrl: sourceUrl, mimeType: 'text/plain', extractedText: content });
-		return { saved: true };
 	}
+	// Step 2 (saving the link's preview) is the same `saveDocument` action the
+	// file flow uses above — sourceUrl is the link itself, mimeType 'text/plain'.
 };

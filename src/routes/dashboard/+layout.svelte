@@ -393,7 +393,8 @@
 							(adminAction = ac.profileVerified
 								? { action: 'unverifyProfile', title: 'Remove profile verification?', body: `Removes the Verified badge on the profile.`, confirmLabel: 'Remove' }
 								: { action: 'verifyProfile', title: 'Verify profile?', body: `Shows the Verified badge on the profile.`, confirmLabel: 'Verify' })}
-						class="rounded-full px-3 py-1 text-xs font-semibold transition border border-border text-heading hover:bg-surface"
+						class="rounded-full px-3 py-1 text-xs font-semibold transition border hover:bg-surface
+							{ac.profileVerified ? 'border-border text-muted' : 'border-primary text-primary'}"
 					>{ac.profileVerified ? 'Unverify Profile' : 'Verify Profile'}</button>
 				{/if}
 			</div>
@@ -457,7 +458,7 @@
 					<a
 						href={section.href}
 						aria-current={isActive(section.href) ? 'page' : undefined}
-						class="whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition {isActive(
+						class="whitespace-nowrap border-b-2 px-1 sm:px-2 lg:px-3 py-2.5 text-sm font-medium transition {isActive(
 							section.href
 						)
 							? 'border-primary text-heading'
