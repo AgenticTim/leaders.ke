@@ -60,9 +60,8 @@
 			<div class="sm:col-span-2">
 				<a href="/" class="text-lg font-bold text-heading">leaders.ke</a>
 				<p class="mt-2 max-w-xs text-sm leading-relaxed text-muted">
-					Campaign platform for Smart Kenya's leaders. For voter tools and education, visit
-					<a href={voteBase} class="font-medium text-primary hover:underline">vote.ke</a>.
-				</p>
+					Campaign Management Platform. 
+				</p> 
 				<!-- Election countdown, same block as the vote.ke footer; capped to the blurb's width -->
 				<div class="mt-4 max-w-xs text-center">
 					<Countdown />
@@ -88,13 +87,12 @@
 		"g"), which at this size otherwise bleeds past leading-none's line box into
 		the row below. Top-aligning (not centering) inside the shorter box means only
 		that descender gets clipped, not the tops of the letters. -->
-		<div class="h-[16cqw] overflow-hidden">
-			<a href="/"
-				aria-hidden="true"
-				class="flex select-none items-start justify-center gap-[0.08em] -ml-[0.1em] text-[18cqw] font-bold leading-none tracking-tighter text-primary/20"
+		<div class="-mt-10 -z-10 h-[24cqw] overflow-hidden ">
+			<p
+				class="flex select-none items-start justify-center gap-[0.08em] ml-[-0.1em] text-[24cqw] font-bold leading-none tracking-tighter text-primary/20"
 			>
 				<span class="">leaders.ke</span>
-			</a>
+		</p>
 		</div>
 		<div
 			class="mt-10 flex flex-col items-center justify-between gap-2 border-t border-border pt-6 text-xs text-muted sm:flex-row"

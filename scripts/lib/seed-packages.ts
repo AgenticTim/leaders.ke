@@ -12,7 +12,8 @@ const TIERS = ['kickstart', 'mobilize', 'dominate'] as const;
 
 export async function seedPackages(db: AnyDb) {
 	let ratesWritten = 0;
-	let featuresWritten = 0;
+	let featureRowsCreated = 0;
+	let featureKeysBackfilled = 0;
 
 	for (const tier of TIERS) {
 		const seed = (packageData as Record<string, SeedPackage>)[tier];
@@ -29,12 +30,21 @@ export async function seedPackages(db: AnyDb) {
 			ratesWritten++;
 		}
 
-		const [existing] = await db.select({ id: packages.id }).from(packages).where(eq(packages.tier, tier));
+		const [existing] = await db.select({ id: packages.id, features: packages.features }).from(packages).where(eq(packages.tier, tier));
 		if (!existing) {
 			await db.insert(packages).values({ tier, features });
-			featuresWritten++;
+			featureRowsCreated++;
+		} else {
+			// Union-backfill: a feature key added to packages.json after this tier's
+			// row already existed (e.g. knowledgeMb) needs to land on production too,
+			// but never clobber a cap an admin already tuned in the dashboard.
+			const missing = Object.fromEntries(Object.entries(features).filter(([key]) => !(key in existing.features)));
+			if (Object.keys(missing).length > 0) {
+				await db.update(packages).set({ features: { ...existing.features, ...missing } }).where(eq(packages.id, existing.id));
+				featureKeysBackfilled++;
+			}
 		}
 	}
 
-	console.log(`[packages] ${ratesWritten} rate(s) written, ${featuresWritten} feature row(s) created`);
+	console.log(`[packages] ${ratesWritten} rate(s) written, ${featureRowsCreated} feature row(s) created, ${featureKeysBackfilled} row(s) backfilled`);
 }

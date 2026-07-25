@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { untrack } from 'svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -16,8 +17,15 @@
 	let linkUrl = $state('');
 	let fetchingLink = $state(false);
 	let savingReview = $state(false);
+	// Scroll-syncs the reviewForm's highlight backdrop to the real textarea
+	// (only one review is ever open at a time, so one shared ref is enough) —
+	// without this the red span can sit far down in a long document, past
+	// what's visible in the ~8-row textarea, and never scroll into view since
+	// the backdrop is a separate, otherwise-static layer.
+	let reviewBackdropEl: HTMLDivElement | undefined = $state();
+	let reviewTextareaEl: HTMLTextAreaElement | undefined = $state();
 
-	// The one open review — a not-yet-saved file/link preview, or an existing
+	// The one open review: a not-yet-saved file/link preview, or an existing
 	// document opened for editing (clicking its title in the list). Only one at a
 	// time: opening another replaces whichever was open. `mode` picks the save
 	// action and which hidden fields go with it (see the reviewForm snippet).
@@ -27,6 +35,24 @@
 		| { mode: 'edit'; id: number; title: string; content: string };
 	let review = $state<Review | null>(null);
 
+	// Live usage against the per-question grounding cap (see load()) — purely
+	// informational (the progress bar at the bottom of the page), never blocks
+	// saving: the actual enforcement is groundingText() silently trimming
+	// whatever's over budget at ask-time, not this tab.
+	const knowledgeFull = $derived(data.knowledgeUsage.used >= data.knowledgeUsage.cap);
+	const usagePct = $derived(Math.min(100, Math.round((data.knowledgeUsage.used / data.knowledgeUsage.cap) * 100)));
+
+	// How much budget is available for a given review's content: cap minus
+	// everything else already stored. Editing an existing document excludes
+	// that document's own current stored length first (it's being replaced,
+	// not added on top of). Drives the red highlight over whatever part of the
+	// textarea's content won't fit (see the reviewForm snippet) — informational
+	// only, saving past it is still allowed, it just won't all reach the AI.
+	function availableFor(r: Review): number {
+		const excludeExisting = r.mode === 'edit' ? (data.documents.find((d) => d.id === r.id)?.text.length ?? 0) : 0;
+		return data.knowledgeUsage.cap - data.knowledgeUsage.used + excludeExisting;
+	}
+
 	$effect(() => {
 		if (!form || !('previewed' in form) || !form.previewed) return;
 		const p = form.preview;
@@ -35,12 +61,37 @@
 				? { mode: 'document', title: p.title, content: p.content, sourceUrl: p.sourceUrl, mimeType: p.mimeType }
 				: { mode: 'link', kind: p.kind, title: p.title, content: p.content, sourceUrl: p.sourceUrl };
 	});
+
+	// Jumps the textarea to where the content starts overflowing the remaining
+	// budget the moment a review opens, so the red highlight is visible without
+	// having to scroll and hunt for it in a long document. Reads `.content`/
+	// `available` inside untrack() so this only fires when a *new* review opens
+	// (review/reviewTextareaEl reference changes), not on every keystroke while
+	// editing (which would otherwise yank the scroll position while typing).
+	$effect(() => {
+		if (!review || !reviewTextareaEl) return;
+		const el = reviewTextareaEl;
+		untrack(() => {
+			const r = review;
+			if (!r) return;
+			const avail = availableFor(r);
+			if (r.content.length <= avail) return;
+			queueMicrotask(() => {
+				const ratio = avail / r.content.length;
+				const top = Math.max(0, ratio * (el.scrollHeight - el.clientHeight) - 40);
+				el.scrollTop = top;
+				if (reviewBackdropEl) reviewBackdropEl.scrollTop = top;
+			});
+		});
+	});
 </script>
 
 {#snippet reviewForm(r: Review)}
+	{@const available = availableFor(r)}
+	{@const tooBig = r.content.length > available}
 	<div class="mt-4 rounded-xl border border-border bg-surface-2 p-4">
 		<p class="text-xs font-semibold text-muted uppercase">
-			{r.mode === 'edit' ? 'Edit document' : r.mode === 'link' && r.kind === 'youtube' ? 'YouTube — review before saving' : 'Review before saving'}
+			{r.mode === 'edit' ? 'Edit document' : r.mode === 'link' && r.kind === 'youtube' ? 'YouTube, review before saving' : 'Review before saving'}
 		</p>
 		<label class="mt-2 block">
 			<span class="text-xs font-medium text-muted">Title</span>
@@ -53,14 +104,33 @@
 		</label>
 		<label class="mt-2 block">
 			<span class="text-xs font-medium text-muted">Extracted text (edit freely before saving)</span>
-			<textarea
-				value={r.content}
-				oninput={(e) => (r.content = e.currentTarget.value)}
-				rows="8"
-				class="mt-1 w-full rounded-xl border border-border bg-surface px-4 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-			></textarea>
+			<!-- Overlay trick: a backdrop div (same font/padding, invisible text)
+			     sits behind the real textarea, whose background is transparent so
+			     the backdrop's red span shows through exactly where the textarea's
+			     characters overflow the remaining context budget. The textarea
+			     itself stays a plain, fully-editable text box on top. -->
+			<div class="relative mt-1">
+				<div
+					bind:this={reviewBackdropEl}
+					aria-hidden="true"
+					class="pointer-events-none absolute inset-0 overflow-hidden rounded-xl border border-transparent bg-surface px-4 py-2 text-sm whitespace-pre-wrap break-words text-transparent"
+				>{r.content.slice(0, Math.max(0, available))}<span class="bg-red-300/70">{r.content.slice(Math.max(0, available))}</span></div>
+				<textarea
+					bind:this={reviewTextareaEl}
+					value={r.content}
+					oninput={(e) => (r.content = e.currentTarget.value)}
+					onscroll={(e) => {
+						if (reviewBackdropEl) {
+							reviewBackdropEl.scrollTop = e.currentTarget.scrollTop;
+							reviewBackdropEl.scrollLeft = e.currentTarget.scrollLeft;
+						}
+					}}
+					rows="8"
+					class="relative w-full resize-none rounded-xl border border-border bg-transparent px-4 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+				></textarea>
+			</div>
 		</label>
-		<div class="mt-3 flex gap-2">
+		<div class="mt-3 flex flex-wrap items-center gap-2">
 			{#if r.mode === 'edit'}
 				<form
 					method="post"
@@ -112,14 +182,19 @@
 						disabled={!r.title.trim() || !r.content.trim() || savingReview}
 						class="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95 disabled:opacity-60"
 					>
-						{savingReview ? 'Saving…' : 'Save as document'}
+						{savingReview ? 'Saving…' : 'Save context'}
 					</button>
 				</form>
+			{/if}
+			{#if tooBig}
+				<p class="mt-1 text-xs font-medium text-amber-500">
+					The part highlighted in red will be trimmed to fit your context limit.
+				</p>
 			{/if}
 			<button
 				type="button"
 				onclick={() => (review = null)}
-				class="rounded-full border border-border bg-surface px-5 py-2 text-sm font-semibold text-heading transition hover:bg-surface-2"
+				class="ml-auto rounded-full border border-border bg-surface px-5 py-2 text-sm font-semibold text-heading transition hover:bg-surface-2"
 			>
 				{r.mode === 'edit' ? 'Cancel' : 'Discard'}
 			</button>
@@ -127,13 +202,13 @@
 	</div>
 {/snippet}
 
-<svelte:head><title>Knowledge — leaders.ke</title></svelte:head>
+<svelte:head><title>Knowledge: leaders.ke</title></svelte:head>
 
 <div>
 	<h2 class="text-xl font-bold text-heading">Knowledge</h2>
 	<p class="text-sm text-muted">What the AI Chat feature knows and answers from.</p>
 
-	<!-- Friendly, plain-language framing up front — this is the single place most
+	<!-- Friendly, plain-language framing up front, this is the single place most
 	     leaders/managers will misjudge or fear the AI feature, so it's addressed
 	     before any form, not buried in a tooltip. -->
 	<div class="mt-4 rounded-2xl border border-border bg-surface-2 p-5 text-sm text-muted">
@@ -212,7 +287,7 @@
 					name="answer"
 					bind:value={faqAnswer}
 					rows="3"
-					placeholder="Write the answer exactly as you'd want a citizen to read it — the AI may reuse this wording directly."
+					placeholder="Write the answer exactly as you'd want a citizen to read it. The AI may reuse this wording directly."
 					class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
 				></textarea>
 			</label>
@@ -319,7 +394,7 @@
 					</button>
 				</div>
 				{#if fileTooLarge}
-					<p class="mt-1.5 text-xs font-medium text-red-600">That file is over {MAX_UPLOAD_MB} MB — choose a smaller one.</p>
+					<p class="mt-1.5 text-xs font-medium text-red-600">That file is over {MAX_UPLOAD_MB} MB. Choose a smaller one.</p>
 				{/if}
 			</label>
 		</form>
@@ -328,7 +403,7 @@
 			{@render reviewForm(review)}
 		{/if}
 
-		<!-- From a link: fetches and shows the extracted text for review — nothing is
+		<!-- From a link: fetches and shows the extracted text for review. Nothing is
 		     saved until the team confirms, since a page's text can come out messy and
 		     is worth a glance before it becomes something the AI quotes from. -->
 		<div class="mt-6 border-t border-border pt-4">
@@ -369,6 +444,16 @@
 			{#if review?.mode === 'link'}
 				{@render reviewForm(review)}
 			{/if}
+		</div>
+	</div>
+
+	<div class="mt-6">
+		<div class="flex items-center justify-between text-xs font-medium text-muted">
+			<span>Context used</span>
+			<span>{data.knowledgeUsage.used.toLocaleString()} / {data.knowledgeUsage.cap.toLocaleString()} characters</span>
+		</div>
+		<div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
+			<div class="h-full rounded-full {knowledgeFull ? 'bg-red-600' : 'bg-primary'}" style="width: {usagePct}%"></div>
 		</div>
 	</div>
 </div>

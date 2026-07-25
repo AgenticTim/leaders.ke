@@ -43,7 +43,7 @@ export async function setRate(tier: SubscriptionTier, billingCycle: BillingCycle
 	await db.insert(pricing).values({ tier, billingCycle, amount, activeFrom: now });
 }
 
-export const PACKAGE_FEATURE_KEYS = ['managers', 'ambassadors', 'subscriptions', 'creditsPerMonth'] as const;
+export const PACKAGE_FEATURE_KEYS = ['managers', 'ambassadors', 'subscriptions', 'creditsPerMonth', 'knowledgeMb'] as const;
 export type PackageFeatureKey = (typeof PACKAGE_FEATURE_KEYS)[number];
 
 export type PackageRow = { tier: string; features: PackageFeatures };
@@ -52,6 +52,13 @@ export type PackageRow = { tier: string; features: PackageFeatures };
 export async function listPackages(): Promise<PackageRow[]> {
 	const rows = await db.select().from(packages);
 	return rows.map((r) => ({ tier: r.tier, features: r.features }));
+}
+
+/** One tier's caps — for runtime enforcement (e.g. the Knowledge tab's upload
+ * cap), where only one tier's features are needed, not the whole matrix. */
+export async function getPackageFeatures(tier: SubscriptionTier): Promise<PackageFeatures | null> {
+	const [row] = await db.select({ features: packages.features }).from(packages).where(eq(packages.tier, tier));
+	return row?.features ?? null;
 }
 
 /** Updates one cap on one package; null = unlimited. */

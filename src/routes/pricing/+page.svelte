@@ -34,7 +34,7 @@
 			tagline: 'Command the race',
 			highlights: [
 				'Unlimited managers, ambassadors & subscriptions',
-				'PR AI Agent — daily news research',
+				'PR AI Agent: daily news research',
 				'Voter heatmap per ward',
 				'Sentiment Intelligence suite',
 				'15,000 credits/mo'
@@ -48,9 +48,11 @@
 		'Publish manifesto and past delivery',
 		'IEBC blue-check verification',
 		'Private voter register',
-		'Press desk — publish news, tag leaders, parties',
+		'Press desk: publish news, tag leaders, parties',
 		'Broadcast to citizens using credits*',
-		'Fundraising toolkit*'
+		'Fundraising toolkit*',
+		'Free platform maintenance',
+		'Free support'
 	];
 
 	// Comparison rows: same metric across all three tiers ("—" means not included).
@@ -60,10 +62,111 @@
 		{ label: 'Citizen subscriptions', values: ['10,000', '100,000', 'Unlimited'] },
 		{ label: 'Analytics: page views, conversions, pledges', values: ['—', '✓', '✓'] },
 		{ label: 'Agentic AI chat on profile, campaign, channels', values: ['—', '✓', '✓'] },
-		{ label: 'PR AI Agent — daily news research', values: ['—', '—', '✓'] },
+		{ label: 'PR AI Agent: daily news research', values: ['—', '—', '✓'] },
 		{ label: 'Voter heatmap per ward', values: ['—', '—', '✓'] },
-		{ label: 'Sentiment Intelligence suite — campaign, competition', values: ['—', '—', '✓'] },
+		{ label: 'Sentiment Intelligence suite: campaign, competition', values: ['—', '—', '✓'] },
 		{ label: 'Credits included/mo', values: ['500', '3,000', '15,000'] }
+	];
+
+	// Network-effect features: only real value once other leaders are on the
+	// platform too, so a private/DIY campaign site can never replicate them.
+	// available is either '✓' (shipped) or a target month for what isn't yet.
+	const networkFeatures = [
+		{
+			feature: 'Compare',
+			description: 'Side by side manifesto, delivery record and reviews against rivals for the same seat.',
+			available: '✓',
+			href: '/compare'
+		},
+		{
+			feature: 'Rank',
+			description: 'Public leaderboard by seat, pulling traffic to every listed candidate.',
+			available: '✓',
+			href: '/rank'
+		},
+		{
+			feature: 'Seat hub',
+			description: 'Your page listed alongside every rival for the seat, for context and credibility.',
+			available: '✓',
+			href: null
+		},
+		{
+			feature: 'Coalition and alliance pages',
+			description: 'Joint page for allied candidates across different seats.',
+			available: '✓',
+			href: '/alliances'
+		},
+		{
+			feature: 'Party roster',
+			description: 'Every candidate under one party, bundled on a single page.',
+			available: '✓',
+			href: '/parties'
+		},
+		{
+			feature: 'Endorsement cards',
+			description: 'Shareable graphics when a leader or alliance endorses you.',
+			available: "Aug '26",
+			href: null
+		},
+		{
+			feature: 'Debate prep pack',
+			description: "AI brief of your record against each rival's published record.",
+			available: "Aug '26",
+			href: null
+		},
+		{
+			feature: 'Right of reply',
+			description: 'Respond inline when tagged in a rival\'s post or a news mention.',
+			available: "Aug '26",
+			href: null
+		},
+		{
+			feature: 'Combo ticket pledges',
+			description: 'A citizen pledges to a President, Governor and MP combo, tracked as one.',
+			available: "Aug '26",
+			href: null
+		},
+		{
+			feature: 'Cross campaign ambassador pool',
+			description: 'One ambassador mobilizing for a whole ticket, not just one candidate.',
+			available: "Aug '26",
+			href: null
+		},
+		{
+			feature: 'Portable team reputation',
+			description: 'A badge for managers and ambassadors who have worked on multiple campaigns.',
+			available: "Aug '26",
+			href: null
+		},
+		{
+			feature: 'Benchmarking analytics',
+			description: 'Your conversion rate compared to the average for your seat.',
+			available: "Aug '26",
+			href: null
+		},
+		{
+			feature: 'Joint town hall',
+			description: 'One question, compared answers from every candidate on the same seat.',
+			available: "Aug '26",
+			href: null
+		}
+	];
+
+	// PAYG (pay-as-you-go) credits, KES 1 each. SMS/WhatsApp costs mirror the
+	// broadcast footnote. AI chat's 5 credits is the Sonnet 5 per-question cost
+	// (docs/ai-chat-costs.md) rounded up to the nearest KES. Boost isn't a flat
+	// credit price: it scales with the seat hub's own audience size (see the
+	// pricing remodel plan's PAYG catalogue), from a ward MCA hub up to the
+	// national President/VP hub.
+	const paygCredits = [
+		{ item: 'AI chat', price: '5 credits', description: 'Per citizen question answered on your profile, campaign or channels.' },
+		{ item: 'SMS', price: '1 credit', description: 'Per SMS broadcast sent to a follower.' },
+		{ item: 'WhatsApp', price: '5 credits', description: 'Per WhatsApp broadcast sent to a follower.' },
+		{
+			item: 'Boost',
+			price: '1,000 to 10,000 credits',
+			description: '7 days featured on your seat hub and region page. Price scales with that seat\'s audience: lowest for an MCA ward hub, highest for the President/VP national hub.'
+		}
 	];
 
 	const fmt = new Intl.NumberFormat('en-KE');
@@ -79,11 +182,47 @@
 	const active = $derived(hovered ?? 1);
 </script>
 
+{#snippet billingToggle()}
+	<div
+		class="inline-flex items-center gap-1 rounded-full border border-border bg-surface-2 p-1"
+		role="group"
+		aria-label="Billing cycle"
+	>
+		<button
+			type="button"
+			aria-pressed={!annual}
+			onclick={() => (annual = false)}
+			class="rounded-full px-4 py-1.5 text-sm font-semibold transition {!annual
+				? 'bg-primary text-on-primary'
+				: 'text-muted hover:text-heading'}"
+		>
+			Monthly
+		</button>
+		<button
+			type="button"
+			aria-pressed={annual}
+			onclick={() => (annual = true)}
+			class="flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold transition {annual
+				? 'bg-primary text-on-primary'
+				: 'text-muted hover:text-heading'}"
+		>
+			Annual
+			<span
+				class="rounded-full px-1.5 py-0.5 text-xs {annual
+					? 'bg-on-primary/15 text-on-primary'
+					: 'bg-primary-soft text-on-primary'}"
+			>
+				2 months free
+			</span>
+		</button>
+	</div>
+{/snippet}
+
 <svelte:head>
-	<title>Pricing — leaders.ke</title>
+	<title>Pricing: leaders.ke</title>
 	<meta
 		name="description"
-		content="leaders.ke subscription pricing: Kickstart, Mobilize and Dominate packages — one flat rate for every office."
+		content="leaders.ke subscription pricing: Kickstart, Mobilize and Dominate packages, one flat rate for every office."
 	/>
 </svelte:head>
 
@@ -155,41 +294,9 @@
 		{/each}
 	</div>
 
-	<!-- Monthly / Annual toggle -->
+	
 	<div class="mt-8 flex items-center justify-center">
-		<div
-			class="inline-flex items-center gap-1 rounded-full border border-border bg-surface-2 p-1"
-			role="group"
-			aria-label="Billing cycle"
-		>
-			<button
-				type="button"
-				aria-pressed={!annual}
-				onclick={() => (annual = false)}
-				class="rounded-full px-4 py-1.5 text-sm font-semibold transition {!annual
-					? 'bg-primary text-on-primary'
-					: 'text-muted hover:text-heading'}"
-			>
-				Monthly
-			</button>
-			<button
-				type="button"
-				aria-pressed={annual}
-				onclick={() => (annual = true)}
-				class="flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold transition {annual
-					? 'bg-primary text-on-primary'
-					: 'text-muted hover:text-heading'}"
-			>
-				Annual
-				<span
-					class="rounded-full px-1.5 py-0.5 text-xs {annual
-						? 'bg-on-primary/15 text-on-primary'
-						: 'bg-primary-soft text-on-primary'}"
-				>
-					2 months free
-				</span>
-			</button>
-		</div>
+		{@render billingToggle()}
 	</div>
 
 	<!-- Base features -->
@@ -256,7 +363,7 @@
 				</tr>
 				<!-- Get started row -->
 				<tr class="border-t border-border">
-					<td class="px-2"></td>
+					<td class="px-2">{@render billingToggle()}</td>
 					{#each tiers as tier (tier)}
 						<td class="px-4 py-3">
 							<a
@@ -272,67 +379,89 @@
 		</table>
 	</div>
 
-	<!-- Monthly / Annual toggle -->
-	<div class="mt-8 flex items-center justify-center">
-		<div
-			class="inline-flex items-center gap-1 rounded-full border border-border bg-surface-2 p-1"
-			role="group"
-			aria-label="Billing cycle"
-		>
-			<button
-				type="button"
-				aria-pressed={!annual}
-				onclick={() => (annual = false)}
-				class="rounded-full px-4 py-1.5 text-sm font-semibold transition {!annual
-					? 'bg-primary text-on-primary'
-					: 'text-muted hover:text-heading'}"
-			>
-				Monthly
-			</button>
-			<button
-				type="button"
-				aria-pressed={annual}
-				onclick={() => (annual = true)}
-				class="flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold transition {annual
-					? 'bg-primary text-on-primary'
-					: 'text-muted hover:text-heading'}"
-			>
-				Annual
-				<span
-					class="rounded-full px-1.5 py-0.5 text-xs {annual
-						? 'bg-on-primary/15 text-on-primary'
-						: 'bg-primary-soft text-on-primary'}"
-				>
-					2 months free
-				</span>
-			</button>
-		</div>
-	</div>
-	
-	<!-- Credits footnote -->
-	<div class="mt-4 text-center text-sm text-muted">
-		<p>* Credits meter broadcast sends: SMS costs 1 credit, WhatsApp costs 5 credits per message.</p>
+	<div class="mt-8 text-center">
+		<p class="mt-2 text-sm">Your payment helps us verify your candidature against IEBC records, continuously build and maintain our systems and pay for the infrastructure.</p>
 	</div>
 
-	<div class="mt-4 text-center">
-		<p class="mt-2 text-base">One flat rate, whatever office you're vying for.</p>
-		<p class="mt-2 text-base">Your payment helps us verify your candidature against IEBC records, continuously build and maintain our systems and pay for the infrastructure.</p>
-		<p class="mt-2 text-base">Your campaign page becomes accessible once it's verified and paid.</p>
+	<!-- Leaders.ke vs a private/DIY campaign platform: features that only exist
+	     because other leaders are on this same platform, so a standalone site
+	     can never replicate them regardless of its own budget. -->
+	<h2 class="mt-14 text-2xl font-bold text-heading">Leaders KE vs a Private Campaign Platform</h2>
+	<p class="mt-2 max-w-3xl text-sm text-muted">
+		A private site is only ever your own page. These need other leaders on the platform too, so no
+		standalone campaign site can offer them, no matter its budget.
+	</p>
+	<div class="mt-6 overflow-x-auto rounded-2xl border border-border">
+		<table class="w-full min-w-160 table-fixed border-collapse text-left">
+			<thead>
+				<tr class="bg-surface-2">
+					<th class="w-1/5 px-4 py-3 text-sm font-semibold text-heading">Feature</th>
+					<th class="w-3/5 px-4 py-3 text-sm font-semibold text-heading">Description</th>
+					<th class="w-1/5 px-4 py-3 text-sm font-semibold text-heading">Available</th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each networkFeatures as row (row.feature)}
+					<tr class="border-t border-border">
+						<th class="px-4 py-3 text-sm font-medium text-heading">
+							{#if row.href}
+								<a href={row.href} class="hover:underline">{row.feature}</a>
+							{:else}
+								{row.feature}
+							{/if}
+						</th>
+						<td class="px-4 py-3 text-sm text-muted">{row.description}</td>
+						<td class="px-4 py-3 text-sm {row.available === '✓' ? 'font-semibold text-primary' : 'text-heading'}">
+							{row.available}
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
+
+	<!-- PAYG credits: what a credit buys, once the plan's included allowance runs out. -->
+	<h2 class="mt-14 text-2xl font-bold text-heading">PAYG Credits</h2>
+	<p class="mt-2 max-w-3xl text-sm text-muted">KES 1 per credit. Top up anytime once your plan's monthly allowance runs out.</p>
+	<div class="mt-6 overflow-x-auto rounded-2xl border border-border">
+		<table class="w-full min-w-160 table-fixed border-collapse text-left">
+			<thead>
+				<tr class="bg-surface-2">
+					<th class="w-1/5 px-4 py-3 text-sm font-semibold text-heading">Item</th>
+					<th class="w-1/5 px-4 py-3 text-sm font-semibold text-heading">Price</th>
+					<th class="w-3/5 px-4 py-3 text-sm font-semibold text-heading">Description</th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each paygCredits as row (row.item)}
+					<tr class="border-t border-border">
+						<th class="px-4 py-3 text-sm font-medium text-heading">{row.item}</th>
+						<td class="px-4 py-3 text-sm font-semibold text-primary">{row.price}</td>
+						<td class="px-4 py-3 text-sm text-muted">{row.description}</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
 	</div>
 
 	<!-- CTA -->
 	<div
-		class="mt-12 flex flex-col items-center gap-4 rounded-3xl bg-primary px-6 py-10 text-center text-on-primary"
+		class="mt-12 flex flex-col items-center gap-4 rounded-3xl border border-primary px-6 py-10 text-center text-heading"
 	>
-		<h2 class="text-2xl font-bold text-on-primary">Ready to go public?</h2>
+		<p class="mt-2 text-lg font-semibold uppercase tracking-widest text-heading">
+			T MINUS 10TH August 2027
+		</p>
 
-		<div class="mt-4 mx-auto">
+		<div class="mt-2 mx-auto">
 			<Countdown />
 		</div>
 
-		<p class="mt-4 text-xl font-semibold uppercase tracking-widest text-on-primary">
-			10 August 2027
-		</p>
+		<a
+			href="/onboard/profile"
+			class="mt-6 rounded-full bg-primary px-6 py-3 font-semibold text-on-primary transition hover:brightness-95 focus:ring-0 focus:ring-ring focus:outline-none"
+		>
+			🚀 Lets Get Onboard
+		</a>
 
 	</div>
 </section>

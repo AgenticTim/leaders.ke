@@ -15,7 +15,7 @@ import { getPlatformSettings } from '$lib/server/settings';
 
 /** This person's current paid tier, defaulting to the lowest tier ('kickstart')
  * when they have no active subscription (billing is user-scoped). */
-async function getPersonTier(subjectUserId: number): Promise<'kickstart' | 'mobilize' | 'dominate'> {
+export async function getPersonTier(subjectUserId: number): Promise<'kickstart' | 'mobilize' | 'dominate'> {
 	const [row] = await db
 		.select({ tier: subscriptions.tier })
 		.from(subscriptions)

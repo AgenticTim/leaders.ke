@@ -175,6 +175,24 @@ Applies everywhere a code/link is sent
 			></textarea>
 		</div>
 
+		<div class="rounded-2xl border border-border bg-surface p-5">
+			<h2 class="font-semibold text-heading">AI Chat grounding cap</h2>
+			<p class="mt-1 text-xs text-muted">
+				Max characters of profile, manifesto, posts, FAQ and uploaded documents sent in one AI Chat prompt
+				(docs/ai-chat-costs.md). Bounds per-question cost regardless of how much a leader has uploaded.
+			</p>
+			<label class="mt-2 block">
+				<span class="text-xs font-medium text-muted">Max grounding characters</span>
+				<input
+					type="number"
+					name="maxGroundingChars"
+					min="1"
+					value={data.settings.maxGroundingChars}
+					class="mt-1 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+				/>
+			</label>
+		</div>
+
 		<!-- AI Chat system prompts: how the assistant behaves everywhere (platform-wide)
 		     and specifically when answering about one leader's profile. Both need room
 		     to breathe, so each spans the full grid width. -->

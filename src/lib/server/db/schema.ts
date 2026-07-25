@@ -756,6 +756,11 @@ export type PackageFeatures = {
   ambassadors: number | null;
   subscriptions: number | null;
   creditsPerMonth: number | null;
+  // Total MB of Knowledge-tab text (files + links, extractedText characters —
+  // see docs/ai-chat-costs.md's 1MB≈1,000,000-char rule) a leader may accumulate.
+  // Bounds the per-question Anthropic cost, since the whole total rides in every
+  // AI Chat prompt. null = unlimited.
+  knowledgeMb: number | null;
 };
 
 export const packages = pgTable('packages', {
@@ -1126,6 +1131,12 @@ export const platformSettings = pgTable('platform_settings', {
   // per-leader profile answers. Both editable on the admin Settings page.
   platformSystemPrompt: text('platform_system_prompt').default(DEFAULT_PLATFORM_SYSTEM_PROMPT).notNull(),
   leaderSystemPrompt: text('leader_system_prompt').default(DEFAULT_LEADER_SYSTEM_PROMPT).notNull(),
+  // Per-question grounding cap (docs/ai-chat-costs.md): total characters of
+  // profile/manifesto/posts/FAQ/documents sent in one AI Chat prompt
+  // (groundingText() in $lib/server/ai.ts). Bounds per-question Anthropic
+  // cost regardless of how much a leader has uploaded (that's the separate,
+  // much bigger knowledgeMb storage cap per plan).
+  maxGroundingChars: integer('max_grounding_chars').default(50_000).notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 

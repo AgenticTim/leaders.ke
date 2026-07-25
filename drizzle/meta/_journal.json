@@ -582,6 +582,13 @@
       "when": 1784905008385,
       "tag": "0082_steady_nico_minoru",
       "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1784977149667,
+      "tag": "0083_orange_victor_mancha",
+      "breakpoints": true
     }
   ]
 }

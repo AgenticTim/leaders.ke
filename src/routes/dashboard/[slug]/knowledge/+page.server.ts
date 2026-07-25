@@ -6,20 +6,55 @@
 // profile, which itself only exists once verified. Each add/remove saves
 // immediately, same convention as the Delivery tab.
 import { fail } from '@sveltejs/kit';
-import { and, asc, count, eq, isNull } from 'drizzle-orm';
+import { and, asc, count, eq, isNull, ne } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { faqEntries, knowledgeDocuments } from '$lib/server/db/schema';
 import { requireLeader } from '$lib/server/dashboard';
 import { redirectWithFlash } from '$lib/server/flash';
 import { previewLinkContent } from '$lib/server/linkExtract';
 import { saveKnowledgeDocument } from '$lib/server/storage';
+import { getPersonTier } from '$lib/server/invites';
+import { getPackageFeatures } from '$lib/server/packages';
+import { getPlatformSettings } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
+
+/** Throws once this leader's total extracted-text characters (existing docs,
+ * minus the one being edited if any, plus what's about to be saved) would
+ * cross their plan's knowledgeMb storage cap (admin-editable on
+ * /dashboard/admin/packages; null = unlimited) — the paid-tier gate. This is
+ * a storage limit only: how much AI Chat actually reads per question is a
+ * separate, much smaller budget (platformSettings.maxGroundingChars) that
+ * groundingText() in $lib/server/ai.ts silently trims to at ask-time, not
+ * enforced here — the Knowledge tab just shows how much of that budget is
+ * used and highlights what won't fit, it never blocks a save over it. 1 MB ≈
+ * 1,000,000 characters of plain text (docs/ai-chat-costs.md). */
+async function assertWithinKnowledgeCap(subjectUserId: number, addedChars: number, excludeDocId?: number): Promise<void> {
+	const tier = await getPersonTier(subjectUserId);
+	const planCapMb = (await getPackageFeatures(tier))?.knowledgeMb ?? null;
+	if (planCapMb === null) return;
+
+	const rows = await db
+		.select({ text: knowledgeDocuments.extractedText })
+		.from(knowledgeDocuments)
+		.where(
+			and(
+				eq(knowledgeDocuments.subjectUserId, subjectUserId),
+				isNull(knowledgeDocuments.deletedAt),
+				excludeDocId ? ne(knowledgeDocuments.id, excludeDocId) : undefined
+			)
+		);
+	const existingChars = rows.reduce((n, r) => n + (r.text?.length ?? 0), 0);
+	if (existingChars + addedChars > planCapMb * 1_000_000) {
+		const planLabel = tier.charAt(0).toUpperCase() + tier.slice(1);
+		throw new Error(`${planCapMb}mb upload cap reached for ${planLabel} plan. Upgrade to upload more data.`);
+	}
+}
 
 export const load: PageServerLoad = async (event) => {
 	const { ctx } = await requireLeader(event);
 	if (!ctx.verified) redirectWithFlash(event.cookies, '../profile', 'The Knowledge tab unlocks once your profile is verified.');
 
-	const [faqRows, documentRows] = await Promise.all([
+	const [faqRows, documentRows, settings] = await Promise.all([
 		db
 			.select({ id: faqEntries.id, question: faqEntries.question, answer: faqEntries.answer })
 			.from(faqEntries)
@@ -35,12 +70,20 @@ export const load: PageServerLoad = async (event) => {
 			})
 			.from(knowledgeDocuments)
 			.where(and(eq(knowledgeDocuments.subjectUserId, ctx.profileUser.id), isNull(knowledgeDocuments.deletedAt)))
-			.orderBy(asc(knowledgeDocuments.id))
+			.orderBy(asc(knowledgeDocuments.id)),
+		getPlatformSettings()
 	]);
+
+	const usedChars = documentRows.reduce((n, d) => n + (d.text?.length ?? 0), 0);
 
 	return {
 		faqs: faqRows,
-		documents: documentRows.map((d) => ({ id: d.id, title: d.title, fileUrl: d.fileUrl, mimeType: d.mimeType, text: d.text ?? '', textReady: !!d.text }))
+		documents: documentRows.map((d) => ({ id: d.id, title: d.title, fileUrl: d.fileUrl, mimeType: d.mimeType, text: d.text ?? '', textReady: !!d.text })),
+		// Live usage against the per-question grounding cap (docs/ai-chat-costs.md) —
+		// the Knowledge tab highlights whatever's over this and warns it'll be
+		// trimmed from AI answers, but never blocks saving past it (unlike the
+		// plan's knowledgeMb storage cap, which does).
+		knowledgeUsage: { used: usedChars, cap: settings.maxGroundingChars }
 	};
 };
 
@@ -84,6 +127,7 @@ export const actions: Actions = {
 
 		try {
 			const { fileUrl, extractedText } = await saveKnowledgeDocument(ctx.profileUser.id, file);
+			await assertWithinKnowledgeCap(ctx.profileUser.id, extractedText?.length ?? 0);
 			return {
 				previewed: true,
 				preview: {
@@ -115,6 +159,12 @@ export const actions: Actions = {
 		if (!content) return fail(400, { error: 'There is no text to save.' });
 		if (!sourceUrl) return fail(400, { error: 'Missing source.' });
 
+		try {
+			await assertWithinKnowledgeCap(ctx.profileUser.id, content.length);
+		} catch (err) {
+			return fail(400, { error: err instanceof Error ? err.message : 'Upload cap reached.' });
+		}
+
 		await db.insert(knowledgeDocuments).values({ subjectUserId: ctx.profileUser.id, title, fileUrl: sourceUrl, mimeType, extractedText: content });
 		return { saved: true };
 	},
@@ -130,6 +180,12 @@ export const actions: Actions = {
 		if (!id) return fail(400, { error: 'Nothing to update.' });
 		if (!title) return fail(400, { error: 'Give the document a title.' });
 		if (!content) return fail(400, { error: 'The document needs text.' });
+
+		try {
+			await assertWithinKnowledgeCap(ctx.profileUser.id, content.length, id);
+		} catch (err) {
+			return fail(400, { error: err instanceof Error ? err.message : 'Upload cap reached.' });
+		}
 
 		await db
 			.update(knowledgeDocuments)

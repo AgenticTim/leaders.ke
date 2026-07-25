@@ -28,7 +28,14 @@ export type ConstituentAnswer = {
 	source: 'ai' | 'heuristic';
 };
 
-function groundingText(leader: LeaderGrounding): string {
+// Per-question grounding cap (docs/ai-chat-costs.md), admin-editable as
+// platformSettings.maxGroundingChars (Settings → AI Chat), default 50,000 —
+// the figure the PAYG credit price is costed against. Without this, a
+// leader's stored knowledgebase (gated separately, per plan, by the much
+// bigger knowledgeMb cap — see knowledge/+page.server.ts) goes into the
+// prompt unbounded on every single question, which is what actually blows
+// past this per-question budget.
+function groundingText(leader: LeaderGrounding, maxChars: number): string {
 	const pillars = leader.pillars
 		.map(
 			(p, i) =>
@@ -37,21 +44,37 @@ function groundingText(leader: LeaderGrounding): string {
 		.join('\n');
 	const posts = leader.posts.map((p) => `- ${p.title}: ${p.body}`).join('\n');
 	const faqs = (leader.faqs ?? []).map((f) => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n');
-	const documents = (leader.documents ?? [])
-		.map((d) => `--- ${d.title}${d.url ? ` (source: ${d.url})` : ''} ---\n${d.text}`)
-		.join('\n\n');
-	return [
+
+	// Profile, manifesto, posts and FAQ: the identity of the leader, never
+	// truncated — a citizen's basic "who is this person" answer must never go
+	// missing because of an unrelated document upload.
+	const core = [
 		`Leader: ${leader.name}, ${leader.status} for ${leader.positionTitle}, ${leader.regionLabel}, Kenya.`,
 		leader.bio ? `Bio: ${leader.bio}` : '',
 		pillars ? `Manifesto pillars:\n${pillars}` : 'No manifesto published yet.',
 		posts ? `Recent public updates:\n${posts}` : 'No public updates yet.',
 		// FAQs take priority over free-form documents — a team member wrote these
 		// answers exactly as they want a citizen to read them.
-		faqs ? `Team-written FAQ (prefer this wording when it answers the question):\n${faqs}` : '',
-		documents ? `Source documents:\n${documents}` : ''
+		faqs ? `Team-written FAQ (prefer this wording when it answers the question):\n${faqs}` : ''
 	]
 		.filter(Boolean)
 		.join('\n\n');
+
+	// Uploaded documents are the biggest and least essential contributor, so
+	// they absorb the cap: whatever's left of the budget after core, however
+	// much (or little, or none) that turns out to be. A hard character slice
+	// (not word- or document-boundary-aware) is an accepted simplicity
+	// trade-off for a first cut at this.
+	const documentsBudget = Math.max(0, maxChars - core.length);
+	const documents = (leader.documents ?? [])
+		.map((d) => `--- ${d.title}${d.url ? ` (source: ${d.url})` : ''} ---\n${d.text}`)
+		.join('\n\n')
+		.slice(0, documentsBudget);
+
+	return [core, documents ? `Source documents:\n${documents}` : '']
+		.filter(Boolean)
+		.join('\n\n')
+		.slice(0, maxChars);
 }
 
 async function askClaude(leader: LeaderGrounding, question: string): Promise<string> {
@@ -73,7 +96,7 @@ async function askClaude(leader: LeaderGrounding, question: string): Promise<str
 			'',
 			settings.leaderSystemPrompt,
 			'',
-			groundingText(leader)
+			groundingText(leader, settings.maxGroundingChars)
 		].join('\n'),
 		messages: [{ role: 'user', content: question }]
 	});

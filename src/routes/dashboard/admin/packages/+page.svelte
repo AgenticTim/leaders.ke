@@ -15,7 +15,8 @@
 		{ key: 'managers', label: 'Campaign managers' },
 		{ key: 'ambassadors', label: 'Campaign ambassadors' },
 		{ key: 'subscriptions', label: 'Citizen subscriptions' },
-		{ key: 'creditsPerMonth', label: 'Credits included/mo' }
+		{ key: 'creditsPerMonth', label: 'Credits included/mo' },
+		{ key: 'knowledgeMb', label: 'Knowledge upload (MB)' }
 	] as const;
 
 	const rate = (tier: string, cycle: string) => data.pricing.find((p) => p.tier === tier && p.billingCycle === cycle);
