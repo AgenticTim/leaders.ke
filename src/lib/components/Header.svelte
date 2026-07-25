@@ -103,19 +103,25 @@
 				are conditional on having more than one. -->
 				<details class="group relative w-fit" bind:open={switcherOpen} bind:this={switcherEl}>
 					<summary
-						class="flex cursor-pointer list-none items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-heading transition hover:bg-surface-2"
+						aria-label="Account menu"
+						class="flex size-9 cursor-pointer list-none items-center justify-center gap-1.5 rounded-full border border-border bg-surface text-xs font-semibold text-heading transition hover:bg-surface-2 sm:size-auto sm:px-3 sm:py-1.5"
 					>
+						<!-- Mobile: same round-icon-button idiom as ThemeToggle/NotificationsPanel,
+						     instead of the name/label text there's no room for at this width. -->
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4.5 sm:hidden">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+						</svg>
 						{#if modes.length > 1}
-							{modes.find((m) => m.current)?.label ?? modes[0].label}
+							<span class="hidden sm:inline">{modes.find((m) => m.current)?.label ?? modes[0].label}</span>
 						{:else}
 							<span
-								class="grid size-6 shrink-0 place-items-center rounded-full bg-primary-soft text-xs font-bold text-on-primary uppercase"
+								class="hidden size-6 shrink-0 place-items-center rounded-full bg-primary-soft text-xs font-bold text-on-primary uppercase sm:grid"
 							>
 								{user.name.trim().charAt(0)}
 							</span>
 							<span class="hidden max-w-32 truncate sm:inline">{user.name}</span>
 						{/if}
-						<span class="text-muted transition group-open:rotate-180 leading-none h-2">^</span>
+						<span class="hidden text-muted transition group-open:rotate-180 leading-none h-2 sm:inline">^</span>
 					</summary>
 					<div class="absolute right-0 z-10 mt-2 min-w-52 rounded-2xl border border-border bg-surface p-1.5 shadow-lg">
 						{#each modes as m (m.key)}

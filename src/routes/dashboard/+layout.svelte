@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { afterNavigate } from '$app/navigation';
+	import { afterNavigate, goto } from '$app/navigation';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
@@ -450,10 +450,27 @@
 		</div>
 	{/if}
 
-	<!-- Section nav: only when the mode has more than one tab. -->
+	<!-- Section nav: only when the mode has more than one tab. Below sm a
+	     horizontally-scrolling row buries tabs off-screen with no cue they're
+	     there, so it collapses to a single dropdown instead; sm and up keeps
+	     the full row. -->
 	{#if sections.length > 1}
-		<nav class="mt-1 overflow-x-auto border-b border-border" aria-label="Dashboard sections">
-			<div class="flex w-max gap-1">
+		<div class="mt-1 border-b border-border pb-2 sm:hidden">
+			<select
+				value={sections.find((s) => isActive(s.href))?.href ?? sections[0].href}
+				onchange={(e) => goto(e.currentTarget.value)}
+				aria-label="Dashboard sections"
+				class="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm font-medium text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+			>
+				{#each sections as section (section.href)}
+					<option value={section.href}>
+						{section.label}{tabIncomplete(section.href) ? ' *' : ''}
+					</option>
+				{/each}
+			</select>
+		</div>
+		<nav class="mt-1 hidden overflow-x-auto border-b border-border sm:block" aria-label="Dashboard sections">
+			<div class="flex w-full justify-between">
 				{#each sections as section (section.href)}
 					<a
 						href={section.href}
