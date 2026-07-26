@@ -27,6 +27,9 @@ export const actions: Actions = {
 		const platformSystemPrompt = String(form.get('platformSystemPrompt') ?? '').trim();
 		const leaderSystemPrompt = String(form.get('leaderSystemPrompt') ?? '').trim();
 		const maxGroundingChars = Number(form.get('maxGroundingChars'));
+		const guestAskLifetimeLimit = Number(form.get('guestAskLifetimeLimit'));
+		const userAskDailyLimit = Number(form.get('userAskDailyLimit'));
+		const aiChatCostCredits = Number(form.get('aiChatCostCredits'));
 
 		// Lifetime invite limits live on the Packages page (part of what a package buys).
 		for (const [label, value] of [
@@ -35,7 +38,10 @@ export const actions: Actions = {
 			['Page size', pageSize],
 			['Verified team members', requiredTeamManagers],
 			['Sign-offs required', requiredSignoffs],
-			['Max grounding characters', maxGroundingChars]
+			['Max grounding characters', maxGroundingChars],
+			['Guest AI Chat lifetime limit', guestAskLifetimeLimit],
+			['Signed-in AI Chat daily limit', userAskDailyLimit],
+			['AI Chat credits per answer', aiChatCostCredits]
 		] as const) {
 			if (!Number.isInteger(value) || value < 1) return fail(400, { error: `${label} must be a whole number of at least 1.` });
 		}
@@ -68,6 +74,9 @@ export const actions: Actions = {
 				platformSystemPrompt,
 				leaderSystemPrompt,
 				maxGroundingChars,
+				guestAskLifetimeLimit,
+				userAskDailyLimit,
+				aiChatCostCredits,
 				updatedAt: new Date()
 			})
 			.where(eq(platformSettings.id, 1));

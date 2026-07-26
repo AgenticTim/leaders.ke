@@ -193,6 +193,46 @@ Applies everywhere a code/link is sent
 			</label>
 		</div>
 
+		<div class="rounded-2xl border border-border bg-surface p-5">
+			<h2 class="font-semibold text-heading">AI Chat ask limits</h2>
+			<p class="mt-1 text-xs text-muted">
+				Guest limit is lifetime, not daily (anon_id/IP are trivially reset by clearing cookies, so it's a one-time
+				taste before requiring login, not a precise meter). Signed-in limit resets daily, tracked per account.
+			</p>
+			<div class="mt-2 space-y-3">
+				<label class="block">
+					<span class="text-xs font-medium text-muted">Guest questions (lifetime)</span>
+					<input
+						type="number"
+						name="guestAskLifetimeLimit"
+						min="1"
+						value={data.settings.guestAskLifetimeLimit}
+						class="mt-1 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+					/>
+				</label>
+				<label class="block">
+					<span class="text-xs font-medium text-muted">Signed-in questions (per day)</span>
+					<input
+						type="number"
+						name="userAskDailyLimit"
+						min="1"
+						value={data.settings.userAskDailyLimit}
+						class="mt-1 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+					/>
+				</label>
+				<label class="block">
+					<span class="text-xs font-medium text-muted">Credits per AI-sourced answer</span>
+					<input
+						type="number"
+						name="aiChatCostCredits"
+						min="1"
+						value={data.settings.aiChatCostCredits}
+						class="mt-1 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+					/>
+				</label>
+			</div>
+		</div>
+
 		<!-- AI Chat system prompts: how the assistant behaves everywhere (platform-wide)
 		     and specifically when answering about one leader's profile. Both need room
 		     to breathe, so each spans the full grid width. -->

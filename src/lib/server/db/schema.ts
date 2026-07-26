@@ -905,10 +905,15 @@ export const aiAskEvents = pgTable('ai_ask_events', {
   id: serial('id').primaryKey(),
   anonId: varchar('anon_id', { length: 32 }),
   ipAddress: varchar('ip_address', { length: 45 }),
+  // Set only for a signed-in ask — a real identity, unlike anonId (just a
+  // cookie, cleared/rotated trivially), so a signed-in citizen's own daily cap
+  // is tracked against this instead of anonId/ipAddress.
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   index('ai_ask_events_anon_idx').on(t.anonId, t.createdAt),
   index('ai_ask_events_ip_idx').on(t.ipAddress, t.createdAt),
+  index('ai_ask_events_user_idx').on(t.userId, t.createdAt),
 ]);
 
 // 21. PLEDGES (a citizen pledging their vote to a campaign, created by the
@@ -1137,6 +1142,18 @@ export const platformSettings = pgTable('platform_settings', {
   // cost regardless of how much a leader has uploaded (that's the separate,
   // much bigger knowledgeMb storage cap per plan).
   maxGroundingChars: integer('max_grounding_chars').default(50_000).notNull(),
+  // AI Chat ask caps (see $lib/server/aiRateLimit.ts): a guest gets this many
+  // free questions ever (lifetime, not daily — anon_id/IP are trivially
+  // resettable, so this is a one-time taste before requiring an account, not
+  // a precise meter); a signed-in citizen gets this many per day, tracked
+  // against their own account instead of a spoofable cookie.
+  guestAskLifetimeLimit: integer('guest_ask_lifetime_limit').default(1).notNull(),
+  userAskDailyLimit: integer('user_ask_daily_limit').default(5).notNull(),
+  // PAYG price on /pricing's Credits table (docs/ai-chat-costs.md) — spent
+  // from the campaign's wallet on an AI-sourced answer (see the `ask` actions
+  // on [leader]/+page.server.ts and [leader]/[year=year]/+page.server.ts); a
+  // heuristic-fallback answer never calls Anthropic, so it's never charged.
+  aiChatCostCredits: integer('ai_chat_cost_credits').default(5).notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 

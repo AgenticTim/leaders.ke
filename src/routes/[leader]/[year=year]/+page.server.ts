@@ -2,17 +2,18 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { randomBytes, randomInt, createHash } from 'node:crypto';
 import { and, desc, eq, isNull, or } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { donations, followers, managers, pillars, posts } from '$lib/server/db/schema';
+import { creditTransactions, donations, followers, managers, pillars, posts, wallets } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, getDomainUser, getOrCreateMainCampaign, leaderPath } from '$lib/server/leader';
 import { resolveCampaignRun, loadCampaignWorkspaceData } from '$lib/server/campaign';
 import { ownVerifiedContacts } from '$lib/server/dashboard';
 import { handleDeleteReviewAction, handleReviewAction } from '$lib/server/reviews';
-import { answerConstituentQuestion } from '$lib/server/ai';
+import { answerConstituentQuestion, PlatformOutOfCreditsError } from '$lib/server/ai';
 import { enforceAskRateLimit } from '$lib/server/aiRateLimit';
 import { getGroundingExtras } from '$lib/server/knowledge';
 import { findConstituencyBySlug, findCountyBySlug, findWardBySlug, nameToSlugs } from '$lib/data/geo';
 import { sendEmail, siteUrl } from '$lib/server/email';
 import { sendSms } from '$lib/server/sms';
+import { getPlatformSettings } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
 
 const CONFIRM_CODE_TTL_MS = 10 * 60_000;
@@ -300,11 +301,23 @@ export const actions: Actions = {
 			return fail(400, { error: 'Ask a question of at least a few words.' });
 		}
 
-		const rateLimit = await enforceAskRateLimit(event);
-		if (!rateLimit.ok) return fail(429, { error: rateLimit.error });
+		const viewer = event.locals.user ? await getDomainUser(event.locals.user.id) : null;
+		const rateLimit = await enforceAskRateLimit(event, viewer?.id ?? null);
+		if (!rateLimit.ok) return fail(429, { error: rateLimit.error, requiresLogin: rateLimit.requiresLogin });
 
 		const row = await resolveCampaignRun(event.params.leader);
 		if (!row) return fail(404, { error: 'Campaign not found.' });
+
+		// Charged against the campaign's own wallet (docs/ai-chat-costs.md's PAYG
+		// price, admin-editable as platformSettings.aiChatCostCredits), checked up
+		// front so a citizen gets a clear reason instead of a silent failure — the
+		// heuristic fallback never runs here on empty credits, since answering
+		// for free would just mask the gate entirely.
+		const settings = await getPlatformSettings();
+		const [wallet] = await db.select().from(wallets).where(eq(wallets.campaignId, row.campaignId));
+		if (!wallet || wallet.balance < settings.aiChatCostCredits) {
+			return fail(402, { error: 'This profile has no AI Chat credits left. The team needs to top up before more questions can be answered.' });
+		}
 
 		const [pillarRows, postRows, extras] = await Promise.all([
 			db
@@ -330,7 +343,33 @@ export const actions: Actions = {
 			...extras
 		};
 
-		const { answer, source } = await answerConstituentQuestion(grounding, question);
+		let answer: string;
+		let source: 'ai' | 'heuristic';
+		try {
+			({ answer, source } = await answerConstituentQuestion(grounding, question));
+		} catch (err) {
+			if (err instanceof PlatformOutOfCreditsError) {
+				return fail(503, { error: 'AI Chat is temporarily unavailable (the platform is out of AI credits). Please try again later.' });
+			}
+			throw err;
+		}
+
+		// Heuristic answers never call Anthropic, so nothing to charge for.
+		if (source === 'ai') {
+			const newBalance = wallet.balance - settings.aiChatCostCredits;
+			await db.transaction(async (tx) => {
+				await tx.update(wallets).set({ balance: newBalance, updatedAt: new Date() }).where(eq(wallets.id, wallet.id));
+				await tx.insert(creditTransactions).values({
+					walletId: wallet.id,
+					kind: 'spend',
+					amount: -settings.aiChatCostCredits,
+					channel: 'feature',
+					reference: 'ai_chat',
+					balanceAfter: newBalance
+				});
+			});
+		}
+
 		return { asked: true, question, answer, answerSource: source };
 	}
 };

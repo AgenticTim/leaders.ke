@@ -1,13 +1,14 @@
 import { error, fail } from '@sveltejs/kit';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { campaigns, pillars, posts } from '$lib/server/db/schema';
+import { campaigns, creditTransactions, pillars, posts, wallets } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, getDomainUser, resolveCurrentTerm } from '$lib/server/leader';
 import { loadPublicProfileData } from '$lib/server/publicProfile';
 import { handleDeleteReviewAction, handleReviewAction } from '$lib/server/reviews';
-import { answerConstituentQuestion } from '$lib/server/ai';
+import { answerConstituentQuestion, PlatformOutOfCreditsError } from '$lib/server/ai';
 import { enforceAskRateLimit } from '$lib/server/aiRateLimit';
 import { getGroundingExtras } from '$lib/server/knowledge';
+import { getPlatformSettings } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
 
 // /[leader]: the permanent leader record — bio, verified track record across
@@ -89,11 +90,20 @@ export const actions: Actions = {
 			return fail(400, { error: 'Ask a question of at least a few words.' });
 		}
 
-		const rateLimit = await enforceAskRateLimit(event);
-		if (!rateLimit.ok) return fail(429, { error: rateLimit.error });
+		const viewer = event.locals.user ? await getDomainUser(event.locals.user.id) : null;
+		const rateLimit = await enforceAskRateLimit(event, viewer?.id ?? null);
+		if (!rateLimit.ok) return fail(429, { error: rateLimit.error, requiresLogin: rateLimit.requiresLogin });
 
 		const lead = await publicLead(event.params.leader);
 		if (!lead) return fail(404, { error: 'Leader not found.' });
+
+		// Same wallet gate as the campaign workspace's Ask block — checked up
+		// front so a citizen gets a clear reason instead of a silent failure.
+		const settings = await getPlatformSettings();
+		const [wallet] = await db.select().from(wallets).where(eq(wallets.campaignId, lead.leadCampaignId));
+		if (!wallet || wallet.balance < settings.aiChatCostCredits) {
+			return fail(402, { error: 'This profile has insufficient credit balance for AI chats. The team needs to top up before more questions can be answered.' });
+		}
 
 		const [pillarRows, postRows, extras] = await Promise.all([
 			lead.leadCampaignId
@@ -121,7 +131,33 @@ export const actions: Actions = {
 			...extras
 		};
 
-		const { answer, source } = await answerConstituentQuestion(grounding, question);
+		let answer: string;
+		let source: 'ai' | 'heuristic';
+		try {
+			({ answer, source } = await answerConstituentQuestion(grounding, question));
+		} catch (err) {
+			if (err instanceof PlatformOutOfCreditsError) {
+				return fail(503, { error: 'AI Chat is temporarily unavailable (the platform is out of AI credits). Please try again later.' });
+			}
+			throw err;
+		}
+
+		// Heuristic answers never call Anthropic, so nothing to charge for.
+		if (source === 'ai') {
+			const newBalance = wallet.balance - settings.aiChatCostCredits;
+			await db.transaction(async (tx) => {
+				await tx.update(wallets).set({ balance: newBalance, updatedAt: new Date() }).where(eq(wallets.id, wallet.id));
+				await tx.insert(creditTransactions).values({
+					walletId: wallet.id,
+					kind: 'spend',
+					amount: -settings.aiChatCostCredits,
+					channel: 'feature',
+					reference: 'ai_chat',
+					balanceAfter: newBalance
+				});
+			});
+		}
+
 		return { asked: true, question, answer, answerSource: source };
 	}
 };

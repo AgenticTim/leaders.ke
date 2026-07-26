@@ -217,6 +217,13 @@
 								{form.answerSource === 'ai' ? 'AI answer, grounded in campaign material.' : 'Matched from campaign material.'}
 							</p>
 						</div>
+					{:else if form?.error}
+						<div class="mt-3 rounded-2xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading">
+							{form.error}
+							{#if form.requiresLogin}
+								<a href="/login" class="ml-1 font-semibold text-primary hover:underline">Log in</a>
+							{/if}
+						</div>
 					{/if}
 					<form
 						method="post"

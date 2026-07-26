@@ -28,6 +28,13 @@ export type ConstituentAnswer = {
 	source: 'ai' | 'heuristic';
 };
 
+// Anthropic's own account (ours, not the leader's) is out of credits — a
+// platform-wide outage, not a per-leader one. Thrown instead of silently
+// falling back to the heuristic answer (see answerConstituentQuestion) so the
+// caller can surface it plainly rather than quietly degrading every answer
+// platform-wide with no visibility into why.
+export class PlatformOutOfCreditsError extends Error {}
+
 // Per-question grounding cap (docs/ai-chat-costs.md), admin-editable as
 // platformSettings.maxGroundingChars (Settings → AI Chat), default 50,000 —
 // the figure the PAYG credit price is costed against. Without this, a
@@ -84,27 +91,39 @@ async function askClaude(leader: LeaderGrounding, question: string): Promise<str
 	// DEFAULT_LEADER_SYSTEM_PROMPT in schema.ts for what a fresh platform ships with.
 	const settings = await getPlatformSettings();
 	const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
-	const response = await client.messages.create({
-		// Sonnet 5 over Opus: ~7-8x cheaper per message (roughly $9 vs $65 per 1000
-		// messages at typical grounding-context lengths) for a feature that's already
-		// instructed to answer in 200-300 characters — not worth Opus's premium here.
-		model: 'claude-sonnet-5',
-		max_tokens: 1024,
-		thinking: { type: 'adaptive' },
-		// Two cache breakpoints (docs/ai-chat-costs.md), not one: the platform +
-		// leader system prompts are identical for every leader and every citizen
-		// site-wide, so they stay warm almost permanently regardless of any one
-		// leader's own traffic. Grounding is its own breakpoint on top of that
-		// shared prefix since it's only stable per-leader (changes whenever that
-		// leader edits their Knowledge tab/manifesto). 5m TTL (the default) refreshes
-		// on every cache hit, so either block only re-writes at full price after a
-		// true idle gap, not on a fixed schedule.
-		system: [
-			{ type: 'text', text: `${settings.platformSystemPrompt}\n\n${settings.leaderSystemPrompt}`, cache_control: { type: 'ephemeral' } },
-			{ type: 'text', text: groundingText(leader, settings.maxGroundingChars), cache_control: { type: 'ephemeral' } }
-		],
-		messages: [{ role: 'user', content: question }]
-	});
+	let response;
+	try {
+		response = await client.messages.create({
+			// Sonnet 5 over Opus: ~7-8x cheaper per message (roughly $9 vs $65 per 1000
+			// messages at typical grounding-context lengths) for a feature that's already
+			// instructed to answer in 200-300 characters — not worth Opus's premium here.
+			model: 'claude-sonnet-5',
+			max_tokens: 1024,
+			thinking: { type: 'adaptive' },
+			// Two cache breakpoints (docs/ai-chat-costs.md), not one: the platform +
+			// leader system prompts are identical for every leader and every citizen
+			// site-wide, so they stay warm almost permanently regardless of any one
+			// leader's own traffic. Grounding is its own breakpoint on top of that
+			// shared prefix since it's only stable per-leader (changes whenever that
+			// leader edits their Knowledge tab/manifesto). 5m TTL (the default) refreshes
+			// on every cache hit, so either block only re-writes at full price after a
+			// true idle gap, not on a fixed schedule.
+			system: [
+				{ type: 'text', text: `${settings.platformSystemPrompt}\n\n${settings.leaderSystemPrompt}`, cache_control: { type: 'ephemeral' } },
+				{ type: 'text', text: groundingText(leader, settings.maxGroundingChars), cache_control: { type: 'ephemeral' } }
+			],
+			messages: [{ role: 'user', content: question }]
+		});
+	} catch (err) {
+		// Anthropic's documented shape for our account being out of credits: a 400
+		// invalid_request_error whose message mentions the credit balance. No
+		// dedicated error class for it, so this is a message-content check, not a
+		// status-code one — the only reliable way the SDK currently exposes it.
+		if (err instanceof Anthropic.APIError && err.status === 400 && /credit balance/i.test(err.message)) {
+			throw new PlatformOutOfCreditsError('The AI provider account is out of credits.');
+		}
+		throw err;
+	}
 	if (response.stop_reason === 'refusal') {
 		return 'I can\'t help with that question. Try asking about the manifesto, track record or campaign updates.';
 	}
@@ -159,6 +178,7 @@ export async function answerConstituentQuestion(
 		try {
 			return { answer: await askClaude(leader, question), source: 'ai' };
 		} catch (err) {
+			if (err instanceof PlatformOutOfCreditsError) throw err;
 			console.error('AI answer failed, falling back to heuristic:', err);
 		}
 	}
