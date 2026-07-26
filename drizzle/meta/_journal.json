@@ -617,6 +617,13 @@
       "when": 1785058972643,
       "tag": "0087_slippery_blade",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1785061366142,
+      "tag": "0088_lonely_sinister_six",
+      "breakpoints": true
     }
   ]
 }

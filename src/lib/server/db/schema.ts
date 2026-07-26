@@ -26,6 +26,26 @@ export const positions = pgTable('positions', {
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 });
 
+// How a users row came to exist — set once at creation, never rewritten
+// afterward (a seeded profile that later gets a real claim/manager stays
+// origin 'seed'; see profiles.ts's source derivation, which reads this
+// directly instead of inferring "seeded" from the absence of a claim/manager,
+// the bug that mislabeled a demo-login seeded profile as "applied").
+export const userOriginEnum = pgEnum('user_origin', ['seed', 'browser', 'mobile']);
+
+// An admin hiding a PROFILE pending review — null flagReason means publicly
+// visible; setting one takes it down without a full ban/delete workflow.
+// Distinct from reviewFlagReasonEnum below (that one flags a citizen's
+// review, spam/insult/etc — a different target and a different reason set).
+export const profileFlagReasonEnum = pgEnum('profile_flag_reason', [
+  'impersonation',
+  'inappropriate_content',
+  'duplicate_profile',
+  'inaccurate_information',
+  'reported_abuse',
+  'other'
+]);
+
 // 2. USERS (Domain profile, bridged 1:1 to better-auth's `user` via authUserId.
 // Every signed-up person's domain profile: name and bio, one per login.
 // better-auth owns email/password/OAuth/sessions; phones live in `contacts`.)
@@ -87,6 +107,16 @@ export const users = pgTable('users', {
     .$type<{ email: boolean; sms: boolean; whatsapp: boolean }>()
     .default({ email: true, sms: true, whatsapp: true })
     .notNull(),
+  // Default 'seed' covers every existing row (all pre-dating this column) and
+  // every seed script's own insert without touching each one individually;
+  // the two real (non-seed) creation points — auth.ts's signup hook and
+  // leader.ts's createPhantomUser — set 'browser' explicitly.
+  origin: userOriginEnum('origin').default('seed').notNull(),
+  flagReason: profileFlagReasonEnum('flag_reason'),
+  flaggedAt: timestamp('flagged_at', { withTimezone: true }),
+  // Per-user opt-in/early-access flags — a new one is just a new string, no
+  // migration needed.
+  features: jsonb('features').$type<string[]>().default([]).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => [

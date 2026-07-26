@@ -115,7 +115,7 @@ export async function listProfiles(
 
 	const [personRows, managerRows, claimRows, subscriptionRows, walletRows] = await Promise.all([
 		db
-			.select({ id: users.id, firstName: users.firstName, otherNames: users.otherNames, slug: users.slug, authUserId: users.authUserId, deletedAt: users.deletedAt, profileVerifiedAt: users.profileVerifiedAt })
+			.select({ id: users.id, firstName: users.firstName, otherNames: users.otherNames, slug: users.slug, authUserId: users.authUserId, deletedAt: users.deletedAt, profileVerifiedAt: users.profileVerifiedAt, origin: users.origin })
 			.from(users)
 			.where(inArray(users.id, personIds)),
 		db
@@ -195,8 +195,13 @@ export async function listProfiles(
 		const claim = claimBySubject.get(id);
 		const manager = managerBySubject.get(id);
 
-		// Source: a claim wins; else a manager (the applicant) means applied; else seeded.
-		const source: ProfileSource = claim ? 'claimed' : manager ? 'applied' : 'seeded';
+		// Source: a real claim always wins; else origin='seed' means seeded even if a
+		// manager exists (a demo-login self-manager — see seed-demo-logins.ts — used
+		// to get misread as "applied" here, since a manager row alone can't tell a
+		// real applicant from a seeded profile with demo login access; origin can);
+		// else a manager (the applicant) means applied; else seeded (fallback, only
+		// if origin is somehow unset).
+		const source: ProfileSource = claim ? 'claimed' : person?.origin === 'seed' ? 'seeded' : manager ? 'applied' : 'seeded';
 
 		// Verified = the review-workflow state, keyed off source (seeded never reviewed).
 		// 'applied' is a direct admin toggle now (users.profileVerifiedAt, decoupled

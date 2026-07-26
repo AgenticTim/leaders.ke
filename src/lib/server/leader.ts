@@ -23,7 +23,8 @@ export async function createPhantomUser(firstName: string, otherNames: string) {
 	const placeholderEmail = `leader-${authId}@phantom.leaders.ke`;
 	await db.insert(authUsers).values({ id: authId, name: `${firstName} ${otherNames}`.trim(), email: placeholderEmail, emailVerified: false });
 
-	const [profile] = await db.insert(users).values({ authUserId: authId, firstName, otherNames }).returning();
+	// Created via the onboarding wizard by a real citizen, not a seed script.
+	const [profile] = await db.insert(users).values({ authUserId: authId, firstName, otherNames, origin: 'browser' }).returning();
 	return profile;
 }
 

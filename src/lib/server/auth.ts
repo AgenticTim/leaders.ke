@@ -78,7 +78,8 @@ export const auth = betterAuth({
 							// Google (and any OAuth provider) hands us a pre-verified email, so
 							// skip the OTP step for those; email/password signups arrive
 							// unverified (emailVerified false) and still verify on /verify/email.
-							verified: { email: !!authUser.emailVerified, sms: false, whatsapp: false }
+							verified: { email: !!authUser.emailVerified, sms: false, whatsapp: false },
+							origin: 'browser' // real signup, not a seed script — the only web path today
 						})
 						.returning();
 
