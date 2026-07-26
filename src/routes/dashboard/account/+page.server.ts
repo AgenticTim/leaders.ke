@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { contacts, users } from '$lib/server/db/schema';
+import { account, contacts, users } from '$lib/server/db/schema';
 import { user as authUsers } from '$lib/server/db/auth.schema';
 import { ownVerifiedContacts, requireDashboardUser } from '$lib/server/dashboard';
 import { normalizeKenyanPhone } from '$lib/utils/phone';
@@ -17,8 +17,13 @@ export const load: PageServerLoad = async (event) => {
 		.select({ channel: contacts.channel, value: contacts.value })
 		.from(contacts)
 		.where(and(eq(contacts.userId, domainUser.id), isNull(contacts.deletedAt)));
+	const [credential] = await db
+		.select({ id: account.id })
+		.from(account)
+		.where(and(eq(account.userId, authUser.id), eq(account.providerId, 'credential')));
 	return {
 		email: authUser.email,
+		hasPassword: !!credential,
 		firstName: domainUser.firstName,
 		otherNames: domainUser.otherNames,
 		smsPhone: contactRows.find((c) => c.channel === 'sms')?.value ?? '',

@@ -149,10 +149,10 @@
 
 		<div class="mt-8 grid grid-cols-2 gap-2">
 			<a
-				href="/change-password"
+				href={data.hasPassword ? '/change-password' : '/set-password'}
 				class="rounded-xl border border-border bg-surface px-4 py-2 text-center text-sm font-medium text-heading transition hover:border-primary hover:bg-surface-2"
 			>
-				Change password
+				{data.hasPassword ? 'Change password' : 'Set password'}
 			</a>
 			<button
 				type="submit"
