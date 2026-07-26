@@ -50,37 +50,49 @@ function build(): County[] {
 		}
 	}
 
-	return regions.map((county): County => {
-		const constituencies = county.constituencies.map((constituency): Constituency => {
-			const wards = constituency.wards.map(
-				(ward): Ward => ({
-					name: ward.name,
-					description: ward.description,
-					seatName:
-						(wardNameCounts.get(ward.name) ?? 0) > 1 ? `${ward.name} (${constituency.name})` : ward.name,
-					voters: ward.voterCount
+	// regions.json lists counties/constituencies/wards in IEBC code order, not
+	// alphabetically — every dropdown built off this tree (GeoSelect, seat
+	// pickers) sorts by .name here once, at the source, rather than each
+	// consumer re-sorting its own copy.
+	const byName = <T extends { name: string }>(a: T, b: T) => a.name.localeCompare(b.name);
+
+	return regions
+		.map((county): County => {
+			const constituencies = county.constituencies
+				.map((constituency): Constituency => {
+					const wards = constituency.wards
+						.map(
+							(ward): Ward => ({
+								name: ward.name,
+								description: ward.description,
+								seatName:
+									(wardNameCounts.get(ward.name) ?? 0) > 1 ? `${ward.name} (${constituency.name})` : ward.name,
+								voters: ward.voterCount
+							})
+						)
+						.sort(byName);
+					return {
+						code: constituency.code,
+						name: constituency.name,
+						description: constituency.description,
+						seatName:
+							(constNameCounts.get(constituency.name) ?? 0) > 1
+								? `${constituency.name} (${county.name})`
+								: constituency.name,
+						voters: wards.reduce((sum, w) => sum + w.voters, 0),
+						wards
+					};
 				})
-			);
+				.sort(byName);
 			return {
-				code: constituency.code,
-				name: constituency.name,
-				description: constituency.description,
-				seatName:
-					(constNameCounts.get(constituency.name) ?? 0) > 1
-						? `${constituency.name} (${county.name})`
-						: constituency.name,
-				voters: wards.reduce((sum, w) => sum + w.voters, 0),
-				wards
+				code: county.code,
+				name: county.name,
+				description: county.description,
+				voters: constituencies.reduce((sum, c) => sum + c.voters, 0),
+				constituencies
 			};
-		});
-		return {
-			code: county.code,
-			name: county.name,
-			description: county.description,
-			voters: constituencies.reduce((sum, c) => sum + c.voters, 0),
-			constituencies
-		};
-	});
+		})
+		.sort(byName);
 }
 
 export const counties: County[] = build();
