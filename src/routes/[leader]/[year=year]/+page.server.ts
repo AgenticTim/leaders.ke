@@ -308,13 +308,15 @@ export const actions: Actions = {
 		const row = await resolveCampaignRun(event.params.leader);
 		if (!row) return fail(404, { error: 'Campaign not found.' });
 
-		// Charged against the campaign's own wallet (docs/ai-chat-costs.md's PAYG
+		// Charged against the person's own wallet (docs/ai-chat-costs.md's PAYG
 		// price, admin-editable as platformSettings.aiChatCostCredits), checked up
 		// front so a citizen gets a clear reason instead of a silent failure — the
 		// heuristic fallback never runs here on empty credits, since answering
-		// for free would just mask the gate entirely.
+		// for free would just mask the gate entirely. Profile-scoped (users.id),
+		// not campaignId: the knowledgebase a wallet pays to query is one per
+		// person, not per run.
 		const settings = await getPlatformSettings();
-		const [wallet] = await db.select().from(wallets).where(eq(wallets.campaignId, row.campaignId));
+		const [wallet] = await db.select().from(wallets).where(eq(wallets.subjectUserId, row.users.id));
 		if (!wallet || wallet.balance < settings.aiChatCostCredits) {
 			return fail(402, { error: 'This profile has no AI Chat credits left. The team needs to top up before more questions can be answered.' });
 		}

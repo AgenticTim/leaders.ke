@@ -796,9 +796,14 @@ export const payments = pgTable('payments', {
 
 // 17. WALLETS & CREDIT LEDGER (fix 5 — prepaid credits for broadcasts/features; balance is a cache of the ledger)
 // A campaign's current prepaid credit balance, one row per campaign.
+// Profile-scoped (subjectUserId), not campaign-scoped — matches subscriptions
+// and knowledgeDocuments, both already keyed by subjectUserId. The AI Chat
+// knowledgebase a wallet pays to query is one per person, reused across every
+// cycle/run they ever have, so a campaign-keyed wallet would strand credits
+// (and block granting any at all) on a profile with no declared 2027 run yet.
 export const wallets = pgTable('wallets', {
   id: serial('id').primaryKey(),
-  campaignId: integer('campaign_id').references(() => campaigns.id, { onDelete: 'cascade' }).notNull().unique(),
+  subjectUserId: integer('subject_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull().unique(),
   balance: integer('balance').default(0).notNull(), // running credit balance, reconciled from creditTransactions
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

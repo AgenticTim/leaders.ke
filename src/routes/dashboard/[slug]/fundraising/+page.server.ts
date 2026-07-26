@@ -15,7 +15,7 @@ export const load: PageServerLoad = async (event) => {
 	// A brand-new profile with neither a held term nor a run yet has no position —
 	// positionId is NOT NULL on campaigns, so there's no run to attach fundraising
 	// to until one is picked on the Leader/Campaign tab.
-	if (!ctx.position) redirectWithFlash(event.cookies, `./campaign`, 'Set a position before using Fundraising.');
+	if (!ctx.position) redirectWithFlash(event.cookies, `./campaign`, 'Launch a campaign in order to Fundraise.');
 
 	// Fundraising belongs to the run: goal + ledger live on the main campaign.
 	const campaign = await getOrCreateRunCampaign(ctx.profileUser.id, ctx.position.id, ctx.profileUser.id, fullName(ctx.profileUser));
@@ -50,7 +50,7 @@ export const actions: Actions = {
 		const form = await event.request.formData();
 		const goal = Number(form.get('goal') ?? 0);
 		if (!Number.isFinite(goal) || goal < 0) return fail(400, { error: 'Enter a valid goal in KES.' });
-		if (!ctx.position) return fail(400, { error: 'Set a position before using Fundraising.' });
+		if (!ctx.position) return fail(400, { error: 'Launch a campaign in order to Fundraise.' });
 
 		const campaign = await getOrCreateRunCampaign(ctx.profileUser.id, ctx.position.id, ctx.profileUser.id, fullName(ctx.profileUser));
 		await db
@@ -65,7 +65,7 @@ export const actions: Actions = {
 		const form = await event.request.formData();
 		const donationId = Number(form.get('donationId') ?? 0);
 		const reference = String(form.get('reference') ?? '').trim();
-		if (!ctx.position) return fail(400, { error: 'Set a position before using Fundraising.' });
+		if (!ctx.position) return fail(400, { error: 'Launch a campaign in order to Fundraise.' });
 
 		const campaign = await getOrCreateRunCampaign(ctx.profileUser.id, ctx.position.id, ctx.profileUser.id, fullName(ctx.profileUser));
 		await db
@@ -79,7 +79,7 @@ export const actions: Actions = {
 		const { ctx } = await requireLeader(event);
 		const form = await event.request.formData();
 		const donationId = Number(form.get('donationId') ?? 0);
-		if (!ctx.position) return fail(400, { error: 'Set a position before using Fundraising.' });
+		if (!ctx.position) return fail(400, { error: 'Launch a campaign in order to Fundraise.' });
 
 		const campaign = await getOrCreateRunCampaign(ctx.profileUser.id, ctx.position.id, ctx.profileUser.id, fullName(ctx.profileUser));
 		await db

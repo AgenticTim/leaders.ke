@@ -10,7 +10,7 @@
 import { and, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '$lib/server/db';
-import { campaigns, contacts, leaders, managers, positions, profileClaims, users, verifications } from '$lib/server/db/schema';
+import { campaigns, contacts, leaders, managers, positions, profileClaims, subscriptions, users, verifications, wallets } from '$lib/server/db/schema';
 import { user as authUsers } from '$lib/server/db/auth.schema';
 import { ACTIVE_CYCLE, fullName, leaderPath } from '$lib/server/leader';
 import { seatPath } from '$lib/utils/seat';
@@ -38,6 +38,17 @@ export type ProfileRow = {
 	adminPath: string;
 	profilePath: string; // public /[slug] or /previews/[id] when slugless
 	campaignYear: number | null;
+	// The 2027 run's own campaign id — null when no run exists yet (a held-term-only
+	// profile, or a fresh claim/application with no campaign declared).
+	campaignId: number | null;
+	// Latest subscription on record, whatever its status — the raw expiry date tells
+	// the admin whether it's actually still live, rather than this re-deriving that.
+	subscriptionTier: string | null;
+	subscriptionExpiresAt: string | null;
+	// Wallets are profile-scoped (subjectUserId), not campaign-scoped, so every
+	// profile can hold credits regardless of whether it has a declared run — 0
+	// until a wallet is actually granted one.
+	creditsBalance: number;
 	// The person's most recent lifecycle event (run/term/claim/manager change) — drives
 	// the default "recent first" sort; ISO string, epoch 0 if the person has no dated record.
 	lastActivityAt: string;
@@ -102,7 +113,7 @@ export async function listProfiles(
 	];
 	if (personIds.length === 0) return { profiles: [], total: 0 };
 
-	const [personRows, managerRows, claimRows] = await Promise.all([
+	const [personRows, managerRows, claimRows, subscriptionRows, walletRows] = await Promise.all([
 		db
 			.select({ id: users.id, firstName: users.firstName, otherNames: users.otherNames, slug: users.slug, authUserId: users.authUserId, deletedAt: users.deletedAt, profileVerifiedAt: users.profileVerifiedAt })
 			.from(users)
@@ -117,7 +128,13 @@ export async function listProfiles(
 			.from(profileClaims)
 			.innerJoin(users, eq(profileClaims.claimedBy, users.id))
 			.where(inArray(profileClaims.subjectUserId, personIds))
-			.orderBy(desc(profileClaims.requestedAt))
+			.orderBy(desc(profileClaims.requestedAt)),
+		db
+			.select({ subjectUserId: subscriptions.subjectUserId, tier: subscriptions.tier, endsAt: subscriptions.endsAt })
+			.from(subscriptions)
+			.where(inArray(subscriptions.subjectUserId, personIds))
+			.orderBy(desc(subscriptions.endsAt)),
+		db.select({ subjectUserId: wallets.subjectUserId, balance: wallets.balance }).from(wallets).where(inArray(wallets.subjectUserId, personIds))
 	]);
 
 	const personById = new Map(personRows.map((p) => [p.id, p]));
@@ -149,6 +166,14 @@ export async function listProfiles(
 	// Latest claim per person (newest first from the query) → source + verified + claimant.
 	const claimBySubject = new Map<number, (typeof claimRows)[number]>();
 	for (const c of claimRows) if (!claimBySubject.has(c.subjectUserId)) claimBySubject.set(c.subjectUserId, c);
+
+	// Latest subscription per person (query is already ordered by endsAt desc).
+	const subscriptionBySubject = new Map<number, (typeof subscriptionRows)[number]>();
+	for (const s of subscriptionRows) if (!subscriptionBySubject.has(s.subjectUserId)) subscriptionBySubject.set(s.subjectUserId, s);
+
+	// Wallet balance keyed by profile, not campaign — a wallet exists (or not)
+	// per person regardless of whether they have a declared 2027 run.
+	const walletBySubject = new Map(walletRows.map((w) => [w.subjectUserId, w.balance]));
 
 	// Last lifecycle activity per person — max over their run/term createdAt, claim
 	// requestedAt and manager updatedAt — for the default "recent first" sort.
@@ -202,6 +227,10 @@ export async function listProfiles(
 			adminPath: `/dashboard/${slug}/profile`,
 			profilePath: slug ? leaderPath({ slug }) : `/previews/${id}`,
 			campaignYear: run ? ACTIVE_CYCLE : null,
+			campaignId: run?.campaignId ?? null,
+			subscriptionTier: subscriptionBySubject.get(id)?.tier ?? null,
+			subscriptionExpiresAt: subscriptionBySubject.get(id)?.endsAt.toISOString() ?? null,
+			creditsBalance: walletBySubject.get(id) ?? 0,
 			lastActivityAt: new Date(lastActivityBySubject.get(id) ?? 0).toISOString()
 		};
 	});

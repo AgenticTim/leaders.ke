@@ -1,11 +1,20 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import Pagination from '$lib/components/admin/Pagination.svelte';
 	import type { PageProps } from './$types';
 
-	let { data }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 
 	const totalPages = $derived(Math.max(1, Math.ceil(data.total / data.pageSize)));
 	const dateFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium', timeStyle: 'short' });
+	const dateOnlyFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' });
+
+	// Grant-credits modal: which profile it's open for (null = closed).
+	let grantingFor = $state<{ profileId: number; profileName: string } | null>(null);
+	// bind:value on a type="number" input yields a real number (or '' when
+	// empty), never a string with a .trim() method — typed accordingly.
+	let grantAmount = $state<number | ''>('');
+	let granting = $state(false);
 
 	// Click a row to expand its review history (claims on this profile + verification
 	// requests on its runs), fetched on demand and cached — so a full page of rows
@@ -116,6 +125,8 @@
 						{@render sortable('status', 'Status')}
 						{@render sortable('source', 'Source')}
 						{@render sortable('verified', 'Verified')}
+						<th class="px-4 py-3 text-sm font-semibold text-heading">Subscription</th>
+						<th class="px-4 py-3 text-sm font-semibold text-heading">Credits</th>
 						<th class="px-4 py-3 text-sm font-semibold text-heading">Actions</th>
 					</tr>
 				</thead>
@@ -156,6 +167,29 @@
 							<td class="px-4 py-3 text-sm">
 								<span title={VERIFIED_HELP} class="cursor-help rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize {verifiedClass(p.verified)}">{p.verified ?? '—'}</span>
 							</td>
+							<td class="px-4 py-3 text-sm text-muted">
+								{#if p.subscriptionTier}
+									<span class="font-medium capitalize text-heading">{p.subscriptionTier}</span>
+									<span class="block text-xs">until {dateOnlyFmt.format(new Date(p.subscriptionExpiresAt!))}</span>
+								{:else}
+									—
+								{/if}
+							</td>
+							<td class="px-4 py-3 text-sm text-muted" onclick={(e) => e.stopPropagation()}>
+								<div class="flex items-center gap-2">
+									<span class="font-medium text-heading tabular-nums">{p.creditsBalance}</span>
+									<button
+										type="button"
+										onclick={() => {
+											grantingFor = { profileId: p.profileId, profileName: p.profileName };
+											grantAmount = '';
+										}}
+										class="rounded-full border border-border px-2.5 py-0.5 text-xs font-semibold text-heading transition hover:bg-surface-2"
+									>
+										Grant
+									</button>
+								</div>
+							</td>
 							<td class="px-4 py-3" onclick={(e) => e.stopPropagation()}>
 								<div class="flex items-center gap-1.5">
 									<a href={p.adminPath} class="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-on-primary transition hover:brightness-95">Admin</a>
@@ -165,7 +199,7 @@
 						</tr>
 						{#if expandedId === p.profileId}
 							<tr class="border-t border-border bg-surface-2" onclick={(e) => e.stopPropagation()}>
-								<td colspan="8" class="px-4 py-4">
+								<td colspan="10" class="px-4 py-4">
 									{#if loadingId === p.profileId}
 										<p class="text-sm text-muted">Loading…</p>
 									{:else if extrasCache[p.profileId]}
@@ -274,5 +308,58 @@
 		<Pagination page={data.page} {totalPages} total={data.total} itemLabel="profiles" href={pagerHref} />
 	{:else}
 		<p class="mt-6 text-sm text-muted">{data.q ? `No profiles match “${data.q}”.` : 'No profiles yet.'}</p>
+	{/if}
+
+	{#if grantingFor}
+		<div class="fixed inset-0 z-50 grid place-items-center p-4">
+			<button type="button" aria-label="Cancel" onclick={() => (grantingFor = null)} class="absolute inset-0 bg-black/70"></button>
+			<div role="dialog" aria-modal="true" aria-label="Grant credits" class="relative w-full max-w-sm rounded-2xl bg-surface p-6">
+				<p class="font-semibold text-heading">Grant credits to {grantingFor.profileName}</p>
+				{#if form?.error}
+					<p class="mt-2 text-sm font-medium text-red-600">{form.error}</p>
+				{/if}
+				<form
+					method="post"
+					action="?/grantCredits"
+					class="mt-3"
+					use:enhance={() => {
+						granting = true;
+						return async ({ result, update }) => {
+							granting = false;
+							if (result.type === 'success') grantingFor = null;
+							await update();
+						};
+					}}
+				>
+					<input type="hidden" name="profileId" value={grantingFor.profileId} />
+					<label class="block">
+						<span class="text-xs font-medium text-muted">Amount (credits)</span>
+						<input
+							type="number"
+							name="amount"
+							min="1"
+							bind:value={grantAmount}
+							class="mt-1 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+						/>
+					</label>
+					<div class="mt-5 flex justify-end gap-2">
+						<button
+							type="button"
+							onclick={() => (grantingFor = null)}
+							class="rounded-full border border-border px-5 py-2 text-sm font-semibold text-heading transition hover:bg-surface-2"
+						>
+							Cancel
+						</button>
+						<button
+							type="submit"
+							disabled={grantAmount === '' || grantAmount <= 0 || granting}
+							class="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95 disabled:opacity-60"
+						>
+							{granting ? 'Granting…' : 'Grant'}
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
 	{/if}
 </div>

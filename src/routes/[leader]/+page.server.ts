@@ -99,8 +99,10 @@ export const actions: Actions = {
 
 		// Same wallet gate as the campaign workspace's Ask block — checked up
 		// front so a citizen gets a clear reason instead of a silent failure.
+		// Profile-scoped (subjectId), not campaignId: the knowledgebase a wallet
+		// pays to query is one per person, not per run.
 		const settings = await getPlatformSettings();
-		const [wallet] = await db.select().from(wallets).where(eq(wallets.campaignId, lead.leadCampaignId));
+		const [wallet] = await db.select().from(wallets).where(eq(wallets.subjectUserId, lead.subjectId));
 		if (!wallet || wallet.balance < settings.aiChatCostCredits) {
 			return fail(402, { error: 'This profile has insufficient credit balance for AI chats. The team needs to top up before more questions can be answered.' });
 		}
