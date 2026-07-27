@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 	import { counties, geoSlug } from '$lib/data/geo';
 
 	// Cascading county -> constituency -> ward picker over the IEBC geo register.
@@ -23,21 +25,56 @@
 	);
 	const wards = $derived(selectedConstituency?.wards ?? []);
 
+	// The last geo picked anywhere in the app, remembered across pages/visits so
+	// every GeoSelect instance prefills with it. A page that already knows a value
+	// (a saved profile location, a URL param) always wins over the remembered one —
+	// this is only a fallback for whichever fields arrive empty.
+	const STORAGE_KEY = 'geoSelection';
+
+	onMount(() => {
+		if (!browser || county || constituency || ward) return;
+		try {
+			const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
+			if (!saved?.county) return;
+			county = saved.county;
+			if (saved.constituency) constituency = saved.constituency;
+			if (saved.ward) ward = saved.ward;
+			// Restoring silently would leave a page whose own data (candidate lists,
+			// unlocked seats…) was fetched for "no region" out of sync with what's now
+			// showing selected — same follow-up a user's own pick would trigger.
+			onchange?.();
+		} catch {
+			// Corrupt/blocked storage — just start blank.
+		}
+	});
+
+	function remember() {
+		if (!browser) return;
+		try {
+			localStorage.setItem(STORAGE_KEY, JSON.stringify({ county, constituency, ward }));
+		} catch {
+			// Storage full/blocked (private browsing) — nothing to remember this visit.
+		}
+	}
+
 	function pickCounty(value: string) {
 		county = value;
 		constituency = '';
 		ward = '';
+		remember();
 		onchange?.();
 	}
 
 	function pickConstituency(value: string) {
 		constituency = value;
 		ward = '';
+		remember();
 		onchange?.();
 	}
 
 	function pickWard(value: string) {
 		ward = value;
+		remember();
 		onchange?.();
 	}
 </script>

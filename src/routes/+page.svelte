@@ -49,11 +49,15 @@
 	let constituency = $state(data.constituencySlug);
 	let ward = $state(data.wardSlug);
 
-	// Keep local values in sync with the URL (browser back/forward, direct links).
+	// Keep local values in sync with the URL (browser back/forward, direct links) —
+	// but only when it actually specifies a region. A reload with no geo in the URL
+	// (e.g. straight back to "/" after casting a vote) isn't a deliberate "clear the
+	// selection", so it must never stomp whatever GeoSelect just restored from the
+	// remembered (localStorage) selection or the citizen's own in-session pick.
 	$effect(() => {
-		county = data.countySlug;
-		constituency = data.constituencySlug;
-		ward = data.wardSlug;
+		if (data.countySlug) county = data.countySlug;
+		if (data.constituencySlug) constituency = data.constituencySlug;
+		if (data.wardSlug) ward = data.wardSlug;
 	});
 
 	function regionValue(region: Region): string {
