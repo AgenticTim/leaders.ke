@@ -1,9 +1,9 @@
-// Candidate resolution for /vote/2027 (the ballot simulator). Only surfaces
+// Candidate resolution for the homepage ballot simulator. Only surfaces
 // verified 2027 runs (campaigns) — a real ballot lists candidates, which are runs
 // for office, not held terms. ACTIVE_CYCLE (2027) is the cycle this ballot covers.
 import { and, eq, isNull, isNotNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { campaigns, positions, users } from '$lib/server/db/schema';
+import { campaigns, parties, positions, users } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, leaderPath } from '$lib/server/leader';
 import type { County, Constituency, Ward } from '$lib/data/geo';
 
@@ -33,6 +33,7 @@ export const BALLOT_LEVELS: BallotLevel[] = ['president', 'governor', 'senator',
 function toCandidate(row: {
 	campaigns: typeof campaigns.$inferSelect;
 	users: typeof users.$inferSelect;
+	partyName: string | null;
 }): Candidate {
 	const name = fullName(row.users);
 	return {
@@ -45,7 +46,7 @@ function toCandidate(row: {
 			.slice(0, 2)
 			.toUpperCase(),
 		photoUrl: row.users.photoUrl,
-		party: null,
+		party: row.partyName,
 		path: leaderPath(row.users),
 		verified: !!row.campaigns.verifiedAt
 	};
@@ -54,10 +55,11 @@ function toCandidate(row: {
 /** Verified 2027 runs (campaigns) for one position title + exact region name. */
 async function verifiedCampaignsFor(title: string, region: string): Promise<Candidate[]> {
 	const rows = await db
-		.select({ campaigns, users })
+		.select({ campaigns, users, partyName: parties.name })
 		.from(campaigns)
 		.innerJoin(positions, eq(campaigns.positionId, positions.id))
 		.innerJoin(users, eq(campaigns.subjectUserId, users.id))
+		.leftJoin(parties, eq(campaigns.partyId, parties.id))
 		.where(
 			and(
 				eq(positions.title, title),
@@ -74,12 +76,15 @@ async function verifiedCampaignsFor(title: string, region: string): Promise<Cand
 
 /**
  * Candidates for one ballot level given the citizen's selected geography.
+ * Geography is progressive: only the piece a level actually needs must be set
+ * (president none, governor/senator/womanRep the county, mp the constituency,
+ * mca the ward) — callers guarantee that piece before asking for the level.
  * Returns [] when nothing exists yet (no fabricated candidates) — the UI must let the
  * citizen explicitly skip a level rather than block on it.
  */
 export async function resolveCandidates(
 	level: BallotLevel,
-	geo: { county: County; constituency: Constituency; ward: Ward }
+	geo: { county?: County; constituency?: Constituency; ward?: Ward }
 ): Promise<Candidate[]> {
 	const title = LEVEL_TITLE[level];
 	let region: string;
@@ -91,13 +96,13 @@ export async function resolveCandidates(
 		case 'governor':
 		case 'senator':
 		case 'womanRep':
-			region = geo.county.name;
+			region = geo.county!.name;
 			break;
 		case 'mp':
-			region = geo.constituency.seatName;
+			region = geo.constituency!.seatName;
 			break;
 		case 'mca':
-			region = geo.ward.seatName;
+			region = geo.ward!.seatName;
 			break;
 	}
 
@@ -111,9 +116,10 @@ export async function resolveCandidateById(candidateId: string | null): Promise<
 	if (candidateId.startsWith('campaign:')) {
 		const id = Number(candidateId.slice('campaign:'.length));
 		const [row] = await db
-			.select({ campaigns, users })
+			.select({ campaigns, users, partyName: parties.name })
 			.from(campaigns)
 			.innerJoin(users, eq(campaigns.subjectUserId, users.id))
+			.leftJoin(parties, eq(campaigns.partyId, parties.id))
 			.where(and(eq(campaigns.id, id), isNull(campaigns.deletedAt)));
 		return row ? toCandidate(row) : null;
 	}

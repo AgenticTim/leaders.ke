@@ -10,7 +10,7 @@
 	const totalPages = $derived(Math.max(1, Math.ceil(data.total / data.pageSize)));
 </script>
 
-<svelte:head><title>Broadcasts — leaders.ke</title></svelte:head>
+<svelte:head><title>Broadcasts — vote.ke</title></svelte:head>
 
 <div class="grid gap-8 lg:grid-cols-5">
 	<!-- Composer -->

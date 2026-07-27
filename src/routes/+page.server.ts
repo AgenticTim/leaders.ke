@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { ballotSimulations, campaigns, pledges, users } from '$lib/server/db/schema';
-import { counties, findCountyBySlug, findConstituencyBySlug, findWardBySlug } from '$lib/data/geo';
+import { counties, findCountyBySlug, findConstituencyBySlug, findWardBySlug, geoSlug } from '$lib/data/geo';
 import { BALLOT_LEVELS, resolveCandidates, type BallotLevel } from '$lib/server/ballot';
 import { getDomainUser } from '$lib/server/leader';
 import type { Actions, PageServerLoad } from './$types';
@@ -28,14 +28,22 @@ export const load: PageServerLoad = async ({ url }) => {
 
 	const geoReady = !!(county && constituency && ward);
 
-	const levels = geoReady
-		? await Promise.all(
-				BALLOT_LEVELS.map(async (level) => ({
-					level,
-					candidates: await resolveCandidates(level, { county: county!, constituency: constituency!, ward: ward! })
-				}))
-			)
-		: [];
+	// Progressive booth: every level is always listed, but its candidates are
+	// null (locked) until the piece of geography it needs is picked inline.
+	const unlockedBy: Record<BallotLevel, boolean> = {
+		president: true,
+		governor: !!county,
+		senator: !!county,
+		womanRep: !!county,
+		mp: !!constituency,
+		mca: !!ward
+	};
+	const levels = await Promise.all(
+		BALLOT_LEVELS.map(async (level) => ({
+			level,
+			candidates: unlockedBy[level] ? await resolveCandidates(level, { county, constituency, ward }) : null
+		}))
+	);
 
 	return {
 		countySlug,
@@ -46,7 +54,12 @@ export const load: PageServerLoad = async ({ url }) => {
 		wardName: ward?.name ?? '',
 		geoReady,
 		levels,
-		countiesCount: counties.length
+		countiesCount: counties.length,
+		// Inline picker options: 47 counties always; constituencies/wards filtered
+		// by the selection one level up.
+		countyOptions: counties.map((c) => ({ slug: geoSlug(c.name), name: c.name })),
+		constituencyOptions: county ? county.constituencies.map((c) => ({ slug: geoSlug(c.seatName), name: c.name })) : [],
+		wardOptions: constituency ? constituency.wards.map((w) => ({ slug: geoSlug(w.seatName), name: w.name })) : []
 	};
 };
 
@@ -167,6 +180,6 @@ export const actions: Actions = {
 				.onConflictDoNothing();
 		}
 
-		redirect(302, `/vote/2027/${id}`);
+		redirect(302, `/ballot/${id}`);
 	}
 };

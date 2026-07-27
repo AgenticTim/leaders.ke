@@ -49,14 +49,15 @@
 		return () => document.removeEventListener('click', onClick);
 	});
 
-	// Nav only lists built pages; Positions/Issues return as their phases ship.
+	// Nav is voters-first: leader/SaaS pages (features, pricing) live under
+	// /for-leaders and the footer instead of the top bar.
 	const links = [
-		{ href: '/presidents', label: 'All' },
+		{ href: '/presidents', label: 'Leaders' },
 		{ href: '/rank/presidents', label: 'Ranks' },
 		{ href: '/compare', label: 'Compare' },
-		{ href: '/features', label: 'Features' },
-		{ href: '/pricing', label: 'Pricing' },
-		{ href: '/news', label: 'News' }
+		{ href: '/learn', label: 'Learn' },
+		{ href: '/news', label: 'News' },
+		{ href: '/for-leaders', label: 'For Leaders' }
 	];
 
 	// Mobile nav: the desktop links are hidden below md, so a hamburger opens a stacked panel.
@@ -66,8 +67,8 @@
 <header class="sticky top-0 z-40 border-b border-border bg-surface/80 backdrop-blur">
 	<div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
 		<a href="/" class="flex items-center gap-2 font-semibold text-heading">
-			<span class="grid size-8 place-items-center rounded-lg bg-primary text-on-primary">L</span>
-			<span>leaders<span class="text-primary">.ke</span></span>
+			<span class="grid size-8 place-items-center rounded-lg bg-primary text-on-primary">V</span>
+			<span>vote<span class="text-primary">.ke</span></span>
 		</a>
 
 		<div class="mx-3 flex min-w-0 flex-1 items-center justify-end gap-1 md:justify-center">

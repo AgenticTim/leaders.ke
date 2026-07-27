@@ -94,7 +94,7 @@
 	];
 </script>
 
-<svelte:head><title>News — leaders.ke</title></svelte:head>
+<svelte:head><title>News — vote.ke</title></svelte:head>
 
 {#if data.crisis}
 	<div class="mb-6 rounded-2xl border border-primary bg-primary-soft p-5">

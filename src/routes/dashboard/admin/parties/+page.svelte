@@ -5,7 +5,7 @@
 	let { data, form }: PageProps = $props();
 </script>
 
-<svelte:head><title>Parties — Admin — leaders.ke</title></svelte:head>
+<svelte:head><title>Parties — Admin — vote.ke</title></svelte:head>
 
 <h1 class="text-lg font-semibold text-heading">Parties</h1>
 <p class="mt-1 text-sm text-muted">

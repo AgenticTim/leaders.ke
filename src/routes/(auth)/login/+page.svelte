@@ -9,7 +9,7 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 </script>
 
-<AuthCard title="Welcome back" subtitle="Sign in to your leaders.ke account">
+<AuthCard title="Welcome back" subtitle="Sign in to your vote.ke account">
 	{#if data.notice}
 		<p class="mb-4 rounded-xl bg-primary-soft p-3 text-sm text-on-primary">{data.notice}</p>
 	{/if}

@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.alliance.title} — leaders.ke</title>
+	<title>{data.alliance.title} — vote.ke</title>
 	{#if data.alliance.description}<meta name="description" content={data.alliance.description} />{/if}
 </svelte:head>
 

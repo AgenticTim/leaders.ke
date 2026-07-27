@@ -6,7 +6,7 @@
 	let { data, form }: PageProps = $props();
 </script>
 
-<svelte:head><title>Ambassador: {data.assignment.leaderName} — leaders.ke</title></svelte:head>
+<svelte:head><title>Ambassador: {data.assignment.leaderName} — vote.ke</title></svelte:head>
 
 <div>
 	<div class="flex flex-wrap items-center justify-between gap-3">

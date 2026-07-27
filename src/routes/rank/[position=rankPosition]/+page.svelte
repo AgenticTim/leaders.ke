@@ -38,16 +38,16 @@
 </script>
 
 <svelte:head>
-	<title>{data.title} rankings — leaders.ke</title>
+	<title>{data.title} rankings — vote.ke</title>
 	<meta
 		name="description"
 		content="Kenya's {data.title.toLowerCase()}s ranked by followers, pledges, output and manifesto delivery."
 	/>
 </svelte:head>
 
-<section class="mx-auto max-w-7xl px-4 py-14 sm:px-6">
+<section class="mx-auto max-w-7xl px-4 py-8 sm:py-12">
 	<div class="flex flex-col gap-2">
-		<div class="flex items-center justify-between gap-4">
+		<div class="flex flex-col sm:flex-row items-center justify-between gap-4">
 			<!-- Leader quick-jump (leaders-only groups) beside the position pill bar -->
 			<h1 class="text-3xl font-extrabold tracking-tight text-heading sm:text-4xl">The Leader Rank</h1>
 			<PositionBadges positions={RANK_POSITIONS.map((p) => p.title)} value={data.title} {hrefFor} />

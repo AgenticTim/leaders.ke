@@ -1,355 +1,467 @@
 <script lang="ts">
-	import { env } from '$env/dynamic/public';
-	import Countdown from '$lib/components/Countdown.svelte';
-	import SloganCycler from '$lib/components/SloganCycler.svelte';
-	import WordCycler from '$lib/components/WordCycler.svelte';
+	import Avatar from '$lib/components/Avatar.svelte';
+	import BallotDisclaimer from '$lib/components/BallotDisclaimer.svelte';
+	import { goto } from '$app/navigation';
+	import { enhance } from '$app/forms';
+	import { fly } from 'svelte/transition';
+	import GeoSelect from '$lib/components/GeoSelect.svelte';
+	import type { BallotLevel } from '$lib/server/ballot';
+	import type { ActionData, PageData } from './$types';
 
-	// The homepage sells to the paying customer (candidates and currents);
-	// citizens get the directory + news as the public layer and vote.ke as their home.
-	const voteBase = env.PUBLIC_VOTE_BASE_URL ?? 'https://vote.ke';
+	let { data, form }: { data: PageData; form: ActionData } = $props();
 
-	// The hero headline is two cycling halves: any left word reads naturally with
-	// any right word, so the pairs don't need to line up.
-	const leftSet = ['Leadership', 'Campaign', 'Publicity', 'Coalition', 'Advocacy', 'Citizen\'s', 'Movement'];
-	const rightSet = ['Launchpad', 'Copilot', 'Panel', 'Catalyst', 'Arsenal', 'Companion', 'Machinery'];
+	const LEVEL_HEADING: Record<BallotLevel, string> = {
+		president: 'Pick Your President',
+		governor: 'Pick Your Governor',
+		senator: 'Pick Your Senator',
+		womanRep: 'Pick Your Woman Rep',
+		mp: 'Pick Your MP',
+		mca: 'Pick Your MCA'
+	};
+	const SEAT_ORDER: BallotLevel[] = ['president', 'governor', 'senator', 'womanRep', 'mp', 'mca'];
 
-	// Campaign toolkit grid: what a subscription buys. `live` distinguishes
-	// shipped features from roadmap items (badged "Coming soon") — the badge
-	// doubles as a demand test for later phases.
-	const toolkit = [
-		{
-			title: 'Verified profile',
-			description:
-				'A verified public page with your manifesto, photo and party at a clean URL citizens can trust.',
-			live: true,
-			icon: 'M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z'
-		},
-		{
-			title: 'Featured placement',
-			description:
-				'Put your profile in front of every visitor on the leaders.ke homepage and directory.',
-			live: true,
-			icon: 'M11.48 3.5a.562.562 0 0 1 1.04 0l2.12 5.11 5.52.44c.5.04.7.66.32.99l-4.2 3.6 1.28 5.38a.562.562 0 0 1-.84.61L12 16.72l-4.72 2.91a.562.562 0 0 1-.84-.61l1.28-5.38-4.2-3.6a.562.562 0 0 1 .32-.99l5.52-.44 2.12-5.11Z'
-		},
-		{
-			title: 'Followers & broadcasts',
-			description:
-				'Grow a follower base from your page, then reach them by ward — email today, SMS and WhatsApp on credits.',
-			live: true,
-			icon: 'M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Z'
-		},
-		{
-			title: 'Reviews & fundraising',
-			description:
-				'Citizens review your leadership and pledge their votes, while you collect campaign donations.',
-			live: true,
-			icon: 'M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z'
-		},
-		{
-			title: 'PR desk',
-			description:
-				'Every news mention tagged to you, AI-drafted responses, and crisis alerts when coverage turns.',
-			live: true,
-			icon: 'M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 0 1-2.25 2.25M16.5 7.5V18a2.25 2.25 0 0 0 2.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 0 0 2.25 2.25h13.5'
-		},
-		{
-			title: 'AI chat & competitor watch',
-			description:
-				'An AI that answers constituent questions from your manifesto, plus a live view of your rivals.',
-			live: true,
-			icon: 'M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z'
+	// The booth is a wizard, not a page: one full-viewport step at a time, no
+	// vertical scrolling anywhere — wide option sets wrap into extra columns and
+	// overflow horizontally instead. Region picks are their own steps, injected
+	// right before the first seat that needs them.
+	type Region = 'county' | 'constituency' | 'ward';
+	type Step =
+		| { kind: 'seat'; level: BallotLevel }
+		| { kind: 'region'; region: Region }
+		| { kind: 'details' };
+	const STEPS: Step[] = [
+		{ kind: 'seat', level: 'president' },
+		{ kind: 'region', region: 'county' },
+		{ kind: 'seat', level: 'governor' },
+		{ kind: 'seat', level: 'senator' },
+		{ kind: 'seat', level: 'womanRep' },
+		{ kind: 'region', region: 'constituency' },
+		{ kind: 'seat', level: 'mp' },
+		{ kind: 'region', region: 'ward' },
+		{ kind: 'seat', level: 'mca' },
+		{ kind: 'details' }
+	];
+	let stepIndex = $state(0);
+	const step = $derived(STEPS[stepIndex]);
+
+	let county = $state(data.countySlug);
+	let constituency = $state(data.constituencySlug);
+	let ward = $state(data.wardSlug);
+
+	// Keep local values in sync with the URL (browser back/forward, direct links).
+	$effect(() => {
+		county = data.countySlug;
+		constituency = data.constituencySlug;
+		ward = data.wardSlug;
+	});
+
+	function regionValue(region: Region): string {
+		return region === 'county' ? county : region === 'constituency' ? constituency : ward;
+	}
+
+	// One candidateId (or null if skipped) per level; `decided` gates the cast button.
+	let selections = $state<Record<BallotLevel, string | null>>({
+		president: null,
+		governor: null,
+		senator: null,
+		womanRep: null,
+		mp: null,
+		mca: null
+	});
+	let decided = $state<Record<BallotLevel, boolean>>({
+		president: false,
+		governor: false,
+		senator: false,
+		womanRep: false,
+		mp: false,
+		mca: false
+	});
+
+	const allDecided = $derived(Object.values(decided).every(Boolean));
+
+	function resetLevels(levels: BallotLevel[]) {
+		for (const level of levels) {
+			selections[level] = null;
+			decided[level] = false;
 		}
-	];
+	}
 
-	// Claim → verify → pay → go public: the onboarding funnel in four steps.
-	const steps = [
-		{
-			title: 'Claim your profile',
-			description: 'Sign up and create or claim your leader profile for the seat you are vying for.'
-		},
-		{
-			title: 'Get verified',
-			description: 'Submit your ID and proof of candidature; our team verifies against IEBC records.'
-		},
-		{
-			title: 'Pick a package',
-			description: 'One flat rate for every office, MCA to President — pick a tier and pay via M-Pesa.'
-		},
-		{
-			title: 'Go public',
-			description: 'Your verified page goes live and starts converting visitors into followers.'
+	async function syncGeoToUrl() {
+		const params = new URLSearchParams();
+		if (county) params.set('county', county);
+		if (constituency) params.set('constituency', constituency);
+		if (ward) params.set('ward', ward);
+		await goto(`?${params.toString()}`, { keepFocus: true, noScroll: true });
+	}
+
+	// The always-visible GeoSelect bar: changing a region there invalidates every
+	// pick that depended on it before reloading candidates.
+	function onGeoChange() {
+		if (county !== data.countySlug) resetLevels(['governor', 'senator', 'womanRep', 'mp', 'mca']);
+		else if (constituency !== data.constituencySlug) resetLevels(['mp', 'mca']);
+		else if (ward !== data.wardSlug) resetLevels(['mca']);
+		syncGeoToUrl();
+	}
+
+	// Advance skips region steps whose value is already set (e.g. via the bar
+	// below); going back never skips them, so any region can be re-picked.
+	function goNext() {
+		let i = stepIndex + 1;
+		while (i < STEPS.length - 1) {
+			const s = STEPS[i];
+			if (s.kind === 'region' && regionValue(s.region)) i++;
+			else break;
 		}
-	];
+		stepIndex = Math.min(i, STEPS.length - 1);
+	}
+	function goBack() {
+		if (stepIndex > 0) stepIndex--;
+	}
 
-	// Placeholder quotes until Phase 4 delivers real case studies.
-	const testimonials = [
-		{
-			quote:
-				'My constituents finally have one place to read my manifesto instead of screenshots on WhatsApp.',
-			name: 'Verified aspirant',
-			role: 'MCA candidate, Rift Valley'
-		},
-		{
-			quote:
-				'The verification badge settled the fake-accounts problem in one week. We point everyone to the page.',
-			name: 'Campaign manager',
-			role: 'Gubernatorial campaign, Coast'
-		},
-		{
-			quote: 'We treat the profile link like our digital office. It goes on every poster we print.',
-			name: 'Communications lead',
-			role: 'Senatorial campaign, Nairobi'
+	function pick(level: BallotLevel, candidateId: string) {
+		selections[level] = candidateId;
+		decided[level] = true;
+		goNext();
+	}
+	function skip(level: BallotLevel) {
+		selections[level] = null;
+		decided[level] = true;
+		goNext();
+	}
+
+	async function pickRegion(region: Region, slug: string) {
+		if (region === 'county') {
+			county = slug;
+			constituency = '';
+			ward = '';
+			resetLevels(['governor', 'senator', 'womanRep', 'mp', 'mca']);
+		} else if (region === 'constituency') {
+			constituency = slug;
+			ward = '';
+			resetLevels(['mp', 'mca']);
+		} else {
+			ward = slug;
+			resetLevels(['mca']);
 		}
-	];
+		await syncGeoToUrl();
+		goNext();
+	}
 
-	// Placeholder news until the aggregation pipeline (Phase 5) lands.
-	const promotedNews = [
-		{
-			tag: 'Finance Bill',
-			title: 'Aspirants weigh in on the 2027 fiscal framework',
-			summary: 'Twelve verified candidates published positions on the proposed tax changes this week.',
-			time: '2h ago'
-		},
-		{
-			tag: 'Youth & Jobs',
-			title: 'Gen Z voter registration drive crosses 500k',
-			summary: 'Campaign ambassadors mobilized first-time voters across 23 counties.',
-			time: '5h ago'
-		},
-		{
-			tag: 'Devolution',
-			title: 'County manifestos compared side by side',
-			summary: 'leaders.ke digest breaks down health and water pledges by region.',
-			time: '1d ago'
+	function candidatesFor(level: BallotLevel) {
+		return data.levels.find((l) => l.level === level)?.candidates ?? null;
+	}
+	// The region step a seat depends on — the escape hatch when a seat step is
+	// reached while its geography is unset (possible via the GeoSelect bar).
+	function regionStepFor(level: BallotLevel): number {
+		const region: Region | null =
+			level === 'mp' ? 'constituency' : level === 'mca' ? 'ward' : level === 'president' ? null : 'county';
+		return region ? STEPS.findIndex((s) => s.kind === 'region' && s.region === region) : 0;
+	}
+
+	const REGION_TITLE: Record<Region, string> = {
+		county: 'Choose Your County',
+		constituency: 'Choose Your Constituency',
+		ward: 'Choose Your Ward'
+	};
+	const regionOptions = $derived({
+		county: data.countyOptions,
+		constituency: data.constituencyOptions,
+		ward: data.wardOptions
+	});
+
+	const seatNumber = $derived(step.kind === 'seat' ? SEAT_ORDER.indexOf(step.level) + 1 : 0);
+
+	let pollingStation = $state('');
+	let voterName = $state('');
+	let voterContact = $state('');
+	let consentedToContact = $state(false);
+
+	// "Use my location" on the county step: browser geolocation (explicit tap,
+	// so the permission prompt is user-initiated) resolved to a county fully
+	// offline via detectCountySlug — see locateCounty.ts for the privacy notes.
+	let locating = $state(false);
+	let locateError = $state<string | null>(null);
+	function useMyLocation() {
+		locateError = null;
+		if (!navigator.geolocation) {
+			locateError = 'Location is not supported by this browser — pick your county below.';
+			return;
 		}
-	];
-
-	const stats = [
-		{ value: '1,450+', label: 'Elective positions' },
-		{ value: '8,900+', label: 'Leader profiles' },
-		{ value: '47', label: 'Counties covered' }
-	];
-
+		locating = true;
+		navigator.geolocation.getCurrentPosition(
+			async (pos) => {
+				try {
+					const { detectCountySlug } = await import('$lib/utils/locateCounty');
+					const slug = await detectCountySlug(pos.coords.latitude, pos.coords.longitude);
+					if (slug) await pickRegion('county', slug);
+					else locateError = "Couldn't place you in a county — pick it below.";
+				} catch {
+					locateError = 'Something went wrong — pick your county below.';
+				} finally {
+					locating = false;
+				}
+			},
+			(err) => {
+				locating = false;
+				locateError =
+					err.code === err.PERMISSION_DENIED
+						? 'Location permission denied — pick your county below.'
+						: "Couldn't get your location — pick your county below.";
+			},
+			{ maximumAge: 300000, timeout: 10000 }
+		);
+	}
 </script>
 
 <svelte:head>
-	<title>leaders.ke — Your 2027 Campaign HQ</title>
+	<title>vote.ke — Cast your 2027 ballot</title>
 	<meta
 		name="description"
-		content="Run and win your 2027 campaign from one platform: a verified profile, manifesto, followers and broadcasts. Citizens: verify who is vying and follow campaigns."
+		content="Step into the voting booth: see every candidate you'd vote for in 2027 across all six elective levels, cast a simulated ballot, and share your result."
 	/>
 </svelte:head>
 
-<!-- Hero: speaks to the candidate; the countdown card keeps election urgency front and center -->
-<section class="relative overflow-hidden">
-	<div
-		class="pointer-events-none absolute inset-0 bg-linear-to-b from-primary-soft/40 to-transparent"
-	></div>
-	<div class="relative mx-auto grid max-w-7xl gap-5 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:py-24">
-		<div class="flex flex-col justify-center">
-			<span
-				class="mb-4 inline-flex w-fit items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-on-primary"
-			>
-				<span class="size-2 rounded-full bg-primary"></span>
-				The platform that verifies who is vying
-			</span>
-			<!-- Two halves of the headline cycle independently, staggered so only one
-			word swaps at a time (e.g. "Campaign Machinery" → "Campaign Dashboard"). -->
-			<h1 class="text-4xl font-extrabold tracking-tight text-heading sm:text-5xl">
-				<WordCycler words={leftSet} />
-				<WordCycler words={rightSet} delay={1000} />
-			</h1>
-			<div class="mt-4">
-				<SloganCycler />
-			</div>
-			<p class="mt-4 max-w-lg text-base leading-relaxed">
-				A verified profile, your manifesto, your followers and your PR, all in one place. Built
-				for candidates, current officeholders, and the teams behind them.
-			</p>
-			<div class="mt-8 flex flex-wrap gap-3">
-				<a
-					href="/onboard/profile"
-					class="rounded-full bg-primary px-6 py-3 font-semibold text-on-primary transition hover:brightness-95 focus:ring-0 focus:ring-ring focus:outline-none"
-				>
-					🚀 Get onboard
-				</a>
-				<a
-					href="/presidents"
-					class="rounded-full border border-border bg-surface px-6 py-3 font-semibold text-heading transition hover:bg-surface-2"
-				>
-					Explore leaders
-				</a>
-				<!-- Citizens get deflected to the citizen platform; this page sells to leaders. -->
-				<a
-					href={voteBase}
-					class="rounded-full border border-border bg-surface px-6 py-3 font-semibold text-heading transition hover:bg-surface-2"
-				>
-					Voter? Head to vote.ke
-				</a>
-			</div>
-		</div>
-
-		<!-- Countdown card -->
-		<div class="flex items-center justify-center">
+<!-- Full-viewport booth below the header: step area, controls, the
+always-visible geo bar, then the disclaimer. The page never scrolls vertically.
+Below lg the header carries its extra full-width search row (~3.2rem), so the
+booth's height subtracts it too — otherwise the bottom overflows and centered
+content slides under the sticky header. -->
+<div class="flex h-[calc(100dvh-7.2rem)] flex-col overflow-hidden lg:h-[calc(100dvh-4rem)]">
+	<!-- Step area -->
+	<div class="min-h-0 flex-1 overflow-hidden">
+		{#key stepIndex}
 			<div
-				class="my-6 w-full max-w-md rounded-3xl border border-border bg-surface p-8 text-center shadow-sm"
+				in:fly={{ x: 240, duration: 250 }}
+				class="mx-auto flex h-full w-full max-w-7xl flex-col pt-4 sm:pt-6 px-4 sm:px-6"
 			>
-				<p class="text-sm font-medium tracking-wide text-muted uppercase">Countdown to the vote</p>
-				<div class="mx-auto my-6">
-					<Countdown />
-				</div>
+				{#if step.kind === 'seat'}
+					{@const candidates = candidatesFor(step.level)}
+					<h1 class="shrink-0 text-center text-2xl font-bold text-heading sm:text-3xl">
+						{LEVEL_HEADING[step.level]}
+					</h1>
 
-				<p class="mt-2 text-xl font-semibold tracking-widest text-heading uppercase">
-					10 August 2027
-				</p>
-
-				<div class="mt-4 grid grid-cols-3 gap-3 border-t border-border pt-6">
-					{#each stats as stat (stat.label)}
-						<div>
-							<p class="text-xl font-bold text-primary">{stat.value}</p>
-							<p class="text-xs text-muted">{stat.label}</p>
+					{#if candidates === null}
+						<div class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
+							<p class="text-sm text-muted">This seat needs your location first.</p>
+							<button
+								type="button"
+								onclick={() => (stepIndex = regionStepFor(step.level))}
+								class="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-95"
+							>
+								Choose it now
+							</button>
 						</div>
-					{/each}
-				</div>
-			</div>
-		</div>
-	</div>
-</section>
-
-<!-- Campaign toolkit: the feature grid a subscription buys -->
-<section class="border-t border-border bg-surface-2">
-	<div class="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-		<div class="mb-8 ">
-			<h2 class="text-2xl font-bold text-heading">Everything a campaign needs</h2>
-			<p class="mt-1 text-sm text-muted">
-				One subscription runs your entire public presence, whether you are defending a seat or
-				gunning for one.
-			</p>
-		</div>
-
-		<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-			{#each toolkit as feature (feature.title)}
-				<div class="flex flex-col rounded-2xl border border-border bg-surface p-6">
-					<div class="flex items-center justify-between">
-						<span class="grid size-10 place-items-center rounded-xl bg-primary-soft text-on-primary">
-							<svg
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.5"
-								class="size-5"
+					{:else if candidates.length === 0}
+						<div class="flex min-h-0 flex-1 items-center justify-center">
+							<p class="rounded-lg border border-border bg-surface-2 px-4 py-3 text-sm text-muted">
+								No candidates yet for this seat. Skip it and check back closer to the election.
+							</p>
+						</div>
+					{:else}
+						<!-- Centered wrapping rows across max-w-7xl: more cards per row the
+						wider the screen, and partial rows stay centered. my-auto (not
+						justify-center on the scroller) centers short content without
+						clipping the top rows once the list overflows. -->
+						<div class="flex min-h-0 flex-1 flex-col overflow-y-auto">
+							<!-- One stacked card layout (photo top, name + party below) at every
+							size. Cards grow from an 11rem base to a 15rem cap: full rows
+							stretch across the container, and once cards hit the cap the
+							leftover space (and any partial last row) centers. Two per row
+							on mobile. -->
+							<div class="my-auto flex w-full flex-wrap justify-center gap-2 py-3 sm:gap-3">
+								{#each candidates as candidate (candidate.candidateId)}
+									<button
+										type="button"
+										onclick={() => pick(step.level, candidate.candidateId)}
+										class="flex max-w-[calc(50%-0.25rem)] grow basis-[calc(50%-0.25rem)] flex-col items-center gap-2 rounded-2xl border p-3 text-center text-xs sm:text-sm transition sm:max-w-90 sm:basis-60 sm:p-4 {selections[
+											step.level
+										] === candidate.candidateId
+											? 'border-primary bg-primary-soft'
+											: 'border-border bg-surface hover:border-primary'}"
+									>
+										<Avatar name={candidate.name} initials={candidate.initials} photoUrl={candidate.photoUrl} sizeClass="size-20 lg:size-32" />
+										<span>
+											<span class="flex items-center justify-center gap-1 font-semibold text-heading">
+												{candidate.name}
+												{#if candidate.verified}
+													<svg viewBox="0 0 24 24" fill="currentColor" class="size-4 text-primary" aria-label="Verified">
+														<title>An admin has manually confirmed this candidacy's IEBC certificate.</title>
+														<path
+															fill-rule="evenodd"
+															d="M8.6 3.8a4.5 4.5 0 0 0-1.4 1 4.5 4.5 0 0 0-3.8 3.7 4.5 4.5 0 0 0 0 5 4.5 4.5 0 0 0 3.7 3.8 4.5 4.5 0 0 0 5 0 4.5 4.5 0 0 0 3.8-3.7 4.5 4.5 0 0 0 0-5 4.5 4.5 0 0 0-3.7-3.8 4.5 4.5 0 0 0-3.6-1Zm7 6.7a.75.75 0 1 0-1.2-.9l-3.2 4.3-1.7-1.7a.75.75 0 1 0-1 1l2.3 2.4a.75.75 0 0 0 1.1-.1l3.7-5Z"
+															clip-rule="evenodd"
+														/>
+													</svg>
+												{/if}
+											</span>
+											{#if candidate.party}<span class="block text-xs text-muted">{candidate.party}</span
+												>{/if}
+										</span>
+									</button>
+								{/each}
+							</div>
+						</div>
+					{/if}
+				{:else if step.kind === 'region'}
+					<h1 class="shrink-0 text-center text-2xl font-bold text-heading sm:text-3xl">
+						{REGION_TITLE[step.region]}
+					</h1>
+					{#if step.region !== 'county'}
+						<p class="shrink-0 pt-1 text-center text-sm text-muted">
+							in {step.region === 'constituency' ? data.countyName : data.constituencyName}
+						</p>
+					{:else}
+						<!-- Offline county detection: coordinates are point-in-polygon
+						tested against bundled boundaries, never sent or stored. -->
+						<div class="shrink-0 pt-2 text-center">
+							<button
+								type="button"
+								onclick={useMyLocation}
+								disabled={locating}
+								class="rounded-full border border-primary px-4 py-1.5 text-sm font-semibold text-primary transition hover:bg-primary hover:text-on-primary disabled:cursor-wait disabled:opacity-60"
 							>
-								<path stroke-linecap="round" stroke-linejoin="round" d={feature.icon} />
-							</svg>
-						</span>
-						{#if !feature.live}
-							<span
-								class="rounded-full border border-border bg-surface-2 px-2.5 py-0.5 text-xs font-semibold text-muted"
-							>
-								Coming soon
-							</span>
-						{/if}
+								{locating ? 'Locating…' : '📍 Use my location'}
+							</button>
+							{#if locateError}
+								<p class="pt-1 text-xs text-muted">{locateError}</p>
+							{/if}
+						</div>
+					{/if}
+
+					<!-- Centered wrapping rows across max-w-7xl: more options per row the
+					wider the screen, and partial rows stay centered. my-auto centers
+					short lists without clipping the top once the list overflows. -->
+					<div class="flex min-h-0 flex-1 flex-col overflow-y-auto">
+						<div class="my-auto flex flex-wrap justify-center gap-2 py-3">
+							{#each regionOptions[step.region] as option (option.slug)}
+								<button
+									type="button"
+									onclick={() => pickRegion(step.region as Region, option.slug)}
+									class="w-[calc(50%-0.25rem)] rounded-xl border px-2 py-2.5 text-sm font-medium transition sm:w-44 sm:px-3 {regionValue(
+										step.region
+									) === option.slug
+										? 'border-primary bg-primary-soft text-heading'
+										: 'border-border bg-surface text-heading hover:border-primary hover:bg-primary-soft'}"
+								>
+									{option.name}
+								</button>
+							{/each}
+						</div>
 					</div>
-					<h3 class="mt-4 font-semibold text-heading">{feature.title}</h3>
-					<p class="mt-2 flex-1 text-sm leading-relaxed">{feature.description}</p>
-				</div>
-			{/each}
-		</div>
+				{:else}
+					<!-- Final step: optional details + cast -->
+					<form
+						method="post"
+						use:enhance
+						class="mx-auto flex h-full w-full max-w-xl min-h-0 flex-col overflow-y-auto"
+					>
+						<input type="hidden" name="county" value={county} />
+						<input type="hidden" name="constituency" value={constituency} />
+						<input type="hidden" name="ward" value={ward} />
+						<input type="hidden" name="selections" value={JSON.stringify(selections)} />
 
-		<div class="mt-8 text-center">
-			<a href="/features" class="text-sm font-semibold text-primary hover:underline">
-				See the full feature list →
-			</a>
-		</div>
-	</div>
-</section>
+						<!-- my-auto centers the form when it fits and scrolls from the top
+						(no clipped heading) when it doesn't. -->
+						<div class="my-auto w-full">
+						<h1 class="text-center text-2xl font-bold text-heading sm:text-3xl">Cast Your Ballot</h1>
+						<p class="mt-1 text-center text-sm text-muted">
+							Optional: leave your details to be notified when a candidate you didn't see joins.
+							Never shown on your shared ballot (Kenya Data Protection Act, 2019).
+						</p>
 
-<!-- How it works: the onboarding funnel -->
-<section class="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-	<div class="mb-8 ">
-		<h2 class="text-2xl font-bold text-heading">From aspirant to verified in four steps</h2>
-		<p class="mt-1 text-sm text-muted">
-			Campaign managers can sign up and run the whole process on a candidate's behalf.
-		</p>
-	</div>
+						<div class="mt-4 grid gap-3 sm:grid-cols-2">
+							<input
+								type="text"
+								bind:value={voterName}
+								name="voterName"
+								placeholder="Name (optional)"
+								class="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+							/>
+							<input
+								type="text"
+								bind:value={voterContact}
+								name="voterContact"
+								placeholder="Phone or email (optional)"
+								class="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+							/>
+						</div>
+						<label class="mt-3 flex items-start gap-2 text-sm">
+							<input
+								type="checkbox"
+								bind:checked={consentedToContact}
+								name="consentedToContact"
+								class="mt-0.5"
+							/>
+							<span>I consent to vote.ke contacting me about candidates in my area (KDPA opt-in).</span>
+						</label>
 
-	<ol class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-		{#each steps as step, i (step.title)}
-			<li class="rounded-2xl border border-border bg-surface p-6">
-				<span
-					class="grid size-8 place-items-center rounded-full bg-primary text-sm font-bold text-on-primary"
-				>
-					{i + 1}
-				</span>
-				<h3 class="mt-4 font-semibold text-heading">{step.title}</h3>
-				<p class="mt-2 text-sm leading-relaxed">{step.description}</p>
-			</li>
-		{/each}
-	</ol>
-</section>
-
-<!-- Social proof: placeholder quotes until real Phase 4 case studies replace them -->
-<section class="border-t border-border bg-surface-2">
-	<div class="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-		<h2 class="text-2xl font-bold text-heading">Campaigns run on leaders.ke</h2>
-		<div class="mt-8 grid gap-4 md:grid-cols-3">
-			{#each testimonials as t (t.role)}
-				<figure class="flex flex-col rounded-2xl border border-border bg-surface p-6">
-					<svg viewBox="0 0 24 24" fill="currentColor" class="size-6 text-primary/40">
-						<path
-							d="M7.2 5.6C4.9 7.1 3.4 9.6 3.4 12.6c0 3.4 2.2 5.8 5 5.8 2.4 0 4.2-1.8 4.2-4.1 0-2.2-1.6-3.9-3.8-3.9-.4 0-.9.1-1 .1.3-1.9 2-4 3.8-5l-4.4.1Zm9.9 0c-2.3 1.5-3.8 4-3.8 7 0 3.4 2.2 5.8 5 5.8 2.3 0 4.2-1.8 4.2-4.1 0-2.2-1.7-3.9-3.9-3.9-.4 0-.8.1-1 .1.4-1.9 2.1-4 3.9-5l-4.4.1Z"
+						<input
+							type="text"
+							bind:value={pollingStation}
+							name="pollingStation"
+							placeholder="Polling station (optional — not yet published by IEBC for 2027)"
+							class="mt-4 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
 						/>
-					</svg>
-					<blockquote class="mt-3 flex-1 text-sm leading-relaxed">{t.quote}</blockquote>
-					<figcaption class="mt-4">
-						<p class="text-sm font-semibold text-heading">{t.name}</p>
-						<p class="text-xs text-muted">{t.role}</p>
-					</figcaption>
-				</figure>
-			{/each}
-		</div>
-	</div>
-</section>
 
-<!-- Promoted news: the public civic layer; later fed by the PR desk pipeline -->
-<section class="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-	<div class="mb-8">
-		<h2 class="text-2xl font-bold text-heading">Latest civic news</h2>
-		<p class="mt-1 text-sm text-muted">Aggregated daily from verified media, tagged to leaders</p>
+						{#if form?.message}
+							<p class="mt-4 text-sm text-red-500">{form.message}</p>
+						{/if}
+
+						<button
+							type="submit"
+							disabled={!allDecided || !data.geoReady}
+							class="mt-6 w-full rounded-full bg-primary px-6 py-3 font-semibold text-on-primary transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-40"
+						>
+							Cast my simulated vote
+						</button>
+						{#if !allDecided || !data.geoReady}
+							<p class="mt-2 text-center text-xs text-muted">
+								Pick or skip all six seats to unlock this button.
+							</p>
+						{/if}
+						</div>
+					</form>
+				{/if}
+			</div>
+		{/key}
 	</div>
 
-	<div class="grid gap-4 md:grid-cols-3">
-		{#each promotedNews as item (item.title)}
-			<article class="flex flex-col rounded-2xl border border-border bg-surface p-6">
-				<span
-					class="w-fit rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-on-primary"
+	<!-- Wizard controls: back + progress on the left, skip on the right. -->
+	<div class="mx-auto flex w-full max-w-7xl shrink-0 items-center justify-between px-4 py-2 sm:px-6">
+		<div class="flex items-center gap-3">
+			{#if stepIndex > 0}
+				<button
+					type="button"
+					onclick={goBack}
+					class="rounded-full border border-border px-3 py-1.5 text-sm font-medium text-muted transition hover:border-primary hover:text-heading"
 				>
-					{item.tag}
-				</span>
-				<h3 class="mt-3 font-semibold text-heading">{item.title}</h3>
-				<p class="mt-2 flex-1 text-sm leading-relaxed">{item.summary}</p>
-				<p class="mt-4 text-xs text-muted">{item.time}</p>
-			</article>
-		{/each}
-	</div>
-</section>
-
-<!-- Pricing teaser + CTA -->
-<section class="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
-	<div
-		class="flex flex-col items-center gap-4 rounded-3xl bg-primary px-6 py-12 text-center text-on-primary"
-	>
-		<h2 class="text-2xl font-bold text-on-primary sm:text-3xl">Running in 2027?</h2>
-		<p class="max-w-xl text-on-primary/80">
-			Claim your profile, get verified, and go public before your opponents do.
-		</p>
-		<div class="mt-2 flex flex-wrap justify-center gap-3">
-			<a
-				href="/onboard/profile"
-				class="rounded-full bg-surface px-6 py-3 font-semibold text-heading transition hover:bg-surface-2"
+					← Back
+				</button>
+			{/if}
+			{#if step.kind === 'seat'}
+				<p class="text-xs font-semibold tracking-wide text-primary uppercase">
+					{seatNumber} of {SEAT_ORDER.length}
+				</p>
+			{/if}
+		</div>
+		{#if step.kind === 'seat' && candidatesFor(step.level) !== null}
+			<button
+				type="button"
+				onclick={() => skip(step.level as BallotLevel)}
+				class="text-sm font-medium text-muted underline-offset-2 hover:text-heading hover:underline"
 			>
-				Launch Your Campaign
-			</a>
+				{selections[step.level] ? 'Change to no selection' : 'Skip this seat'}
+			</button>
+		{/if}
+	</div>
+
+	<!-- The geo bar always hangs here, above the disclaimer: the correction tool
+	that jumps the whole booth to any county/constituency/ward. -->
+	<div class="shrink-0 border-t border-border px-4 py-2 sm:px-6">
+		<div class="mx-auto max-w-7xl">
+			<GeoSelect bind:county bind:constituency bind:ward onchange={onGeoChange} />
 		</div>
 	</div>
-</section>
+
+	<BallotDisclaimer />
+</div>

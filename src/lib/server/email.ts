@@ -36,7 +36,7 @@ export function stripLinks(html: string): string {
  */
 export async function sendEmail({ to, subject, text, html }: Mail): Promise<void> {
 	const token = env.POSTMARK_TOKEN;
-	const from = env.EMAIL_FROM || 'noreply@leaders.ke';
+	const from = env.EMAIL_FROM || 'noreply@vote.ke';
 
 	if (!token) {
 		console.log(`\n──── email (stub) ────\nto:      ${to}\nsubject: ${subject}\n\n${text}\n──────────────────────\n`);

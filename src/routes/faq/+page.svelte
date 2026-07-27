@@ -19,7 +19,7 @@
 				},
 				{
 					q: 'Where are the voter tools — ballot simulator, voter education, key dates?',
-					a: 'On our citizen platform, vote.ke: simulate your full six-seat ballot, learn how registration and voting work, and track key 2027 dates. leaders.ke focuses on the leaders themselves.'
+					a: 'Right here. The homepage is the ballot simulator: pick your county, constituency and ward and cast a full six-seat simulated ballot. Voter education lives under Learn, with key 2027 dates, registration drives, and a registration checker alongside.'
 				},
 				{
 					q: 'Can I review a leader?',
@@ -35,7 +35,7 @@
 			title: 'Leaders & candidates',
 			items: [
 				{
-					q: 'How do I get on leaders.ke?',
+					q: 'How do I get on vote.ke?',
 					a: 'If a profile for you already exists, claim it via "Claim this profile" on that page. Otherwise create one: hit Create a Profile, fill the Profile tab (including your photo), the Contacts tab, and the Team tab (where your sign-off sits under your own entry), then submit for verification. Adding a campaign (Campaign tab) is separate and optional, verified on its own.'
 				},
 				{
@@ -44,7 +44,7 @@
 				},
 				{
 					q: 'What do I get once verified?',
-					a: 'A permanent public page at leaders.ke/your-name: bio, record, manifesto with a public delivery tracker, posts, reviews, followers, fundraising, and a PR desk that tracks your news mentions.'
+					a: 'A permanent public page at vote.ke/your-name: bio, record, manifesto with a public delivery tracker, posts, reviews, followers, fundraising, and a PR desk that tracks your news mentions.'
 				},
 				{
 					q: 'How do broadcasts work?',
@@ -106,8 +106,8 @@
 			title: 'Legal & data',
 			items: [
 				{
-					q: 'Is leaders.ke neutral?',
-					a: 'Yes — every campaign gets the same tools on the same terms, verification is against IEBC records, and the platform endorses no one.'
+					q: 'Is vote.ke neutral?',
+					a: 'Yes — every campaign gets the same tools on the same terms, verification is against IEBC records, voter education never carries paid placement, and the platform endorses no one.'
 				},
 				{
 					q: 'What laws does the platform follow?',
@@ -115,7 +115,7 @@
 				},
 				{
 					q: 'How do I correct or delete my data?',
-					a: 'Manage everything from your account page, including full account deletion, or write to privacy@leaders.ke for anything the dashboard doesn\'t cover.'
+					a: 'Manage everything from your account page, including full account deletion, or write to privacy@vote.ke for anything the dashboard doesn\'t cover.'
 				},
 				{
 					q: 'How is spam and impersonation handled?',
@@ -139,8 +139,8 @@
 </script>
 
 <svelte:head>
-	<title>FAQ — leaders.ke</title>
-	<meta name="description" content="Frequently asked questions about leaders.ke, for citizens, leaders, campaign teams, billing, and data." />
+	<title>FAQ — vote.ke</title>
+	<meta name="description" content="Frequently asked questions about vote.ke, for citizens, leaders, campaign teams, billing, and data." />
 </svelte:head>
 
 <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6">

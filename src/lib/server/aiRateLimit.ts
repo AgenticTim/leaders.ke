@@ -14,7 +14,7 @@ import { db } from '$lib/server/db';
 import { aiAskEvents } from '$lib/server/db/schema';
 import { getPlatformSettings } from '$lib/server/settings';
 
-const ANON_ID_COOKIE = 'anon_id'; // shared with /vote/2027's device cookie — one id per visitor across features
+const ANON_ID_COOKIE = 'anon_id'; // shared with the homepage ballot booth's device cookie — one id per visitor across features
 
 function startOfToday(): Date {
 	const d = new Date();
@@ -23,7 +23,7 @@ function startOfToday(): Date {
 }
 
 function anonDeviceId(): string {
-	return randomBytes(16).toString('hex'); // matches /vote/2027's anonDeviceId — 32 hex chars
+	return randomBytes(16).toString('hex'); // matches the homepage ballot booth's anonDeviceId — 32 hex chars
 }
 
 type RateLimitResult = { ok: true } | { ok: false; error: string; requiresLogin?: boolean };

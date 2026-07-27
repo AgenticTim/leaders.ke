@@ -6,7 +6,7 @@
 	const dateFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' });
 </script>
 
-<svelte:head><title>Local News — leaders.ke</title></svelte:head>
+<svelte:head><title>Local News — vote.ke</title></svelte:head>
 
 <div class="flex min-h-[70vh] flex-col">
 <div>

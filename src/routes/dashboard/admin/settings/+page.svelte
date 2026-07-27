@@ -7,7 +7,7 @@
 	let saving = $state(false);
 </script>
 
-<svelte:head><title>Platform settings — leaders.ke</title></svelte:head>
+<svelte:head><title>Platform settings — vote.ke</title></svelte:head>
 
 <div>
 	<h1 class="text-xl font-bold text-heading">Platform settings</h1>

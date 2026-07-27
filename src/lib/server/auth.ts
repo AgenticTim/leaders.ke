@@ -26,7 +26,7 @@ export const auth = betterAuth({
 		sendResetPassword: async ({ user, url }) => {
 			await sendEmail({
 				to: user.email,
-				subject: 'Reset your leaders.ke password',
+				subject: 'Reset your vote.ke password',
 				text: `Hi ${user.name || 'there'},\n\nReset your password with this link (valid for a limited time):\n${url}\n\nDidn't request it? Ignore this email — your password stays the same.`
 			});
 		}
@@ -39,7 +39,7 @@ export const auth = betterAuth({
 		sendVerificationEmail: async ({ user, url }) => {
 			await sendEmail({
 				to: user.email,
-				subject: 'Verify your leaders.ke email',
+				subject: 'Verify your vote.ke email',
 				text: `Hi ${user.name || 'there'},\n\nVerify your email with this link:\n${url}\n\nDidn't sign up? Ignore this email.`
 			});
 		}

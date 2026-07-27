@@ -219,10 +219,10 @@
 {/snippet}
 
 <svelte:head>
-	<title>Pricing: leaders.ke</title>
+	<title>Pricing: vote.ke</title>
 	<meta
 		name="description"
-		content="leaders.ke subscription pricing: Kickstart, Mobilize and Dominate packages, one flat rate for every office."
+		content="vote.ke subscription pricing: Kickstart, Mobilize and Dominate packages, one flat rate for every office."
 	/>
 </svelte:head>
 

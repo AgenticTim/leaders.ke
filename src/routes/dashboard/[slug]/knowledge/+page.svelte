@@ -202,7 +202,7 @@
 	</div>
 {/snippet}
 
-<svelte:head><title>Knowledge: leaders.ke</title></svelte:head>
+<svelte:head><title>Knowledge: vote.ke</title></svelte:head>
 
 <div>
 	<h2 class="text-xl font-bold text-heading">Knowledge</h2>

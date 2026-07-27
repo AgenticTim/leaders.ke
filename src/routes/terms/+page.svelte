@@ -1,20 +1,20 @@
 <svelte:head>
-	<title>Terms of Service — leaders.ke</title>
-	<meta name="description" content="The rules for using leaders.ke." />
+	<title>Terms of Service — vote.ke</title>
+	<meta name="description" content="The rules for using vote.ke." />
 </svelte:head>
 
 <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
 	<h1 class="text-3xl font-bold text-heading">Terms of Service</h1>
 	<p class="mt-3 text-sm text-muted">
 		Working draft — the full terms are under legal review. Questions in the meantime:
-		<a href="mailto:hello@leaders.ke" class="font-medium text-primary hover:underline">hello@leaders.ke</a>.
+		<a href="mailto:hello@vote.ke" class="font-medium text-primary hover:underline">hello@vote.ke</a>.
 	</p>
 
 	<div class="mt-8 space-y-6 text-sm leading-relaxed text-heading">
 		<section>
 			<h2 class="text-lg font-semibold text-heading">The service</h2>
 			<p class="mt-2 text-muted">
-				leaders.ke provides public profiles for leaders and candidates, campaign tools for their
+				vote.ke provides public profiles for leaders and candidates, campaign tools for their
 				teams, and civic information for citizens. Public pages go live only after verification
 				against IEBC records and, for campaigns, an active subscription.
 			</p>

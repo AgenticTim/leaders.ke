@@ -101,7 +101,7 @@ export const actions: Actions = {
 			await sendEmail({
 				to: r.emailAddress!,
 				subject: `${senderName}: ${subject}`,
-				text: `${body}\n\n----\nYou follow ${senderName} on leaders.ke. Reply STOP to this email to opt out.`
+				text: `${body}\n\n----\nYou follow ${senderName} on vote.ke. Reply STOP to this email to opt out.`
 			});
 		}
 

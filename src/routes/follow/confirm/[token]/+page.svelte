@@ -4,7 +4,7 @@
 	let { data }: PageProps = $props();
 </script>
 
-<svelte:head><title>Confirm follow — leaders.ke</title></svelte:head>
+<svelte:head><title>Confirm follow — vote.ke</title></svelte:head>
 
 <section class="mx-auto max-w-md px-4 py-20 text-center">
 	{#if data.status === 'confirmed'}
@@ -18,6 +18,6 @@
 		href="/"
 		class="mt-6 inline-block rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-95"
 	>
-		Back to leaders.ke
+		Back to vote.ke
 	</a>
 </section>

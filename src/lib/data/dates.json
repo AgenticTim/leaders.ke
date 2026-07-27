@@ -1,0 +1,72 @@
+[
+	{
+		"date": "2026-01-01",
+		"title": "Continuous voter registration",
+		"summary": "Register any working day at your constituency's IEBC office. Don't wait for a mass drive — registration closes months before the election.",
+		"expected": false,
+		"source": "https://www.iebc.or.ke"
+	},
+	{
+		"date": "2026-10-01",
+		"title": "Enhanced mass voter registration drive",
+		"summary": "IEBC's countrywide push with mobile BVR kits in wards and markets. The easiest chance to register close to home.",
+		"expected": true,
+		"source": "https://www.iebc.or.ke"
+	},
+	{
+		"date": "2027-02-09",
+		"title": "Voter registration closes",
+		"summary": "The register closes about six months before election day. After this you cannot register or transfer for the 2027 General Election.",
+		"expected": true,
+		"source": "https://www.iebc.or.ke"
+	},
+	{
+		"date": "2027-03-01",
+		"title": "Register inspection window",
+		"summary": "Check your details on the roll and report errors. This is the last chance to fix a wrong polling station or misspelt name.",
+		"expected": true,
+		"source": "https://www.iebc.or.ke"
+	},
+	{
+		"date": "2027-04-15",
+		"title": "Party primaries season",
+		"summary": "Parties nominate their candidates for every seat. Party members vote in primaries; independents prepare their papers.",
+		"expected": true,
+		"source": "https://www.iebc.or.ke"
+	},
+	{
+		"date": "2027-05-24",
+		"title": "Candidate nomination with the IEBC",
+		"summary": "Every candidate presents nomination papers to the IEBC. The final ballot line-up per seat is known after clearance.",
+		"expected": true,
+		"source": "https://www.iebc.or.ke"
+	},
+	{
+		"date": "2027-06-01",
+		"title": "Official campaign period begins",
+		"summary": "Cleared candidates campaign under the Electoral Code of Conduct until 48 hours before election day.",
+		"expected": true,
+		"source": "https://www.iebc.or.ke"
+	},
+	{
+		"date": "2027-08-08",
+		"title": "Campaigns end",
+		"summary": "All campaigning must stop 48 hours before polls open. No rallies, adverts or bulk campaign messages beyond this point.",
+		"expected": false,
+		"source": "https://www.iebc.or.ke"
+	},
+	{
+		"date": "2027-08-10",
+		"title": "Election day",
+		"summary": "The 2027 General Election: six ballots, one day, polls open 6am to 5pm. The date is fixed by the Constitution (second Tuesday of August).",
+		"expected": false,
+		"source": "https://www.iebc.or.ke"
+	},
+	{
+		"date": "2027-08-17",
+		"title": "Presidential result declared",
+		"summary": "The IEBC must declare the presidential result within seven days of election day.",
+		"expected": false,
+		"source": "https://www.iebc.or.ke"
+	}
+]

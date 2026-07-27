@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Avatar from '$lib/components/Avatar.svelte';
+	import FollowCard from '$lib/components/FollowCard.svelte';
 	import Pagination from '$lib/components/admin/Pagination.svelte';
 	import type { PageProps } from './$types';
 
@@ -14,8 +15,8 @@
 </script>
 
 <svelte:head>
-	<title>News — leaders.ke</title>
-	<meta name="description" content="Updates, announcements, and campaign news from leaders and candidates on leaders.ke." />
+	<title>News — vote.ke</title>
+	<meta name="description" content="Updates, announcements, and campaign news from leaders and candidates on vote.ke." />
 </svelte:head>
 
 <div class="border-b border-border bg-surface-2">
@@ -91,6 +92,12 @@
 									{#each article.tags as tag (tag)}
 										<a href={tagHref(tag)} class="rounded-full border border-border bg-surface-2 px-2.5 py-0.5 text-xs font-medium text-muted hover:border-primary hover:text-primary">{tag}</a>
 									{/each}
+								</div>
+							{/if}
+							{#if article.authorUserId}
+								<!-- Account-less follow funnel: follow the author from their news. -->
+								<div class="w-44">
+									<FollowCard candidateName={article.authorName} subjectUserId={article.authorUserId} />
 								</div>
 							{/if}
 							{#if article.external}

@@ -198,7 +198,7 @@ export const actions: Actions = {
 				html: `<p>Hi ${name},</p><p>Confirm you'd like to follow ${leaderName}'s campaign and get their updates:</p><p><a href="${confirmUrl}">Confirm my subscription</a></p><p>If you didn't request this, just ignore this email.</p>`
 			});
 		} else if (needsConfirm && phoneNumber && confirmCode) {
-			await sendSms(phoneNumber, `Your leaders.ke code to confirm following ${leaderName} is ${confirmCode}. It expires in 10 minutes.`);
+			await sendSms(phoneNumber, `Your vote.ke code to confirm following ${leaderName} is ${confirmCode}. It expires in 10 minutes.`);
 		}
 
 		return { followed: true, name, needsConfirm, isEmail, phoneNumber: isEmail ? undefined : phoneNumber };

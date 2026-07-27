@@ -7,7 +7,7 @@
 	const dateFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' });
 </script>
 
-<svelte:head><title>Competitors — leaders.ke</title></svelte:head>
+<svelte:head><title>Competitors — vote.ke</title></svelte:head>
 
 <h2 class="text-lg font-semibold text-heading">The race for {data.seat}</h2>
 <p class="mt-1 text-sm text-muted">

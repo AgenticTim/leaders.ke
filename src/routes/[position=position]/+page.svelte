@@ -75,7 +75,7 @@
 </script>
 
 <svelte:head>
-	<title>{pluralPositionTitle(data.positionTitle)} — leaders.ke</title>
+	<title>{pluralPositionTitle(data.positionTitle)} — vote.ke</title>
 	<meta
 		name="description"
 		content="Every {data.positionTitle} and 2027 candidate: regions, incumbents and cleared contestants."

@@ -196,7 +196,7 @@
 	}
 </script>
 
-<svelte:head><title>Profile — leaders.ke</title></svelte:head>
+<svelte:head><title>Profile — vote.ke</title></svelte:head>
 
 <div class="">
 
@@ -344,7 +344,7 @@
 			<label class="block">
 				<span class="text-sm font-medium text-heading">Your public URL</span>
 				<div class="mt-1.5 flex items-center rounded-xl border border-border bg-surface focus-within:border-primary focus-within:ring-2 focus-within:ring-ring">
-					<span class="pl-4 text-sm text-muted">leaders.ke/</span>
+					<span class="pl-4 text-sm text-muted">vote.ke/</span>
 					<input
 						type="text"
 						name="slug"

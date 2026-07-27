@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-	<title>Parties — leaders.ke</title>
+	<title>Parties — vote.ke</title>
 	<meta name="description" content="Registered political parties ahead of the 2027 General Elections." />
 </svelte:head>
 

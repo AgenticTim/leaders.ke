@@ -22,7 +22,7 @@
 	});
 </script>
 
-<svelte:head><title>{status} · leaders.ke</title></svelte:head>
+<svelte:head><title>{status} · vote.ke</title></svelte:head>
 
 <section class="flex min-h-[60vh] flex-col items-center justify-center px-5 py-16 text-center sm:py-24">
 	<p class="text-5xl font-bold tracking-tighter text-gold/30">{status}</p>

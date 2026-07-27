@@ -1,0 +1,26 @@
+[
+	{
+		"county": "Nairobi",
+		"venue": "Kenyatta Market grounds, Mbagathi Way",
+		"startDate": "2026-08-03",
+		"endDate": "2026-08-07",
+		"organizer": "IEBC Nairobi County office",
+		"details": "Mobile BVR registration, 9am to 4pm daily. Carry your original national ID or passport."
+	},
+	{
+		"county": "Mombasa",
+		"venue": "Tononoka Social Hall",
+		"startDate": "2026-08-10",
+		"endDate": "2026-08-14",
+		"organizer": "IEBC Mombasa County office",
+		"details": "Registration and voter detail corrections. Priority queues for PWDs and the elderly."
+	},
+	{
+		"county": "Kisumu",
+		"venue": "Jomo Kenyatta Sports Ground",
+		"startDate": "2026-08-17",
+		"endDate": "2026-08-21",
+		"organizer": "IEBC Kisumu County office with civil society partners",
+		"details": "First-time voter drive targeting youth. ID application desk on site for those without documents."
+	}
+]

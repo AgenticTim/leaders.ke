@@ -8,8 +8,8 @@
 </script>
 
 <svelte:head>
-	<title>Contact Us — leaders.ke</title>
-	<meta name="description" content="Frequently asked questions and how to reach the leaders.ke team." />
+	<title>Contact Us — vote.ke</title>
+	<meta name="description" content="Frequently asked questions and how to reach the vote.ke team." />
 </svelte:head>
 
 <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">

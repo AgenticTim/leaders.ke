@@ -1,32 +1,37 @@
 <script lang="ts">
-	import { env } from '$env/dynamic/public';
 	import Countdown from './Countdown.svelte';
 
-	// Citizen destinations live on the vote.ke app.
-	const voteBase = env.PUBLIC_VOTE_BASE_URL ?? 'https://vote.ke';
-
-	// Site-wide footer: link directory grouped by audience, with the brand blurb
-	// and the compliance line the old two-line footer carried.
+	// Site-wide footer: link directory grouped by audience (voters first), with
+	// the brand blurb and the compliance line the old two-line footer carried.
 	const groups = [
 		{
-			title: 'For leaders',
+			title: 'For voters',
 			links: [
-				{ href: '/presidents', label: 'Claim Your Page' },
-				{ href: '/onboard/profile', label: 'Get Onboard' },
-				{ href: '/features', label: 'Features' },
+				{ href: '/', label: 'My 2027 Ballot' },
+				{ href: '/why-vote', label: 'Why Vote?' },
+				{ href: '/learn', label: 'Voter Education' },
+				{ href: '/dates', label: 'Key Dates' },
+				{ href: '/drives', label: 'Registration Drives' },
+				{ href: '/verify-registration', label: 'Verify Registration' }
+			]
+		},
+		{
+			title: 'Explore',
+			links: [
+				{ href: '/presidents', label: 'Leaders' },
+				{ href: '/rank/presidents', label: 'Ranks' },
+				{ href: '/compare', label: 'Compare' },
 				{ href: '/parties', label: 'Parties' },
-				{ href: '/pricing', label: 'Pricing' },
 				{ href: '/news', label: 'News' }
 			]
 		},
 		{
-			title: 'For citizens',
+			title: 'For leaders',
 			links: [
-				{ href: `${voteBase}/ballot`, label: 'My 2027 Vote' },
-				{ href: '/presidents', label: 'Leaders' },
-				{ href: '/rank/presidents', label: 'Ranks' },
-				{ href: '/compare', label: 'Compare' },
-				{ href: `${voteBase}/why-vote`, label: 'Why Vote?' }
+				{ href: '/for-leaders', label: 'Run Your Campaign' },
+				{ href: '/onboard/profile', label: 'Get Onboard' },
+				{ href: '/features', label: 'Features' },
+				{ href: '/pricing', label: 'Pricing' }
 			]
 		},
 		{
@@ -34,12 +39,7 @@
 			links: [
 				{ href: '/about', label: 'About Us' },
 				{ href: '/faq', label: 'FAQ' },
-				{ href: '/contact-us', label: 'Contact Us' }
-			]
-		},
-		{
-			title: 'Legal',
-			links: [
+				{ href: '/contact-us', label: 'Contact Us' },
 				{ href: '/privacy', label: 'Privacy Policy' },
 				{ href: '/data-policy', label: 'Data Policy' },
 				{ href: '/terms', label: 'Terms of Service' }
@@ -49,7 +49,7 @@
 </script>
 
 <footer class="relative overflow-hidden border-t border-border bg-surface-2">
-	<!-- @container here (not on <footer>): the giant "leaders.ke" background text
+	<!-- @container here (not on <footer>): the giant "vote.ke" background text
 	below is sized in cqw units, meant to scale against THIS box's width. With
 	@container on the full-bleed <footer> instead, cqw resolved against the whole
 	viewport on screens wider than max-w-7xl, making the text wider than the box
@@ -58,11 +58,12 @@
 		<div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-6">
 			<!-- Brand -->
 			<div class="sm:col-span-2">
-				<a href="/" class="text-lg font-bold text-heading">leaders.ke</a>
+				<a href="/" class="text-lg font-bold text-heading">vote.ke</a>
 				<p class="mt-2 max-w-xs text-sm leading-relaxed text-muted">
-					Campaign Management Platform. 
-				</p> 
-				<!-- Election countdown, same block as the vote.ke footer; capped to the blurb's width -->
+					Your 2027 voting booth: practise your ballot, know your candidates, and campaign for the
+					leaders you believe in. We don't endorse candidates or parties.
+				</p>
+				<!-- Election countdown, capped to the blurb's width -->
 				<div class="mt-4 max-w-xs text-center">
 					<Countdown />
 				</div>
@@ -83,7 +84,7 @@
 				</nav>
 			{/each}
 		</div>
-		<!-- Clipped to a fixed height, top-aligned: "leaders.ke" has a descender (the
+		<!-- Clipped to a fixed height, top-aligned: "vote.ke" has a descender (the
 		"g"), which at this size otherwise bleeds past leading-none's line box into
 		the row below. Top-aligning (not centering) inside the shorter box means only
 		that descender gets clipped, not the tops of the letters. -->
@@ -91,13 +92,13 @@
 			<p
 				class="flex select-none items-start justify-center gap-[0.08em] ml-[-0.1em] text-[24cqw] font-bold leading-none tracking-tighter text-primary/20"
 			>
-				<span class="">leaders.ke</span>
+				<span class="">vote.ke</span>
 		</p>
 		</div>
 		<div
 			class="mt-10 flex flex-col items-center justify-between gap-2 border-t border-border pt-6 text-xs text-muted sm:flex-row"
 		>
-			<p>© {new Date().getFullYear()} leaders.ke - Campaign platform for Smart Kenya's leaders</p>
+			<p>© {new Date().getFullYear()} vote.ke - Smart Kenya votes here</p>
 			<p>Adhering to IEBC regulations &amp; the Data Protection Act (2019)</p>
 		</div>
 	</div>

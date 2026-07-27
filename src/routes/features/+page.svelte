@@ -25,7 +25,7 @@
 				{
 					name: 'Verified profile',
 					description:
-						'A public page verified against IEBC records, with your photo, party, bio and a clean URL like leaders.ke/muranga/mca/john-njagi.',
+						'A public page verified against IEBC records, with your photo, party, bio and a clean URL like vote.ke/muranga/mca/john-njagi.',
 					tier: 'Aspirant',
 					live: true
 				},
@@ -39,7 +39,7 @@
 				{
 					name: 'Featured placement',
 					description:
-						'Buy placement on the leaders.ke homepage and directory, seen by every visitor.',
+						'Buy placement on the vote.ke homepage and directory, seen by every visitor.',
 					tier: 'Aspirant',
 					live: true
 				},
@@ -240,7 +240,7 @@
 </script>
 
 <svelte:head>
-	<title>Features — leaders.ke</title>
+	<title>Features — vote.ke</title>
 	<meta
 		name="description"
 		content="Everything a 2027 campaign needs: verified profiles, followers and broadcasts, citizen reviews, vote pledges, fundraising, PR management, AI chat and competitor analytics."

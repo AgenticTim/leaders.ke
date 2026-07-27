@@ -17,7 +17,7 @@
 	}
 </script>
 
-<svelte:head><title>Followers — leaders.ke</title></svelte:head>
+<svelte:head><title>Followers — vote.ke</title></svelte:head>
 
 {#if form?.invited}
 	<div class="mb-6 rounded-xl bg-primary-soft p-4 text-sm font-medium text-on-primary">

@@ -72,7 +72,7 @@
 
 </script>
 
-<svelte:head>{#if !embedded}<title>Contacts | leaders.ke</title>{/if}</svelte:head>
+<svelte:head>{#if !embedded}<title>Contacts | vote.ke</title>{/if}</svelte:head>
 
 <div class="">
 	<h2 class="{embedded ? 'text-lg font-semibold' : 'text-xl font-bold'} text-heading">Contacts</h2>

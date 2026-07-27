@@ -12,11 +12,11 @@
 	// Dev convenience only — never prefilled in a production build.
 	let firstName = $state(dev ? 'X' : '');
 	let otherNames = $state(dev ? 'Test' : '');
-	let email = $state(data.lockedEmail ?? (dev ? 'x@leaders.ke' : ''));
+	let email = $state(data.lockedEmail ?? (dev ? 'x@vote.ke' : ''));
 	let password = $state(dev ? '2027-08-10' : '');
 </script>
 
-<AuthCard title="Create your account" subtitle="Join leaders.ke and start engaging citizens">
+<AuthCard title="Create your account" subtitle="Join vote.ke and start engaging citizens">
 	{#if data.notice}
 		<p class="mb-4 rounded-xl bg-primary-soft p-3 text-sm text-on-primary">{data.notice}</p>
 	{/if}

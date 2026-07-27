@@ -24,6 +24,7 @@ type Article = {
 	authorName: string;
 	authorInitials: string;
 	authorPhotoUrl: string | null;
+	authorUserId: number | null; // FollowCard target: the author's users.id
 	authorPath: string;
 	href: string;
 	external: boolean;
@@ -146,6 +147,7 @@ export const load: PageServerLoad = async ({ url }) => {
 				authorName,
 				authorInitials: initialsOf(authorName),
 				authorPhotoUrl: r.author.photoUrl,
+				authorUserId: r.author.id,
 				authorPath: leaderPath(r.author),
 				href: `/news/${r.post.slug}`,
 				external: false,
@@ -168,6 +170,7 @@ export const load: PageServerLoad = async ({ url }) => {
 				authorName,
 				authorInitials: initialsOf(authorName),
 				authorPhotoUrl: primary?.photoUrl ?? null,
+				authorUserId: primary?.id ?? null,
 				authorPath: primary?.slug ? leaderPath({ slug: primary.slug }) : '#',
 				href: post.sourceUrl ?? '#',
 				external: true,

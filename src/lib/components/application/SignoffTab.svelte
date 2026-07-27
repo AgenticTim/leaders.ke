@@ -51,7 +51,7 @@
 </script>
 
 <svelte:head>
-	{#if !embedded}<title>Sign Off — leaders.ke</title>{/if}
+	{#if !embedded}<title>Sign Off — vote.ke</title>{/if}
 </svelte:head>
 
 <div>

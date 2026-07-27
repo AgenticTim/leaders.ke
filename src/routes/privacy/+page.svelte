@@ -1,13 +1,13 @@
 <svelte:head>
-	<title>Privacy Policy — leaders.ke</title>
-	<meta name="description" content="How leaders.ke collects, uses, and protects personal data." />
+	<title>Privacy Policy — vote.ke</title>
+	<meta name="description" content="How vote.ke collects, uses, and protects personal data." />
 </svelte:head>
 
 <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
 	<h1 class="text-3xl font-bold text-heading">Privacy Policy</h1>
 	<p class="mt-3 text-sm text-muted">
 		Working draft — the full policy is under legal review. Questions in the meantime:
-		<a href="mailto:privacy@leaders.ke" class="font-medium text-primary hover:underline">privacy@leaders.ke</a>.
+		<a href="mailto:privacy@vote.ke" class="font-medium text-primary hover:underline">privacy@vote.ke</a>.
 	</p>
 
 	<div class="mt-8 space-y-6 text-sm leading-relaxed text-heading">

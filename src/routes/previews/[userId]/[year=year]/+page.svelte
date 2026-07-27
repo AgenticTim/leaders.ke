@@ -7,7 +7,7 @@
 </script>
 
 <svelte:head>
-	<title>{leader.name} — campaign preview {data.year} | leaders.ke</title>
+	<title>{leader.name} — campaign preview {data.year} | vote.ke</title>
 </svelte:head>
 
 <Campaign {data} {form} />

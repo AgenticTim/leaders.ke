@@ -12,7 +12,7 @@
 	);
 </script>
 
-<svelte:head><title>Fundraising — leaders.ke</title></svelte:head>
+<svelte:head><title>Fundraising — vote.ke</title></svelte:head>
 
 {#if form?.error}
 	<div class="mb-6  rounded-xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading">

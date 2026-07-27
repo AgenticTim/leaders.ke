@@ -14,7 +14,7 @@
 </script>
 
 <svelte:head>
-	<title>Search{data.q ? `: ${data.q}` : ''} — leaders.ke</title>
+	<title>Search{data.q ? `: ${data.q}` : ''} — vote.ke</title>
 </svelte:head>
 
 <section class="mx-auto max-w-7xl px-4 py-14 sm:px-6">

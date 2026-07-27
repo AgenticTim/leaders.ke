@@ -141,7 +141,7 @@
 	}
 </script>
 
-<svelte:head><title>Campaign | leaders.ke</title></svelte:head>
+<svelte:head><title>Campaign | vote.ke</title></svelte:head>
 
 <div>
 	<h1 class="text-xl font-bold text-heading">Campaign</h1>

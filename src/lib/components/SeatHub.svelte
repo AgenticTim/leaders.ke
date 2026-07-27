@@ -11,7 +11,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.positionTitle}, {data.regionLabel} — leaders.ke</title>
+	<title>{data.positionTitle}, {data.regionLabel} — vote.ke</title>
 	<meta
 		name="description"
 		content="{data.positionTitle} of {data.regionLabel}: the current, the {data.cycle} contestants and the seat's history."

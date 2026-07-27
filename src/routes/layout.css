@@ -6,35 +6,35 @@
    app.html sets it before first paint to avoid a flash. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ── leaders.ke design system ──────────────────────────────
-   IEBC-inspired clean green. Semantic tokens flip in dark mode
-   so components never hardcode a hex. */
+/* ── vote.ke design system ──────────────────────────────
+   Simple light blue, civic and non-partisan. Semantic tokens flip in dark
+   mode so components never hardcode a hex. */
 :root {
 	--surface: #ffffff; /* main background */
-	--surface-2: #eef4e3; /* cards, sections (slightly deeper for separation) */
-	--surface-3: #e2ecd0; /* raised, hover */
-	--primary: #9fcf67; /* brand green accent bg */
-	--primary-soft: #cceaa8; /* light green accent bg */
-	--on-primary: #1e2b15; /* text/icons on a green fill */
-	--text: #5f655c; /* body text, darker for more contrast */
-	--heading: #2f3826; /* headings */
-	--muted: #7c8573; /* secondary/caption text */
-	--border: #d6e1c6;
-	--ring: #9fcf67;
+	--surface-2: #eef5fb; /* cards, sections */
+	--surface-3: #dfecf7; /* raised, hover */
+	--primary: #4da3e0; /* brand blue accent bg */
+	--primary-soft: #c9e2f5; /* light blue accent bg */
+	--on-primary: #0d2438; /* text/icons on a blue fill */
+	--text: #4e5a64; /* body text */
+	--heading: #1f3547; /* headings */
+	--muted: #7a8894; /* secondary/caption text */
+	--border: #cfe0ee;
+	--ring: #4da3e0;
 }
 
 .dark {
-	--surface: #0e120c; /* deeper base so cards/text separate more */
-	--surface-2: #1a2113; /* cards lifted for clearer separation */
-	--surface-3: #263019; /* raised, hover */
-	--primary: #a8d873; /* brighter green pops on dark */
-	--primary-soft: #3b4c24; /* soft chips readable */
-	--on-primary: #0e120c;
-	--text: #c4ccb9; /* higher-contrast body text */
-	--heading: #f4f8ef; /* near-white headings */
-	--muted: #99a28b; /* brighter captions */
-	--border: #3a4330; /* more visible separators */
-	--ring: #a8d873;
+	--surface: #0b1218; /* deep blue-black base */
+	--surface-2: #12202c; /* cards lifted for separation */
+	--surface-3: #1a2c3c; /* raised, hover */
+	--primary: #5fb0e8; /* brighter blue pops on dark */
+	--primary-soft: #1e3a52; /* soft chips readable */
+	--on-primary: #0b1218; /* dark text on the bright primary fill */
+	--text: #b9c6d0; /* higher-contrast body text */
+	--heading: #eff6fc; /* near-white headings */
+	--muted: #8a99a6; /* brighter captions */
+	--border: #2c3e4e; /* visible separators */
+	--ring: #5fb0e8;
 }
 
 /* Expose the tokens to Tailwind so utilities like bg-surface, text-heading,

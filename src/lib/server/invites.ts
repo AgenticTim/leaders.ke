@@ -170,7 +170,7 @@ export async function createInvite(
 	await sendEmail({
 		to: normalizedEmail,
 		subject: `You're invited to join ${leaderName}'s campaign`,
-		text: `You've been invited to join ${leaderName}'s campaign as ${ROLE_LABEL[role]} on leaders.ke.\n\nAccept the invite: ${link}\n\nThis link expires in ${INVITE_TTL_DAYS} days and can only be used once.`
+		text: `You've been invited to join ${leaderName}'s campaign as ${ROLE_LABEL[role]} on vote.ke.\n\nAccept the invite: ${link}\n\nThis link expires in ${INVITE_TTL_DAYS} days and can only be used once.`
 	});
 
 	return { token };

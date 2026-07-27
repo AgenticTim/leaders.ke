@@ -63,7 +63,7 @@ async function fetchText(url: URL): Promise<string> {
 	try {
 		const res = await fetch(url, {
 			signal: controller.signal,
-			headers: { 'user-agent': 'Mozilla/5.0 (compatible; leaders.ke-bot/1.0)' }
+			headers: { 'user-agent': 'Mozilla/5.0 (compatible; vote.ke-bot/1.0)' }
 		});
 		if (!res.ok) throw new Error(`The page returned ${res.status}.`);
 		return await res.text();

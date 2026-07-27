@@ -1,0 +1,108 @@
+[
+	{
+		"slug": "how-to-register",
+		"title": "How to register as a voter",
+		"category": "Registration",
+		"summary": "Who qualifies, what to carry, and where to go to get onto the voters' roll.",
+		"body": [
+			"You qualify to register if you are a Kenyan citizen, are 18 years or older, and hold a national ID card or a valid Kenyan passport.",
+			"Registration is done in person at your constituency's IEBC office or at any gazetted registration centre during a registration drive. The clerk captures your details and fingerprints using a BVR (Biometric Voter Registration) kit.",
+			"You choose the polling centre where you will vote. Pick one close to where you actually live: that is where you must show up on election day.",
+			"Registration is free. Nobody may charge you, and nobody may register on your behalf.",
+			"After registering you receive an acknowledgement slip. Keep it, but note that the slip is not required to vote; your ID or passport is what you present on election day."
+		]
+	},
+	{
+		"slug": "id-requirements",
+		"title": "What documents do you need?",
+		"category": "Registration",
+		"summary": "The national ID or passport rule, and what to do if you have neither yet.",
+		"body": [
+			"Only two documents can be used to register and to vote: your Kenyan national identity card or a valid Kenyan passport. Waiting-card slips, birth certificates, driving licences and student IDs are not accepted.",
+			"If you have never had an ID, apply at your nearest Huduma Centre or chief's office as early as possible. Processing can take weeks, and you cannot register as a voter until you hold the physical document.",
+			"If your ID is lost, apply for a replacement immediately. You can register with a passport in the meantime if you hold one.",
+			"The name and details on the register must match your document. If you have changed your name, sort the ID record out first."
+		]
+	},
+	{
+		"slug": "check-your-status",
+		"title": "Checking your registration status",
+		"category": "Registration",
+		"summary": "Confirm you are on the roll, at the right polling station, before the deadline.",
+		"body": [
+			"Do not assume you are registered because you registered once years ago. Registers are cleaned up, and details can be wrong. Check early so there is time to fix problems.",
+			"You can verify by SMS: send your national ID number to the IEBC short code (70000 in past elections; confirm the current code on iebc.or.ke). The reply shows your registration details and polling station.",
+			"You can also verify online through the IEBC voter verification portal, or in person at your constituency's IEBC office.",
+			"If your details are wrong, or you want to transfer to a different polling station, visit the constituency IEBC office before the register inspection window closes. Transfers are not possible in the final months before the election."
+		]
+	},
+	{
+		"slug": "six-ballots-explained",
+		"title": "The six ballots you cast",
+		"category": "Voting",
+		"summary": "President, Governor, Senator, Woman Rep, MP and MCA: what each one does.",
+		"body": [
+			"On election day you receive six ballot papers, each a different colour, and you vote for six different seats.",
+			"President: head of state and government, elected nationally. A winner needs over half of all votes cast nationally plus at least 25% of votes in at least 24 counties.",
+			"Governor: heads your county government, running county services like health facilities, county roads, water, and markets.",
+			"Senator: represents your county in the Senate, which protects county interests and oversees how counties spend money.",
+			"Woman Representative: your county's elected woman member of the National Assembly, with a focus on promoting the interests of women and youth.",
+			"Member of Parliament (MP): represents your constituency in the National Assembly, which makes national laws and approves the national budget.",
+			"Member of County Assembly (MCA): represents your ward in the county assembly, which makes county laws and oversees the governor. This is the leader closest to your daily life.",
+			"You may vote for candidates from different parties on different ballots. Each ballot is independent."
+		]
+	},
+	{
+		"slug": "election-day-walkthrough",
+		"title": "Election day, step by step",
+		"category": "Voting",
+		"summary": "What happens from the queue to the ballot box, and your rights in the polling station.",
+		"body": [
+			"Polls typically open at 6am and close at 5pm. Anyone in the queue by closing time is allowed to vote, however long it takes.",
+			"Carry the document you registered with: your national ID or passport. Nothing else is needed.",
+			"At the desk, an official checks your identity against the electronic register (KIEMS kit), usually by fingerprint.",
+			"You receive six ballot papers. In the booth, mark ONE candidate per ballot with a clear mark inside that candidate's box. Fold each paper and drop it into the matching-colour ballot box.",
+			"Voting is secret. Nobody, including officials, party agents, or family, may watch you mark your ballot or ask afterwards who you voted for.",
+			"It is illegal for anyone to pay you, transport you in exchange for your vote, or campaign inside or near a polling station. Report violations to the presiding officer or the police."
+		]
+	},
+	{
+		"slug": "how-counting-works",
+		"title": "How votes are counted",
+		"category": "Voting",
+		"summary": "Counting happens at your polling station, in the open, before results move up the chain.",
+		"body": [
+			"Counting starts at the polling station immediately after polls close, in front of party agents and observers. Ballots never leave the station uncounted.",
+			"For each of the six elections, ballots are sorted per candidate, counted, and the totals entered on a results form signed by officials and agents. A copy is posted at the station's door for anyone to photograph.",
+			"Presidential results forms (Form 34A) are transmitted electronically to the constituency and national tallying centres, alongside the physical forms.",
+			"The station-level form is the primary record. Every total announced later must trace back to those forms, which is why they are public.",
+			"Disputes go to the courts: election petitions for most seats, and the Supreme Court for the presidency, within strict timelines."
+		]
+	},
+	{
+		"slug": "spoilt-vs-rejected",
+		"title": "Spoilt and rejected votes",
+		"category": "Voting",
+		"summary": "The difference between the two, and how to make sure your vote counts.",
+		"body": [
+			"A REJECTED vote is a ballot that cannot be counted for any candidate: it is blank, marked for more than one candidate, or marked so unclearly that the intention is not obvious. Rejected ballots are recorded but count for nobody.",
+			"A SPOILT ballot is one you spoil by mistake BEFORE casting it. Take it back to the presiding officer: you are entitled to have it cancelled and to receive a fresh ballot paper.",
+			"To make your vote count: use the pen provided, make one clear mark (a tick or an X) inside one candidate's box, don't write anything else on the paper, and don't sign it.",
+			"If you are unsure, ask the polling officials to explain the marking rules before you enter the booth. They may explain the process, but never who to vote for."
+		]
+	},
+	{
+		"slug": "your-rights-as-a-voter",
+		"title": "Your rights as a voter",
+		"category": "Rights",
+		"summary": "Assistance, accessibility, secrecy, and what nobody is allowed to do to you.",
+		"body": [
+			"You have the right to register and vote without paying anyone, without intimidation, and without disclosing your choice to anyone.",
+			"If you are unable to mark the ballot yourself due to disability or literacy, you may be assisted by a person of your choice, or by the presiding officer in the presence of agents. Your choice remains confidential.",
+			"Persons with disabilities, pregnant women, nursing mothers and the elderly are entitled to priority in the queue.",
+			"Your employer must allow you reasonable time to vote. Election day is a public holiday.",
+			"Nobody may buy your vote, threaten you over it, or force you to attend a rally. Voter bribery and intimidation are crimes. Report them to the IEBC, the police, or the EACC.",
+			"You have the right to accurate information. Check claims against official IEBC communications, and be wary of unsourced forwards on social media."
+		]
+	}
+]

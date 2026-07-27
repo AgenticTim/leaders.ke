@@ -100,12 +100,12 @@ export async function sendOtp(userId: number, channel: OtpChannel, destination: 
 	// real gateway is wired up (sendSms itself also stubs to console without an API key).
 	console.log(`[otp] ${channel} code for user ${userId} (${destination}): ${code}`);
 	if (channel === 'sms' || channel === 'whatsapp') {
-		await sendSms(destination, `Your leaders.ke verification code is ${code}. It expires in 10 minutes.`);
+		await sendSms(destination, `Your vote.ke verification code is ${code}. It expires in 10 minutes.`);
 	} else if (channel === 'email') {
 		const link = `${publicEnv.PUBLIC_BASE_URL}${linkPath}${linkPath.includes('?') ? '&' : '?'}linkToken=${linkToken}`;
 		await sendEmail({
 			to: destination,
-			subject: 'Your leaders.ke verification',
+			subject: 'Your vote.ke verification',
 			text: `Hi ${name || 'there'},\n\nVerify your email using the code ${code} or by clicking the link below:\n${link}\n\nThey expire in 10 minutes.\nDidn't sign up? Ignore this email.`
 		});
 	}

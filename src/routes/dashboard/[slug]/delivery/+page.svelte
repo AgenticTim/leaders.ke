@@ -20,7 +20,7 @@
 	const atPinCap = $derived(data.pinnedCount >= data.maxPinned);
 </script>
 
-<svelte:head><title>Delivery — leaders.ke</title></svelte:head>
+<svelte:head><title>Delivery — vote.ke</title></svelte:head>
 
 <div>
 	<h2 class="text-xl font-bold text-heading">Delivery</h2>

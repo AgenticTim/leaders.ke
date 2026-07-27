@@ -20,7 +20,7 @@
 	// National to ward; unknown titles keep their incoming order at the end.
 	const ORDER = ['President', 'Governor', 'Senator', 'MP', 'Woman Rep', 'MCA'];
 	const SHORT: Record<string, string> = {
-		President: 'Prs',
+		President: 'Prd',
 		Governor: 'Gov',
 		Senator: 'Sen',
 		MP: 'MP',

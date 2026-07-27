@@ -7,7 +7,7 @@
 </script>
 
 <svelte:head>
-	<title>{leader.name} for {leader.positionTitle} {data.year}, {leader.regionLabel} | leaders.ke</title>
+	<title>{leader.name} for {leader.positionTitle} {data.year}, {leader.regionLabel} | vote.ke</title>
 	<meta
 		name="description"
 		content="{leader.name}'s {data.year} campaign for {leader.positionTitle} of {leader.regionLabel}: manifesto, delivery tracker, citizen reviews, fundraising and updates."

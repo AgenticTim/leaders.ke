@@ -27,7 +27,7 @@ export const actions: Actions = {
 
 		try {
 			await sendEmail({
-				to: env.SUPPORT_EMAIL || 'hello@leaders.ke',
+				to: env.SUPPORT_EMAIL || 'hello@vote.ke',
 				subject: `[contact-us] ${topic || 'General'}: ${name}`,
 				text: `From: ${name} <${email}>\nTopic: ${topic || 'General'}\n\n${message}`
 			});

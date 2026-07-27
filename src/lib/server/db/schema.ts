@@ -932,7 +932,7 @@ export const messages = pgTable('messages', {
 // One AI Chat "ask" attempt (see $lib/server/aiRateLimit.ts) — logged purely to
 // enforce the anti-abuse rate limit (5/day per session AND per IP, whichever hits
 // first), never read back as chat history. anonId reuses the same long-lived
-// 'anon_id' device cookie the /vote/2027 ballot simulator sets, so a visitor's cap
+// 'anon_id' device cookie the homepage ballot simulator sets, so a visitor's cap
 // persists across visits without needing an account. Global across every leader's
 // chat, not per-profile — the point is capping overall Anthropic API spend a
 // scripted burst could rack up, not any one leader's usage specifically.
@@ -952,7 +952,7 @@ export const aiAskEvents = pgTable('ai_ask_events', {
 ]);
 
 // 21. PLEDGES (a citizen pledging their vote to a campaign, created by the
-// /vote/2027 ballot simulator. Signed-in voters pledge by userId; anonymous
+// homepage ballot simulator. Signed-in voters pledge by userId; anonymous
 // voters by anonId, a long-lived device cookie. Insert code enforces that at
 // least one of the two is present.)
 // One citizen's live vote pledge to a campaign.
@@ -1038,13 +1038,13 @@ export const donations = pgTable('donations', {
   index('donations_campaign_idx').on(t.campaignId, t.status),
 ]);
 
-// 23. BALLOT SIMULATIONS (/vote/2027: a single simulated ballot event per citizen, not one row
+// 23. BALLOT SIMULATIONS (the homepage booth: a single simulated ballot event per citizen, not one row
 // per level. `selections` stores a candidateId per level so the share page re-fetches live
 // candidate data instead of freezing it — a later profile update or verification shows up automatically.)
 // One citizen's simulated 2027 ballot: their picks at every level, for sharing.
 export const ballotSimulations = pgTable('ballot_simulations', {
   id: serial('id').primaryKey(),
-  publicId: varchar('public_id', { length: 12 }).notNull().unique(), // the /vote/2027/[publicId] slug
+  publicId: varchar('public_id', { length: 12 }).notNull().unique(), // the /ballot/[publicId] slug
   county: varchar('county', { length: 100 }).notNull(),
   constituency: varchar('constituency', { length: 100 }).notNull(),
   ward: varchar('ward', { length: 100 }).notNull(),
@@ -1065,7 +1065,7 @@ export const ballotSimulations = pgTable('ballot_simulations', {
 // process (scripts/lib/seed-platform-settings.ts). The platform prompt governs the
 // AI's behavior everywhere it runs; the leader prompt layers on top for answers
 // about one specific leader's profile.
-export const DEFAULT_PLATFORM_SYSTEM_PROMPT = `You are the leaders.ke AI Chat assistant. Citizens across Kenya use you to understand who is running for office, what they've delivered, and what they're promising — helping people vote with real information instead of rumor or guesswork.
+export const DEFAULT_PLATFORM_SYSTEM_PROMPT = `You are the vote.ke AI Chat assistant. Citizens across Kenya use you to understand who is running for office, what they've delivered, and what they're promising — helping people vote with real information instead of rumor or guesswork.
 
 Your mission: make Kenyan democracy more transparent and more informed, one conversation at a time. Every question you answer well is a citizen who walks into the ballot booth better equipped.
 

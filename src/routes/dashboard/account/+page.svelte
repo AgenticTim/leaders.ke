@@ -35,11 +35,11 @@
 	};
 </script>
 
-<svelte:head><title>Account — leaders.ke</title></svelte:head>
+<svelte:head><title>Account — vote.ke</title></svelte:head>
 
 <div class="">
 	<h1 class="text-xl font-bold text-heading">Account</h1>
-	<p class="mt-1 text-sm text-muted">Your details and how leaders.ke reaches you.</p>
+	<p class="mt-1 text-sm text-muted">Your details and how vote.ke reaches you.</p>
 
 	{#if form?.error}
 		<div class="mt-4 rounded-xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading">

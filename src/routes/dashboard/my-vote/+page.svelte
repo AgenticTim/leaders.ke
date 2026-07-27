@@ -4,7 +4,7 @@
 	let { data }: PageProps = $props();
 </script>
 
-<svelte:head><title>My Vote — leaders.ke</title></svelte:head>
+<svelte:head><title>My Vote — vote.ke</title></svelte:head>
 
 <div class="flex min-h-[70vh] flex-col">
 <div>
@@ -27,7 +27,7 @@
 			<p class="font-semibold text-heading">Simulate your vote</p>
 			<p class="mx-auto mt-2 max-w-md text-sm text-muted">You haven't simulated your 2027 ballot yet.</p>
 			<a
-				href="/vote/2027"
+				href="/"
 				class="mt-3 inline-block rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95"
 			>
 				Hit the ballot

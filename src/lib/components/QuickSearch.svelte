@@ -34,7 +34,7 @@
 		{ label: 'All Leaders', sub: 'Platform', path: '/presidents' },
 		{ label: 'Leaders Rank', sub: 'Platform', path: '/rank/presidents' },
 		{ label: 'Compare Leaders', sub: 'Platform', path: '/compare' },
-		{ label: '2027 Vote Simulator', sub: 'Platform', path: '/vote/2027' },
+		{ label: '2027 Vote Simulator', sub: 'Platform', path: '/' },
 		{ label: 'Parties, Alliances & Movements', sub: 'Platform', path: '/parties' },
 	];
 

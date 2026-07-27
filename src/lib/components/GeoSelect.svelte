@@ -2,7 +2,7 @@
 	import { counties, geoSlug } from '$lib/data/geo';
 
 	// Cascading county -> constituency -> ward picker over the IEBC geo register.
-	// Shared by the homepage ballot search and the /vote/2027 top bar. Values are slugs
+	// Shared by the homepage ballot search and the ballot top bar. Values are slugs
 	// (geoSlug), matching the URL query params used across the app.
 	let {
 		county = $bindable(''),

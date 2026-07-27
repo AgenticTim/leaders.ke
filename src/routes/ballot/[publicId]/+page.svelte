@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Avatar from '$lib/components/Avatar.svelte';
+	import FollowCard from '$lib/components/FollowCard.svelte';
 	import type { BallotLevel } from '$lib/server/ballot';
 	import type { PageData } from './$types';
 
@@ -16,10 +17,10 @@
 </script>
 
 <svelte:head>
-	<title>My 2027 simulated ballot — leaders.ke</title>
+	<title>My 2027 simulated ballot — vote.ke</title>
 	<meta
 		name="description"
-		content="See who I'd vote for in the 2027 General Election, then simulate your own ballot on leaders.ke."
+		content="See who I'd vote for in the 2027 General Election, then simulate your own ballot on vote.ke."
 	/>
 </svelte:head>
 
@@ -50,19 +51,32 @@
 						{LEVEL_LABEL[level]}
 					</p>
 					{#if candidate}
-						<p class="truncate font-semibold text-heading">{candidate.name}</p>
+						<p class="truncate font-semibold text-heading">
+							<a href={candidate.path} class="hover:text-primary">{candidate.name}</a>
+						</p>
 						{#if candidate.party}<p class="text-xs text-muted">{candidate.party}</p>{/if}
 					{:else}
 						<p class="text-sm text-muted">No selection</p>
 					{/if}
 				</div>
+				{#if candidate}
+					<!-- Follow the candidate you just picked. -->
+					<div class="w-40 shrink-0 sm:w-48">
+						<FollowCard
+							candidateName={candidate.name}
+							candidateId={candidate.candidateId}
+							county={data.countyName}
+							ward={data.wardName}
+						/>
+					</div>
+				{/if}
 			</div>
 		{/each}
 	</div>
 
 	<div class="mt-10 flex flex-col items-center gap-3 text-center">
 		<a
-			href="/vote/2027"
+			href="/"
 			class="rounded-full bg-primary px-6 py-3 font-semibold text-on-primary transition hover:brightness-95"
 		>
 			Simulate Your Vote

@@ -45,7 +45,7 @@
 </script>
 
 <svelte:head>
-	<title>Compare Leaders — leaders.ke</title>
+	<title>Compare Leaders — vote.ke</title>
 	<meta
 		name="description"
 		content="Compare Leaders. A candidate vs current, same seat across regions, regimes..."
