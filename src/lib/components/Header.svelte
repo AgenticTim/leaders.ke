@@ -36,7 +36,9 @@
 	}
 
 	// The <details> dropdown doesn't auto-close on navigation — close it
-	// explicitly when a mode is picked, and on any click outside it.
+	// explicitly when a mode is picked, and on any click outside it. Desktop-only
+	// (md+): below md this whole switcher is hidden, its job done instead by the
+	// hamburger panel's own For Leaders / For Citizens tiles (see menuOpen below).
 	let switcherOpen = $state(false);
 	let switcherEl: HTMLDetailsElement | undefined = $state();
 	$effect(() => {
@@ -55,13 +57,32 @@
 		{ href: '/presidents', label: 'Leaders' },
 		{ href: '/rank/presidents', label: 'Ranks' },
 		{ href: '/compare', label: 'Compare' },
-		{ href: '/learn', label: 'Learn' },
+		{ href: '/education', label: 'Learn' },
 		{ href: '/news', label: 'News' },
 		{ href: '/for-leaders', label: 'For Leaders' }
 	];
 
-	// Mobile nav: the desktop links are hidden below md, so a hamburger opens a stacked panel.
+	// Mobile nav: the desktop links (and the desktop switcher/bell) are hidden below
+	// md, so a hamburger opens a stacked panel with everything folded in instead —
+	// a flat "For Leaders" / "For Citizens" grid, no nested dropdowns.
 	let menuOpen = $state(false);
+	$effect(() => {
+		if (menuOpen) ensureSwitcherData();
+	});
+
+	// Same source the desktop switcher's `modes` derives from, kept raw here (name +
+	// basePath, not the "Manage: X" label) for the hamburger's leader shortcut tiles.
+	const switcherData = $derived(hasEagerSwitcherData ? page.data : (fetchedSwitcherData ?? page.data));
+	const myCampaigns = $derived((switcherData.myCampaigns ?? []) as { leaderId: number; name: string; basePath: string }[]);
+	const isAdminUser = $derived(!!switcherData.isAdmin);
+	// Whether this account has anything to run, vs. a pure citizen who'd only ever
+	// see the Features/Pricing/Join funnel under For Leaders.
+	const isLeaderAccount = $derived(myCampaigns.length > 0 || isAdminUser);
+
+	const tileClass = 'block py-2.5 text-center text-sm font-medium text-text transition hover:bg-surface-2 hover:text-heading';
+	// Wraps a row of tiles: one shared dim border round the outside, divided
+	// internally by hairlines instead of every tile drawing (and doubling up) its own.
+	const tileGridClass = 'grid overflow-hidden rounded-md border border-border/60 divide-x divide-y divide-border/60';
 </script>
 
 <header class="sticky top-0 z-40 border-b border-border bg-surface/80 backdrop-blur">
@@ -94,58 +115,53 @@
 		<div class="flex items-center gap-2">
 			<ThemeToggle />
 			{#if user}
-				<NotificationsPanel />
-			{/if}
-
-			{#if user}
-				<!-- Account switcher: always offers Log out, even for a pure citizen with
-				no other context to switch into (modes.length === 1) — only the extra
-				mode entries (campaign you run/manage, a pending claim, Platform admin)
-				are conditional on having more than one. -->
-				<details class="group relative w-fit" bind:open={switcherOpen} bind:this={switcherEl}>
-					<summary
-						aria-label="Account menu"
-						class="flex size-9 cursor-pointer list-none items-center justify-center gap-1.5 rounded-full border border-border bg-surface text-xs font-semibold text-heading transition hover:bg-surface-2 sm:size-auto sm:px-3 sm:py-1.5"
-					>
-						<!-- Mobile: same round-icon-button idiom as ThemeToggle/NotificationsPanel,
-						     instead of the name/label text there's no room for at this width. -->
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4.5 sm:hidden">
-							<path stroke-linecap="round" stroke-linejoin="round" d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
-						</svg>
-						{#if modes.length > 1}
-							<span class="hidden sm:inline">{modes.find((m) => m.current)?.label ?? modes[0].label}</span>
-						{:else}
-							<span
-								class="hidden size-6 shrink-0 place-items-center rounded-full bg-primary-soft text-xs font-bold text-on-primary uppercase sm:grid"
-							>
-								{user.name.trim().charAt(0)}
-							</span>
-							<span class="hidden max-w-32 truncate sm:inline">{user.name}</span>
-						{/if}
-						<span class="hidden text-muted transition group-open:rotate-180 leading-none h-2 sm:inline">^</span>
-					</summary>
-					<div class="absolute right-0 z-10 mt-2 min-w-52 rounded-2xl border border-border bg-surface p-1.5 shadow-lg">
-						{#each modes as m (m.key)}
-							<a
-								href={m.href}
-								onclick={() => (switcherOpen = false)}
-								class="block truncate rounded-xl px-3 py-1.5 text-sm transition hover:bg-primary hover:text-on-primary {m.current
-									? 'bg-surface-2 font-semibold text-heading'
-									: 'text-muted'}"
-							>
-								{m.label}
-							</a>
-						{/each}
-						<a
-							href="/logout"
-							data-sveltekit-preload-data="off"
-							data-sveltekit-reload
-							class="block truncate rounded-xl px-3 py-1.5 text-sm text-muted transition hover:bg-primary hover:text-on-primary"
+				<div class="hidden items-center gap-2 md:flex">
+					<NotificationsPanel />
+					<!-- Account switcher: always offers Log out, even for a pure citizen with
+					no other context to switch into (modes.length === 1) — only the extra
+					mode entries (campaign you run/manage, a pending claim, Platform admin)
+					are conditional on having more than one. Below md this is hidden — the
+					hamburger panel's own tiles do this job on mobile instead. -->
+					<details class="group relative w-fit" bind:open={switcherOpen} bind:this={switcherEl}>
+						<summary
+							aria-label="Account menu"
+							class="flex cursor-pointer list-none items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-heading transition hover:bg-surface-2"
 						>
-							Log out
-						</a>
-					</div>
-				</details>
+							{#if modes.length > 1}
+								<span>{modes.find((m) => m.current)?.label ?? modes[0].label}</span>
+							{:else}
+								<span
+									class="grid size-6 shrink-0 place-items-center rounded-full bg-primary-soft text-xs font-bold text-on-primary uppercase"
+								>
+									{user.name.trim().charAt(0)}
+								</span>
+								<span class="max-w-32 truncate">{user.name}</span>
+							{/if}
+							<span class="text-muted transition group-open:rotate-180 leading-none h-2">^</span>
+						</summary>
+						<div class="absolute right-0 z-10 mt-2 min-w-52 rounded-2xl border border-border bg-surface p-1.5 shadow-lg">
+							{#each modes as m (m.key)}
+								<a
+									href={m.href}
+									onclick={() => (switcherOpen = false)}
+									class="block truncate rounded-xl px-3 py-1.5 text-sm transition hover:bg-primary hover:text-on-primary {m.current
+										? 'bg-surface-2 font-semibold text-heading'
+										: 'text-muted'}"
+								>
+									{m.label}
+								</a>
+							{/each}
+							<a
+								href="/logout"
+								data-sveltekit-preload-data="off"
+								data-sveltekit-reload
+								class="block truncate rounded-xl px-3 py-1.5 text-sm text-muted transition hover:bg-primary hover:text-on-primary"
+							>
+								Log out
+							</a>
+						</div>
+					</details>
+				</div>
 			{:else}
 				<a
 					href="/login"
@@ -182,27 +198,63 @@
 
 	</div>
 
-	<!-- Mobile nav panel -->
+	<!-- Mobile nav panel: a flat "For Leaders" / "For Citizens" grid, no nested
+	dropdowns — an account that manages a campaign or is a platform admin gets its
+	shortcuts (campaign names, Platform Admin, Log out) up top; everyone else gets
+	the Features/Pricing/Join funnel at the bottom instead. -->
 	{#if menuOpen}
 		<nav class="border-t border-border bg-surface lg:hidden">
-			<div class="mx-auto max-w-7xl space-y-1 px-4 py-3 sm:px-6">
-				{#each links as link (link.href)}
-					<a
-						href={link.href}
-						onclick={() => (menuOpen = false)}
-						class="block rounded-md px-3 py-2 text-sm font-medium text-text transition hover:bg-surface-2 hover:text-heading"
-					>
-						{link.label}
-					</a>
-				{/each}
-				{#if !user}
-					<a
-						href="/login"
-						onclick={() => (menuOpen = false)}
-						class="block rounded-md px-3 py-2 text-sm font-medium text-text transition hover:bg-surface-2 hover:text-heading"
-					>
-						Log in
-					</a>
+			<div class="mx-auto max-w-7xl space-y-4 px-2 py-3 sm:px-4">
+				{#if user && isLeaderAccount}
+					<div>
+						<p class="mb-2 text-center text-xs font-semibold tracking-wide text-muted uppercase">My Teams</p>
+						<div class="{tileGridClass} grid-cols-2">
+							{#each myCampaigns as c (c.basePath)}
+								<a href="{c.basePath}/profile" onclick={() => (menuOpen = false)} class={tileClass}>{c.name}</a>
+							{/each}
+							{#if isAdminUser}
+								<a href="/dashboard/admin/profiles" onclick={() => (menuOpen = false)} class={tileClass}>Platform Admin</a>
+							{/if}
+						</div>
+					</div>
+				{/if}
+
+				<div>
+					{#if user}
+						<p class="mb-2 text-center text-xs font-semibold tracking-wide text-muted uppercase">For Citizens</p>
+					{/if}
+					<div class="{tileGridClass} grid-cols-3">
+						{#if user}
+							<a href="/dashboard/my-vote" onclick={() => (menuOpen = false)} class={tileClass}>My Vote</a>
+							<a href="/dashboard/notifications" onclick={() => (menuOpen = false)} class={tileClass}>Notifications</a>
+							<a href="/dashboard/account" onclick={() => (menuOpen = false)} class={tileClass}>Account</a>
+						{/if}
+						<a href="/presidents" onclick={() => (menuOpen = false)} class={tileClass}>Leaders</a>
+						<a href="/rank/presidents" onclick={() => (menuOpen = false)} class={tileClass}>Ranks</a>
+						<a href="/compare" onclick={() => (menuOpen = false)} class={tileClass}>Compare</a>
+						<a href="/news" onclick={() => (menuOpen = false)} class={tileClass}>News</a>
+						<a href="/education" onclick={() => (menuOpen = false)} class={tileClass}>Learn</a>
+						<a href="/drives" onclick={() => (menuOpen = false)} class={tileClass}>Reg. Drives</a>
+						<a href="/dates" onclick={() => (menuOpen = false)} class={tileClass}>Key Dates</a>
+						<a href="/verify-registration" onclick={() => (menuOpen = false)} class={tileClass}>Verify</a>
+						{#if user}
+						<a href="/logout" data-sveltekit-preload-data="off" data-sveltekit-reload class={tileClass}>Log out</a>
+						{:else}
+						<a href="/login" data-sveltekit-preload-data="off" data-sveltekit-reload class={tileClass}>Login</a>
+						{/if}
+
+					</div>
+				</div>
+
+				{#if !isLeaderAccount}
+					<div>
+						<p class="mb-2 text-center text-xs font-semibold tracking-wide text-muted uppercase">For Leaders</p>
+						<div class="{tileGridClass} grid-cols-3">
+							<a href="/features" onclick={() => (menuOpen = false)} class={tileClass}>Features</a>
+							<a href="/pricing" onclick={() => (menuOpen = false)} class={tileClass}>Pricing</a>
+							<a href="/onboard/profile" onclick={() => (menuOpen = false)} class={tileClass}>Onboard</a>
+						</div>
+					</div>
 				{/if}
 			</div>
 		</nav>

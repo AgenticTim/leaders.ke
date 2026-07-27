@@ -10,7 +10,7 @@
 </svelte:head>
 
 <article class="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-	<a href="/learn" class="text-sm font-medium text-primary hover:underline">← Voter education</a>
+	<a href="/education" class="text-sm font-medium text-primary hover:underline">← Voter education</a>
 	<p class="mt-4 text-xs font-semibold tracking-wide text-primary uppercase">{data.article.category}</p>
 	<h1 class="mt-1 text-3xl font-bold text-heading">{data.article.title}</h1>
 
@@ -31,7 +31,7 @@
 		<ul class="mt-3 space-y-2">
 			{#each data.related as item (item.slug)}
 				<li>
-					<a href="/learn/{item.slug}" class="text-sm font-medium text-primary hover:underline">
+					<a href="/education/{item.slug}" class="text-sm font-medium text-primary hover:underline">
 						{item.title}
 					</a>
 				</li>

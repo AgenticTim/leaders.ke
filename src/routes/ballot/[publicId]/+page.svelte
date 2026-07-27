@@ -24,7 +24,7 @@
 	/>
 </svelte:head>
 
-<div class="mx-auto  px-4 py-12 sm:px-6">
+<div class="mx-auto max-w-7xl px-4 py-12 sm:px-6">
 	<div class="text-center">
 		<span
 			class="inline-flex items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-on-primary"
@@ -81,7 +81,7 @@
 		>
 			Simulate Your Vote
 		</a>
-		<p class="max-w-md text-xs text-muted">
+		<p class="max-w-3xl text-xs text-muted">
 			This is a simulated voting experience for the 2027 General Election. It is not an official
 			ballot, does not register any vote, and results are never tallied or published per candidate.
 			Data is handled under the Kenya Data Protection Act (2019). For official voter information,

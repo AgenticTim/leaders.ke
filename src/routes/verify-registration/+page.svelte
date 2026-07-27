@@ -81,7 +81,7 @@
 		</div>
 		<p class="mt-4 text-sm text-muted">
 			Every one of those votes was someone who showed up. Yours is next —
-			<a href="/learn/how-to-register" class="font-medium text-primary hover:underline">here's how to register</a>.
+			<a href="/education/how-to-register" class="font-medium text-primary hover:underline">here's how to register</a>.
 		</p>
 	{/if}
 </section>

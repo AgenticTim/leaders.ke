@@ -1126,7 +1126,7 @@ export const DEFAULT_BLOCKED_SLUGS = [
   'change-password', 'delete-account', 'forgot-password', 'reset-password',
   // kept for the platform's future use
   'security', 'privacy', 'terms', 'about', 'help', 'support', 'contact', 'contacts', 'contact-us', 'api',
-  'blog', 'news', 'press', 'verify', 'settings', 'why-vote', 'data-policy', 'faq'
+  'blog', 'news', 'press', 'verify', 'settings', 'education', 'data-policy', 'faq'
 ];
 
 export const platformSettings = pgTable('platform_settings', {

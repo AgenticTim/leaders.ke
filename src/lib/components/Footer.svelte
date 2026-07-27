@@ -8,8 +8,7 @@
 			title: 'For voters',
 			links: [
 				{ href: '/', label: 'My 2027 Ballot' },
-				{ href: '/why-vote', label: 'Why Vote?' },
-				{ href: '/learn', label: 'Voter Education' },
+				{ href: '/education', label: 'Voter Education' },
 				{ href: '/dates', label: 'Key Dates' },
 				{ href: '/drives', label: 'Registration Drives' },
 				{ href: '/verify-registration', label: 'Verify Registration' }
