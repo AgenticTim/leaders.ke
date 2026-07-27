@@ -13,8 +13,7 @@
 <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6">
 	<h1 class="text-3xl font-bold text-heading">Voter education</h1>
 	<p class="mt-2 max-w-2xl text-base">
-		Plain-language, non-partisan guides to the 2027 General Election. No jargon, no spin — just
-		what to do and what to expect.
+		Plain-language, non-partisan guides to the 2027 General Election. 
 	</p>
 
 	<!-- Start here: the case for voting at all, ahead of the how-to guides -->

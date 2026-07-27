@@ -386,7 +386,7 @@
 	<!-- Leaders.ke vs a private/DIY campaign platform: features that only exist
 	     because other leaders are on this same platform, so a standalone site
 	     can never replicate them regardless of its own budget. -->
-	<h2 class="mt-14 text-2xl font-bold text-heading">Leaders KE vs a Private Campaign Platform</h2>
+	<h2 class="mt-14 text-2xl font-bold text-heading">Vote KE vs a Private Campaign Platform</h2>
 	<p class="mt-2 max-w-3xl text-sm text-muted">
 		A private site is only ever your own page. These need other leaders on the platform too, so no
 		standalone campaign site can offer them, no matter its budget.

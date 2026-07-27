@@ -42,13 +42,15 @@
 	}
 </script>
 
-<div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-	<label class="block">
-		<span class="text-xs font-medium text-muted">County</span>
+<!-- Mobile: label left of its select in a tight row (less vertical space);
+sm and up: labels above, three columns. -->
+<div class="grid grid-cols-1 gap-1.5 sm:grid-cols-3 sm:gap-3">
+	<label class="flex items-center gap-2 sm:block">
+		<span class="w-24 shrink-0 text-xs font-medium text-muted sm:w-auto">County</span>
 		<select
 			value={county}
 			onchange={(e) => pickCounty(e.currentTarget.value)}
-			class="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+			class="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none sm:mt-1 sm:py-2"
 		>
 			<option value="">Select county</option>
 			{#each counties as c (c.code)}
@@ -57,13 +59,13 @@
 		</select>
 	</label>
 
-	<label class="block">
-		<span class="text-xs font-medium text-muted">Constituency</span>
+	<label class="flex items-center gap-2 sm:block">
+		<span class="w-24 shrink-0 text-xs font-medium text-muted sm:w-auto">Constituency</span>
 		<select
 			value={constituency}
 			onchange={(e) => pickConstituency(e.currentTarget.value)}
 			disabled={!selectedCounty}
-			class="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none disabled:opacity-50"
+			class="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none disabled:opacity-50 sm:mt-1 sm:py-2"
 		>
 			<option value="">Select constituency</option>
 			{#each constituencies as c (c.code)}
@@ -72,13 +74,13 @@
 		</select>
 	</label>
 
-	<label class="block">
-		<span class="text-xs font-medium text-muted">Ward</span>
+	<label class="flex items-center gap-2 sm:block">
+		<span class="w-24 shrink-0 text-xs font-medium text-muted sm:w-auto">Ward</span>
 		<select
 			value={ward}
 			onchange={(e) => pickWard(e.currentTarget.value)}
 			disabled={!selectedConstituency}
-			class="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none disabled:opacity-50"
+			class="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none disabled:opacity-50 sm:mt-1 sm:py-2"
 		>
 			<option value="">Select ward</option>
 			{#each wards as w (w.seatName)}

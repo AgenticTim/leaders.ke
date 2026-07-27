@@ -450,7 +450,7 @@ content slides under the sticky header. -->
 				onclick={() => skip(step.level as BallotLevel)}
 				class="text-sm font-medium text-muted underline-offset-2 hover:text-heading hover:underline"
 			>
-				{selections[step.level] ? 'Change to no selection' : 'Skip this seat'}
+				{selections[step.level] ? 'Clear selection' : 'Skip this seat'}
 			</button>
 		{/if}
 	</div>
