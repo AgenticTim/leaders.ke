@@ -34,6 +34,17 @@ async function verifiedByOther(ownerIds: number[], phone: string): Promise<boole
 	return !!(held && !ownerIds.includes(held.userId) && held.verifiedAt);
 }
 
+/** Same number already OTP-verified as this account's WhatsApp contact — no need
+ * to prove control of it twice. */
+async function verifiedAsOwnWhatsapp(userId: number, phone: string): Promise<boolean> {
+	const [row] = await db
+		.select({ verifiedAt: contacts.verifiedAt })
+		.from(contacts)
+		.where(and(eq(contacts.userId, userId), eq(contacts.channel, 'whatsapp'), eq(contacts.value, phone), isNull(contacts.deletedAt)))
+		.limit(1);
+	return !!row?.verifiedAt;
+}
+
 // A confirmed number becomes the account's single verified SMS contact.
 async function applyPhoneVerified(subject: DashboardUser['domainUser'], phone: string) {
 	await db
@@ -68,6 +79,10 @@ export const load: PageServerLoad = async (event) => {
 	if (await verifiedByOther([subject.id, domainUser.id], phone)) {
 		redirectWithFlash(event.cookies, next, `${formatKenyanPhoneDisplay(phone)} is already verified on another account.`);
 	}
+	if (await verifiedAsOwnWhatsapp(subject.id, phone)) {
+		await applyPhoneVerified(subject, phone);
+		redirectWithFlash(event.cookies, next, `${formatKenyanPhoneDisplay(phone)} is already verified as your WhatsApp number.`);
+	}
 
 	// Auto-send a code on arrival only if none is already outstanding for this
 	// number — so a page refresh reuses the code already sent instead of firing a
@@ -94,6 +109,10 @@ export const actions: Actions = {
 		if (!normalized) return fail(400, { phoneError: 'Enter a valid Kenyan phone number.' });
 		if (await verifiedByOther([subject.id, domainUser.id], normalized)) {
 			return fail(400, { phoneError: `${formatKenyanPhoneDisplay(normalized)} is already verified on another account.` });
+		}
+		if (await verifiedAsOwnWhatsapp(subject.id, normalized)) {
+			await applyPhoneVerified(subject, normalized);
+			return { phoneSent: true };
 		}
 		try {
 			await sendOtp(subject.id, 'sms', normalized);

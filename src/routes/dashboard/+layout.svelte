@@ -247,7 +247,7 @@
 				{#if data.leaderContext.positionTitle}
 					<a
 						href={data.leaderContext.publicPath}
-						class="rounded-full border border-primary px-3 py-2 text-xs font-semibold text-primary transition bg-surface hover:bg-primary hover:text-on-primary"
+						class="rounded-full border border-primary px-3 py-2 text-xs font-semibold text-primary transition bg-surface hover:bg-primary hover:text-on-primary text-nowrap"
 					>
 						Preview &#8599;
 					</a>

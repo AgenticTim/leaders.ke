@@ -116,9 +116,14 @@ export async function ownVerifiedContacts(claimantId: number) {
 		.from(contactsTable)
 		.where(and(eq(contactsTable.userId, claimantId), isNotNull(contactsTable.verifiedAt), isNull(contactsTable.deletedAt)));
 	const byChannel = (channel: string) => rows.filter((c) => c.channel === channel).map((c) => c.value);
+	// sms and whatsapp share one phone number pool: proving control of a number on
+	// either channel counts as verified on both, so typing it into the other
+	// field also shows "✓ Verified" instead of another OTP round-trip.
+	const phone = [...new Set([...byChannel('sms'), ...byChannel('whatsapp')])];
 	return {
-		check: (channel: string, value: string) => !!value && rows.some((c) => c.channel === channel && c.value === value),
-		lists: { sms: byChannel('sms'), whatsapp: byChannel('whatsapp'), email: byChannel('email') }
+		check: (channel: string, value: string) =>
+			!!value && rows.some((c) => c.value === value && (channel === 'sms' || channel === 'whatsapp' ? c.channel === 'sms' || c.channel === 'whatsapp' : c.channel === channel)),
+		lists: { sms: phone, whatsapp: phone, email: byChannel('email') }
 	};
 }
 

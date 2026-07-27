@@ -26,6 +26,17 @@ async function verifiedByOther(ownerIds: number[], number: string): Promise<bool
 	return !!(held && !ownerIds.includes(held.userId) && held.verifiedAt);
 }
 
+/** Same number already OTP-verified as this account's SMS contact — no need to
+ * prove control of it twice. */
+async function verifiedAsOwnSms(userId: number, number: string): Promise<boolean> {
+	const [row] = await db
+		.select({ verifiedAt: contacts.verifiedAt })
+		.from(contacts)
+		.where(and(eq(contacts.userId, userId), eq(contacts.channel, 'sms'), eq(contacts.value, number), isNull(contacts.deletedAt)))
+		.limit(1);
+	return !!row?.verifiedAt;
+}
+
 // Unlike sms/email (one live value per account), a person can keep several WhatsApp
 // numbers — so this only adds/verifies the given number, never removes the others.
 async function applyNumberVerified(subject: DashboardUser['domainUser'], number: string) {
@@ -58,6 +69,10 @@ export const load: PageServerLoad = async (event) => {
 	if (await verifiedByOther([subject.id, domainUser.id], number)) {
 		redirectWithFlash(event.cookies, next, `${formatKenyanPhoneDisplay(number)} is already verified on another account.`);
 	}
+	if (await verifiedAsOwnSms(subject.id, number)) {
+		await applyNumberVerified(subject, number);
+		redirectWithFlash(event.cookies, next, `${formatKenyanPhoneDisplay(number)} is already verified as your SMS number.`);
+	}
 
 	// Auto-send a code on arrival only if none is already outstanding for this
 	// number — so a page refresh reuses the code already sent instead of firing a
@@ -84,6 +99,10 @@ export const actions: Actions = {
 		if (!normalized) return fail(400, { phoneError: 'Enter a valid Kenyan phone number.' });
 		if (await verifiedByOther([subject.id, domainUser.id], normalized)) {
 			return fail(400, { phoneError: `${formatKenyanPhoneDisplay(normalized)} is already verified on another account.` });
+		}
+		if (await verifiedAsOwnSms(subject.id, normalized)) {
+			await applyNumberVerified(subject, normalized);
+			return { phoneSent: true };
 		}
 		try {
 			// Stub: no WhatsApp Business API yet — reuses the same gateway/console stub
