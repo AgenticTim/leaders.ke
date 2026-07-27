@@ -2,6 +2,7 @@
 	import Avatar from '$lib/components/Avatar.svelte';
 	import BallotDisclaimer from '$lib/components/BallotDisclaimer.svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
 	import { fly } from 'svelte/transition';
 	import GeoSelect from '$lib/components/GeoSelect.svelte';
@@ -171,7 +172,6 @@
 
 	const seatNumber = $derived(step.kind === 'seat' ? SEAT_ORDER.indexOf(step.level) + 1 : 0);
 
-	let pollingStation = $state('');
 	let voterName = $state('');
 	let voterContact = $state('');
 	let consentedToContact = $state(false);
@@ -365,26 +365,30 @@ content slides under the sticky header. -->
 						<div class="my-auto w-full">
 						<h1 class="text-center text-2xl font-bold text-heading sm:text-3xl">Cast Your Ballot</h1>
 						<p class="mt-1 text-center text-sm text-muted">
-							Optional: leave your details to be notified when a candidate you didn't see joins.
-							Never shown on your shared ballot (Kenya Data Protection Act, 2019).
+							Optional: get notified when a candidate you didn't see joins. Never shown on your
+							shared ballot (Kenya Data Protection Act, 2019).
 						</p>
 
-						<div class="mt-4 grid gap-3 sm:grid-cols-2">
-							<input
-								type="text"
-								bind:value={voterName}
-								name="voterName"
-								placeholder="Name (optional)"
-								class="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-							/>
-							<input
-								type="text"
-								bind:value={voterContact}
-								name="voterContact"
-								placeholder="Phone or email (optional)"
-								class="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-							/>
-						</div>
+						{#if !page.data.user}
+							<!-- Signed-in casts skip these: the server fills name and contact
+							from the account instead. -->
+							<div class="mt-4 grid gap-3 sm:grid-cols-2">
+								<input
+									type="text"
+									bind:value={voterName}
+									name="voterName"
+									placeholder="Name (optional)"
+									class="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+								/>
+								<input
+									type="text"
+									bind:value={voterContact}
+									name="voterContact"
+									placeholder="Phone or email (optional)"
+									class="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+								/>
+							</div>
+						{/if}
 						<label class="mt-3 flex items-start gap-2 text-sm">
 							<input
 								type="checkbox"
@@ -392,16 +396,12 @@ content slides under the sticky header. -->
 								name="consentedToContact"
 								class="mt-0.5"
 							/>
-							<span>I consent to vote.ke contacting me about candidates in my area (KDPA opt-in).</span>
+							<span>
+								I consent to vote.ke contacting me{page.data.user
+									? ' at my account email'
+									: ''} about candidates in my area (KDPA opt-in).
+							</span>
 						</label>
-
-						<input
-							type="text"
-							bind:value={pollingStation}
-							name="pollingStation"
-							placeholder="Polling station (optional — not yet published by IEBC for 2027)"
-							class="mt-4 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-						/>
 
 						{#if form?.message}
 							<p class="mt-4 text-sm text-red-500">{form.message}</p>

@@ -69,10 +69,14 @@ export const actions: Actions = {
 		const county = form.get('county')?.toString() ?? '';
 		const constituency = form.get('constituency')?.toString() ?? '';
 		const ward = form.get('ward')?.toString() ?? '';
-		const pollingStation = form.get('pollingStation')?.toString().trim() || null;
-		const voterName = form.get('voterName')?.toString().trim() || null;
-		const voterContact = form.get('voterContact')?.toString().trim() || null;
+		let voterName = form.get('voterName')?.toString().trim() || null;
+		let voterContact = form.get('voterContact')?.toString().trim() || null;
 		const consentedToContact = form.get('consentedToContact') === 'on';
+		// Signed-in casts don't post identity fields; the account supplies them.
+		if (event.locals.user) {
+			voterName = event.locals.user.name?.trim() || voterName;
+			voterContact = event.locals.user.email?.toLowerCase() || voterContact;
+		}
 		const selectionsRaw = form.get('selections')?.toString() ?? '{}';
 
 		if (!county || !constituency || !ward) {
@@ -99,7 +103,6 @@ export const actions: Actions = {
 				county,
 				constituency,
 				ward,
-				pollingStation,
 				selections,
 				voterName,
 				voterContact,

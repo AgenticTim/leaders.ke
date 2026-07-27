@@ -12,7 +12,7 @@ export type { ApplicationChecklist };
 // Guards every /dashboard page and shares the leader context + role switcher data.
 // Two leader route families hang off /dashboard: [slug]/* (a leader's own
 // dashboard, slug minted at onboarding payment time) and the reserved non-leader
-// segments (admin/mobilize/account/invites). The second path segment says which.
+// segments (admin/mobilize/account/notifications). The second path segment says which.
 export const load: LayoutServerLoad = async (event) => {
 	const segments = event.url.pathname.split('/'); // ['', 'dashboard', <family|slug>, ...]
 	const family = segments[2];
@@ -54,7 +54,7 @@ export const load: LayoutServerLoad = async (event) => {
 	// than event.params — a layout load doesn't reliably carry the deeper [id]/[slug].
 	// Otherwise the citizen pages' fallback ctx (the admin's own/first-managed profile)
 	// would leak the bar onto /dashboard.
-	const isLeaderFamily = !['admin', 'mobilize', 'account', 'invites', undefined, ''].includes(family);
+	const isLeaderFamily = !['admin', 'mobilize', 'account', 'notifications', undefined, ''].includes(family);
 	const adminControls =
 		domainUser.adminAt && ctx && isLeaderFamily
 			? { ...(await getProfileAdminMeta(ctx.profileUser.id)), profileId: ctx.profileUser.id, profileName: fullName(ctx.profileUser) }

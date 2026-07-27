@@ -76,7 +76,7 @@
 		if (second === 'admin') return 'admin';
 		// mobilize/* = ambassador work, deliberately a citizen tab: an ambassador is
 		// a citizen with extra duties, not a separate dashboard context.
-		if (!second || second === 'account' || second === 'invites' || second === 'mobilize' || second === 'my-vote') return 'citizen';
+		if (!second || second === 'account' || second === 'notifications' || second === 'mobilize' || second === 'my-vote') return 'citizen';
 		return 'campaign';
 	});
 
@@ -99,7 +99,7 @@
 				return [
 					{ href: '/dashboard', label: 'Local News' },
 					{ href: '/dashboard/my-vote', label: 'My Vote' },
-					{ href: '/dashboard/invites', label: 'Invites' },
+					{ href: '/dashboard/notifications', label: 'Notifications' },
 					...data.ambassadorFor.map((a: { subjectId: number; name: string }) => ({
 						href: `/dashboard/mobilize/${a.subjectId}`,
 						label: a.name
@@ -214,9 +214,9 @@
 				<p class="font-semibold">{item.title}</p>
 				<p class="mt-0.5 whitespace-pre-line [&_a]:font-semibold [&_a]:underline">{@html item.body}</p>
 			</div>
-			<!-- Plain POST (no enhance): the endpoint is a +server.ts returning a 303
-			back to this page, not a form action returning an ActionResult. -->
-			<form method="post" action="/dashboard/notifications">
+			<!-- Plain POST (no enhance): posts to the Notifications tab's own action from
+			whichever page the banner is showing on, then redirects back here. -->
+			<form method="post" action="/dashboard/notifications?/dismiss">
 				<input type="hidden" name="id" value={item.id} />
 				<button
 					type="submit"
