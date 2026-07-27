@@ -107,6 +107,11 @@ export const users = pgTable('users', {
     .$type<{ email: boolean; sms: boolean; whatsapp: boolean }>()
     .default({ email: true, sms: true, whatsapp: true })
     .notNull(),
+  // Standing opt-in: notify this citizen when a new candidate enrolls for their
+  // saved county/constituency/ward (see county/constituency/ward above). Moved
+  // here from a per-ballot-cast checkbox, it's an account preference, not a
+  // one-off tied to a single simulated ballot.
+  notifyNewCandidates: boolean('notify_new_candidates').default(false).notNull(),
   // Default 'seed' covers every existing row (all pre-dating this column) and
   // every seed script's own insert without touching each one individually;
   // the two real (non-seed) creation points — auth.ts's signup hook and
@@ -1045,17 +1050,24 @@ export const donations = pgTable('donations', {
 export const ballotSimulations = pgTable('ballot_simulations', {
   id: serial('id').primaryKey(),
   publicId: varchar('public_id', { length: 12 }).notNull().unique(), // the /ballot/[publicId] slug
+  // Null until the caster is (or becomes) signed in. anonId is the 'anon_id' cookie
+  // at cast time, a later signup/login claims every anonId-matching row by setting
+  // userId, so casting while signed out and creating an account afterward (even much
+  // later, even after browsing elsewhere first) still links back to this ballot.
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  anonId: varchar('anon_id', { length: 32 }),
+  ip: varchar('ip', { length: 45 }), // abuse-detection metadata only, never identity
   county: varchar('county', { length: 100 }).notNull(),
   constituency: varchar('constituency', { length: 100 }).notNull(),
   ward: varchar('ward', { length: 100 }).notNull(),
   pollingStation: varchar('polling_station', { length: 150 }),
   // { president, governor, senator, womanRep, mp, mca } -> candidateId string ("db:<leaderId>" | "mock:<slug>") | null
   selections: jsonb('selections').notNull(),
-  voterName: varchar('voter_name', { length: 100 }), // opt-in, never rendered on the share page
-  voterContact: varchar('voter_contact', { length: 100 }), // opt-in phone or email, never rendered on the share page
-  consentedToContact: boolean('consented_to_contact').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('ballot_simulations_anon_idx').on(t.anonId),
+  index('ballot_simulations_user_idx').on(t.userId),
+]);
 
 // 24. PLATFORM SETTINGS (single-row config an admin can tune without a deploy —
 // OTP/invite anti-abuse thresholds today, room to grow. Always id=1.)

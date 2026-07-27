@@ -32,12 +32,16 @@ export const load: PageServerLoad = async (event) => {
 	// discovering the invite mismatch after clicking Accept.
 	const lockedEmail = event.url.searchParams.get('email');
 
+	// Set by the homepage ballot's guest-cast redirect, swaps the subtitle to
+	// explain why they're here instead of the generic pitch.
+	const ballotIntent = event.url.searchParams.get('intent') === 'ballot';
+
 	// The flash notice explains why they landed here (e.g. "log in to claim a
 	// profile"). hooks only peeks it on /login and /signup, so it survives
 	// switching between the two forms; the action clears it on success.
 	const notice = event.locals.flash ?? null;
 
-	return { next, inviteBanner, lockedEmail, notice, googleEnabled: googleAuthEnabled };
+	return { next, inviteBanner, lockedEmail, ballotIntent, notice, googleEnabled: googleAuthEnabled };
 };
 
 export const actions: Actions = {

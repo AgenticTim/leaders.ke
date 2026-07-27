@@ -26,10 +26,7 @@
 	// overflow horizontally instead. Region picks are their own steps, injected
 	// right before the first seat that needs them.
 	type Region = 'county' | 'constituency' | 'ward';
-	type Step =
-		| { kind: 'seat'; level: BallotLevel }
-		| { kind: 'region'; region: Region }
-		| { kind: 'details' };
+	type Step = { kind: 'seat'; level: BallotLevel } | { kind: 'region'; region: Region };
 	const STEPS: Step[] = [
 		{ kind: 'seat', level: 'president' },
 		{ kind: 'region', region: 'county' },
@@ -39,8 +36,7 @@
 		{ kind: 'region', region: 'constituency' },
 		{ kind: 'seat', level: 'mp' },
 		{ kind: 'region', region: 'ward' },
-		{ kind: 'seat', level: 'mca' },
-		{ kind: 'details' }
+		{ kind: 'seat', level: 'mca' }
 	];
 	let stepIndex = $state(0);
 	const step = $derived(STEPS[stepIndex]);
@@ -81,8 +77,6 @@
 		mp: false,
 		mca: false
 	});
-
-	const allDecided = $derived(Object.values(decided).every(Boolean));
 
 	function resetLevels(levels: BallotLevel[]) {
 		for (const level of levels) {
@@ -176,10 +170,6 @@
 
 	const seatNumber = $derived(step.kind === 'seat' ? SEAT_ORDER.indexOf(step.level) + 1 : 0);
 
-	let voterName = $state('');
-	let voterContact = $state('');
-	let consentedToContact = $state(false);
-
 	// "Use my location" on the county step: browser geolocation (explicit tap,
 	// so the permission prompt is user-initiated) resolved to a county fully
 	// offline via detectCountySlug — see locateCounty.ts for the privacy notes.
@@ -230,6 +220,11 @@ always-visible geo bar, then the disclaimer. The page never scrolls vertically.
 Below lg the header carries its extra full-width search row (~3.2rem), so the
 booth's height subtracts it too — otherwise the bottom overflows and centered
 content slides under the sticky header. -->
+<form method="post" use:enhance class="contents">
+<input type="hidden" name="county" value={county} />
+<input type="hidden" name="constituency" value={constituency} />
+<input type="hidden" name="ward" value={ward} />
+<input type="hidden" name="selections" value={JSON.stringify(selections)} />
 <div class="flex h-[calc(100dvh-7.2rem)] flex-col overflow-hidden lg:h-[calc(100dvh-4rem)]">
 	<!-- Step area -->
 	<div class="min-h-0 flex-1 overflow-hidden">
@@ -352,73 +347,6 @@ content slides under the sticky header. -->
 							{/each}
 						</div>
 					</div>
-				{:else}
-					<!-- Final step: optional details + cast -->
-					<form
-						method="post"
-						use:enhance
-						class="mx-auto flex h-full w-full max-w-xl min-h-0 flex-col overflow-y-auto"
-					>
-						<input type="hidden" name="county" value={county} />
-						<input type="hidden" name="constituency" value={constituency} />
-						<input type="hidden" name="ward" value={ward} />
-						<input type="hidden" name="selections" value={JSON.stringify(selections)} />
-
-						<!-- my-auto centers the form when it fits and scrolls from the top
-						(no clipped heading) when it doesn't. -->
-						<div class="my-auto w-full">
-						<h1 class="text-center text-2xl font-bold text-heading sm:text-3xl">Cast Your Ballot</h1>
-
-						{#if !page.data.user}
-							<!-- Signed-in casts skip these: the server fills name and contact
-							from the account instead. -->
-							<div class="mt-4 grid gap-3 sm:grid-cols-2">
-								<input
-									type="text"
-									bind:value={voterName}
-									name="voterName"
-									placeholder="Name (optional)"
-									class="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-								/>
-								<input
-									type="text"
-									bind:value={voterContact}
-									name="voterContact"
-									placeholder="Phone or email (optional)"
-									class="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-								/>
-							</div>
-						{/if}
-						<label class="mt-3 flex items-start gap-2 text-sm">
-							<input
-								type="checkbox"
-								bind:checked={consentedToContact}
-								name="consentedToContact"
-								class="mt-0.5"
-							/>
-							<span class="text-muted text-sm">
-								Get notified when a new candidate you enrolls in your region.
-							</span>
-						</label>
-
-						{#if form?.message}
-							<p class="mt-4 text-sm text-red-500">{form.message}</p>
-						{/if}
-
-						<button
-							type="submit"
-							disabled={!allDecided || !data.geoReady}
-							class="mt-6 w-full rounded-full bg-primary px-6 py-3 font-semibold text-on-primary transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-40"
-						>
-							Cast my simulated vote
-						</button>
-						{#if !allDecided || !data.geoReady}
-							<p class="mt-2 text-center text-xs text-muted">
-								Pick or skip all six seats to unlock this button.
-							</p>
-						{/if}
-						</div>
-					</form>
 				{/if}
 			</div>
 		{/key}
@@ -442,14 +370,26 @@ content slides under the sticky header. -->
 				</p>
 			{/if}
 		</div>
+		{#if form?.message}
+			<p class="text-sm text-red-500">{form.message}</p>
+		{/if}
 		{#if step.kind === 'seat' && candidatesFor(step.level) !== null}
-			<button
-				type="button"
-				onclick={() => skip(step.level as BallotLevel)}
-				class="text-sm font-medium text-muted underline-offset-2 hover:text-heading hover:underline"
-			>
-				{selections[step.level] ? 'Clear selection' : 'Skip this seat'}
-			</button>
+			{#if step.level === 'mca'}
+				<button
+					type="submit"
+					class="rounded-full bg-sky-400 px-5 py-2 text-sm font-semibold text-white transition hover:bg-sky-500"
+				>
+					Cast Your Vote
+				</button>
+			{:else}
+				<button
+					type="button"
+					onclick={() => skip(step.level as BallotLevel)}
+					class="text-sm font-medium text-muted underline-offset-2 hover:text-heading hover:underline"
+				>
+					{selections[step.level] ? 'Clear selection' : 'Skip this seat'}
+				</button>
+			{/if}
 		{/if}
 	</div>
 
@@ -463,3 +403,4 @@ content slides under the sticky header. -->
 
 	<BallotDisclaimer />
 </div>
+</form>

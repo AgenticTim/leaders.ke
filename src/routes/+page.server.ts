@@ -69,14 +69,6 @@ export const actions: Actions = {
 		const county = form.get('county')?.toString() ?? '';
 		const constituency = form.get('constituency')?.toString() ?? '';
 		const ward = form.get('ward')?.toString() ?? '';
-		let voterName = form.get('voterName')?.toString().trim() || null;
-		let voterContact = form.get('voterContact')?.toString().trim() || null;
-		const consentedToContact = form.get('consentedToContact') === 'on';
-		// Signed-in casts don't post identity fields; the account supplies them.
-		if (event.locals.user) {
-			voterName = event.locals.user.name?.trim() || voterName;
-			voterContact = event.locals.user.email?.toLowerCase() || voterContact;
-		}
 		const selectionsRaw = form.get('selections')?.toString() ?? '{}';
 
 		if (!county || !constituency || !ward) {
@@ -95,24 +87,9 @@ export const actions: Actions = {
 			return fail(400, { message: 'Pick at least one candidate before casting your simulated vote.' });
 		}
 
-		const id = publicId();
-		const [simulation] = await db
-			.insert(ballotSimulations)
-			.values({
-				publicId: id,
-				county,
-				constituency,
-				ward,
-				selections,
-				voterName,
-				voterContact,
-				consentedToContact
-			})
-			.returning({ id: ballotSimulations.id });
-
-		// Every real-candidate pick ("campaign:<id>") becomes a live vote pledge on that
-		// run. Signed-in voters pledge by userId; anonymous voters by the long-lived
-		// 'anon_id' device cookie.
+		// Every ballot is tagged with whoever cast it: a signed-in user's id, or (for
+		// a guest) the long-lived 'anon_id' device cookie, so a later signup/login
+		// can claim it (see claimGuestBallots), even after browsing elsewhere first.
 		const domainUser = event.locals.user ? await getDomainUser(event.locals.user.id) : undefined;
 		let anonId: string | null = null;
 		if (!domainUser) {
@@ -136,18 +113,20 @@ export const actions: Actions = {
 		}
 		const userAgent = event.request.headers.get('user-agent')?.slice(0, 255) ?? null;
 
-		// Contact capture: only when the citizen consented to be contacted about
-		// candidates in their area. The form collects one contact field: an email
-		// fills email, a phone number fills both sms and whatsapp.
-		const isEmailContact = !!voterContact?.includes('@');
-		const contactNumber =
-			consentedToContact && voterContact && !isEmailContact
-				? voterContact.replace(/[^\d+]/g, '') || null
-				: null;
-		const contactEmail = consentedToContact && isEmailContact ? voterContact!.toLowerCase() : null;
-		const contactCapture = consentedToContact
-			? { name: voterName, sms: contactNumber, whatsapp: contactNumber, email: contactEmail, constituency, ward }
-			: { name: null, sms: null, whatsapp: null, email: null, constituency: null, ward: null };
+		const id = publicId();
+		const [simulation] = await db
+			.insert(ballotSimulations)
+			.values({
+				publicId: id,
+				userId: domainUser?.id ?? null,
+				anonId,
+				ip,
+				county,
+				constituency,
+				ward,
+				selections
+			})
+			.returning({ id: ballotSimulations.id });
 
 		const pledgedCampaignIds = [
 			...new Set(
@@ -177,12 +156,16 @@ export const actions: Actions = {
 					campaignId: campaign.id,
 					simulationId: simulation.id,
 					ip,
-					userAgent,
-					...contactCapture
+					userAgent
 				})
 				.onConflictDoNothing();
 		}
 
-		redirect(302, `/ballot/${id}`);
+		// Signed-in citizens see their result straight away; a guest's ballot is
+		// already saved (tagged with their anon_id) but they need an account to
+		// come back and see it change as their leaders perform, the signup detour
+		// claims this exact ballot the moment they create one (claimGuestBallots).
+		if (domainUser) redirect(302, `/ballot/${id}`);
+		redirect(302, `/signup?next=${encodeURIComponent(`/ballot/${id}`)}&intent=ballot`);
 	}
 };

@@ -4,9 +4,11 @@ import { betterAuth } from 'better-auth/minimal';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { getRequestEvent } from '$app/server';
+import { claimGuestBallots } from '$lib/server/ballot';
 import { db } from '$lib/server/db';
 import { users, contacts } from '$lib/server/db/schema';
 import { sendEmail } from '$lib/server/email';
+import { getDomainUser } from '$lib/server/leader';
 
 // "Continue with Google" only lights up when both OAuth credentials are set —
 // dev without keys stays on email/password, and the login/signup pages hide the
@@ -101,6 +103,27 @@ export const auth = betterAuth({
 								verifiedAt: authUser.emailVerified ? new Date() : null
 							})
 							.onConflictDoNothing();
+					}
+				}
+			}
+		},
+		session: {
+			create: {
+				// Fires on every fresh login/signup, any method (email, Google, seeded demo
+				// logins), one universal choke point to link a guest's already-cast ballot(s)
+				// (tagged by the 'anon_id' cookie) to the account, instead of duplicating this
+				// call across the email/Google signup and login actions. Covers casting, then
+				// browsing elsewhere, then signing up/in much later, the cookie persists a
+				// year regardless of how many pages sit in between.
+				after: async (session) => {
+					try {
+						const anonId = getRequestEvent().cookies.get('anon_id') ?? null;
+						if (!anonId) return;
+						const domainUser = await getDomainUser(session.userId);
+						if (domainUser) await claimGuestBallots(domainUser.id, anonId);
+					} catch {
+						// No request context (e.g. a script creating a session outside a real
+						// HTTP request), nothing to claim.
 					}
 				}
 			}

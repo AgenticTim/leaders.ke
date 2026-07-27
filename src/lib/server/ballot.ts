@@ -3,7 +3,7 @@
 // for office, not held terms. ACTIVE_CYCLE (2027) is the cycle this ballot covers.
 import { and, eq, isNull, isNotNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { campaigns, parties, positions, users } from '$lib/server/db/schema';
+import { ballotSimulations, campaigns, parties, positions, users } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, leaderPath } from '$lib/server/leader';
 import type { County, Constituency, Ward } from '$lib/data/geo';
 
@@ -107,6 +107,21 @@ export async function resolveCandidates(
 	}
 
 	return verifiedCampaignsFor(title, region);
+}
+
+/**
+ * Links every guest-cast ballot simulation still carrying this device's anon_id
+ * to the account that just signed up or logged in, so casting while signed out
+ * (then browsing elsewhere, then creating/logging into an account much later)
+ * still connects the ballot to the account. Idempotent and cheap to call on
+ * every signup/login: a no-op once already claimed (userId no longer null).
+ */
+export async function claimGuestBallots(domainUserId: number, anonId: string | null): Promise<void> {
+	if (!anonId) return;
+	await db
+		.update(ballotSimulations)
+		.set({ userId: domainUserId })
+		.where(and(eq(ballotSimulations.anonId, anonId), isNull(ballotSimulations.userId)));
 }
 
 /** Re-resolves a stored candidateId ("campaign:<id>") to live display data, or null if gone. */

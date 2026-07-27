@@ -16,7 +16,10 @@
 	let password = $state(dev ? '2027-08-10' : '');
 </script>
 
-<AuthCard title="Create your account" subtitle="Join vote.ke and start engaging citizens">
+<AuthCard
+	title="Create your account"
+	subtitle={data.ballotIntent ? 'And see how your leaders performed' : 'And simulate your 2027 vote'}
+>
 	{#if data.notice}
 		<p class="mb-4 rounded-xl bg-primary-soft p-3 text-sm text-on-primary">{data.notice}</p>
 	{/if}

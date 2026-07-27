@@ -29,6 +29,7 @@ export const load: PageServerLoad = async (event) => {
 		smsPhone: contactRows.find((c) => c.channel === 'sms')?.value ?? '',
 		whatsappPhone: contactRows.find((c) => c.channel === 'whatsapp')?.value ?? '',
 		notificationPrefs: domainUser.notificationPrefs as NotificationPrefs,
+		notifyNewCandidates: domainUser.notifyNewCandidates,
 		verified: domainUser.verified,
 		// Values already OTP-verified on this account: re-typing one shows
 		// "✓ Verified" immediately instead of offering another round-trip.
@@ -66,6 +67,7 @@ export const actions: Actions = {
 			sms: form.get('notifySms') === 'on',
 			whatsapp: form.get('notifyWhatsapp') === 'on'
 		};
+		const notifyNewCandidates = form.get('notifyNewCandidates') === 'on';
 
 		if (!firstName || /\s/.test(firstName)) {
 			return fail(400, { error: 'First name is required and must be a single word.' });
@@ -106,6 +108,7 @@ export const actions: Actions = {
 				firstName,
 				otherNames,
 				notificationPrefs,
+				notifyNewCandidates,
 				county: county?.name ?? null,
 				constituency: constituency?.name ?? null,
 				ward: ward?.name ?? null

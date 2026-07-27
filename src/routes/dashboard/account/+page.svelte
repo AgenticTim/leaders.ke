@@ -27,6 +27,7 @@
 	let notifyEmail = $state(data.notificationPrefs.email && verified.email);
 	let notifySms = $state(data.notificationPrefs.sms && verified.sms);
 	let notifyWhatsapp = $state(data.notificationPrefs.whatsapp && verified.whatsapp);
+	let notifyNewCandidates = $state(data.notifyNewCandidates);
 
 	const NOTIFY_ICONS = {
 		email: 'M2.25 6.75c0-.83.67-1.5 1.5-1.5h16.5c.83 0 1.5.67 1.5 1.5v10.5a1.5 1.5 0 0 1-1.5 1.5H3.75a1.5 1.5 0 0 1-1.5-1.5V6.75Zm1.72-.19 8.03 5.5 8.03-5.5',
@@ -145,6 +146,10 @@
 			<input type="hidden" name="county" value={county} />
 			<input type="hidden" name="constituency" value={constituency} />
 			<input type="hidden" name="ward" value={ward} />
+			<label class="mt-3 flex items-start gap-2 text-sm">
+				<input type="checkbox" bind:checked={notifyNewCandidates} name="notifyNewCandidates" class="mt-0.5" />
+				<span class="text-sm text-muted">Get notified when a new candidate enrolls in your region.</span>
+			</label>
 		</div>
 
 		<div class="mt-8 grid grid-cols-2 gap-2">
