@@ -1,7 +1,9 @@
 <script lang="ts">
 	import Avatar from '$lib/components/Avatar.svelte';
 	import FollowCard from '$lib/components/FollowCard.svelte';
+	import GeoSelect from '$lib/components/GeoSelect.svelte';
 	import Pagination from '$lib/components/admin/Pagination.svelte';
+	import { goto } from '$app/navigation';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -9,9 +11,41 @@
 	const dateFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' });
 	const totalPages = $derived(Math.max(1, Math.ceil(data.total / data.pageSize)));
 
+	let county = $state(data.countySlug);
+	let constituency = $state(data.constituencySlug);
+	let ward = $state(data.wardSlug);
+	// Keep local values in sync with the URL (browser back/forward, direct links) —
+	// only when it actually specifies a region, same reasoning as the homepage's
+	// own GeoSelect: an empty URL isn't a deliberate "clear my location".
+	$effect(() => {
+		if (data.countySlug) county = data.countySlug;
+		if (data.constituencySlug) constituency = data.constituencySlug;
+		if (data.wardSlug) ward = data.wardSlug;
+	});
+
+	// Carries whichever filters (tag/mention/geo) are currently active into a new
+	// link, so toggling one never drops the others.
+	function paramsWith(extra: Record<string, string>): URLSearchParams {
+		const params = new URLSearchParams();
+		if (data.activeTag) params.set('tag', data.activeTag);
+		if (data.activeMention) params.set('mention', data.activeMention);
+		if (county) params.set('county', county);
+		if (constituency) params.set('constituency', constituency);
+		if (ward) params.set('ward', ward);
+		for (const [k, v] of Object.entries(extra)) {
+			if (v) params.set(k, v);
+			else params.delete(k);
+		}
+		return params;
+	}
+
 	// Toggling a tag/mention filter link: selecting the already-active one clears it.
-	const tagHref = (tag: string) => (data.activeTag === tag ? '/news' : `/news?tag=${encodeURIComponent(tag)}`);
-	const mentionHref = (slug: string) => (data.activeMention === slug ? '/news' : `/news?mention=${encodeURIComponent(slug)}`);
+	const tagHref = (tag: string) => `/news?${paramsWith({ tag: data.activeTag === tag ? '' : tag })}`;
+	const mentionHref = (slug: string) => `/news?${paramsWith({ mention: data.activeMention === slug ? '' : slug })}`;
+
+	function onGeoChange() {
+		goto(`/news?${paramsWith({})}`, { keepFocus: true, noScroll: true });
+	}
 </script>
 
 <svelte:head>
@@ -120,17 +154,21 @@
 				total={data.total}
 				itemLabel="articles"
 				href={(p) => {
-					const params = new URLSearchParams();
-					if (data.activeTag) params.set('tag', data.activeTag);
-					if (data.activeMention) params.set('mention', data.activeMention);
+					const params = paramsWith({});
 					params.set('page', String(p));
 					return `/news?${params}`;
 				}}
 			/>
 		</div>
 
-		<!-- rhs: filter by topic tag or by a mentioned leader -->
+		<!-- rhs: filter by location, topic tag, or a mentioned leader -->
 		<div class="space-y-6 lg:col-span-1">
+			<div>
+				<p class="text-xs font-semibold tracking-wide text-muted uppercase">Local news</p>
+				<div class="mt-2">
+					<GeoSelect bind:county bind:constituency bind:ward onchange={onGeoChange} />
+				</div>
+			</div>
 			<div>
 				<p class="text-xs font-semibold tracking-wide text-muted uppercase">Tags</p>
 				<div class="mt-2 flex flex-wrap gap-1.5">

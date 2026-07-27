@@ -1,7 +1,8 @@
 import { and, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { posts, tags, users, leaders, campaigns } from '$lib/server/db/schema';
-import { fullName, leaderPath } from '$lib/server/leader';
+import { posts, tags, users, leaders, campaigns, positions } from '$lib/server/db/schema';
+import { ACTIVE_CYCLE, fullName, leaderPath } from '$lib/server/leader';
+import { findCountyBySlug, findConstituencyBySlug, findWardBySlug } from '$lib/data/geo';
 import { plainText } from '$lib/utils/richtext';
 import { getPageSize } from '$lib/server/settings';
 import type { PageServerLoad } from './$types';
@@ -36,16 +37,60 @@ export const load: PageServerLoad = async ({ url }) => {
 	const page = Math.max(1, Number(url.searchParams.get('page') ?? 1));
 	const activeTag = url.searchParams.get('tag') ?? '';
 	const activeMention = url.searchParams.get('mention') ?? '';
+	const countySlug = url.searchParams.get('county') ?? '';
+	const constituencySlug = url.searchParams.get('constituency') ?? '';
+	const wardSlug = url.searchParams.get('ward') ?? '';
+	const county = countySlug ? findCountyBySlug(countySlug) : undefined;
+	const constituency = county && constituencySlug ? findConstituencyBySlug(constituencySlug) : undefined;
+	const ward = constituency && wardSlug ? findWardBySlug(wardSlug) : undefined;
 
 	// Only posts about/from a publicly visible person: a verified held term, or a
-	// verified aspirant campaign — same gate the rest of the platform uses.
+	// verified aspirant campaign — same gate the rest of the platform uses. Each
+	// row also carries its seat's region/boundary, so "local news" can filter to
+	// whichever level(s) of geography the visitor picked.
 	const [verifiedLeaderRows, verifiedCampaignRows] = await Promise.all([
-		db.select({ id: leaders.userId }).from(leaders).where(and(isNull(leaders.deletedAt), isNotNull(leaders.verifiedAt))),
-		db.select({ id: campaigns.subjectUserId }).from(campaigns).where(and(isNull(campaigns.deletedAt), isNotNull(campaigns.verifiedAt)))
+		db
+			.select({ id: leaders.userId, region: positions.region, boundary: positions.boundary })
+			.from(leaders)
+			.innerJoin(positions, eq(leaders.positionId, positions.id))
+			.where(and(isNull(leaders.deletedAt), isNotNull(leaders.verifiedAt))),
+		db
+			.select({ id: campaigns.subjectUserId, region: positions.region, boundary: positions.boundary })
+			.from(campaigns)
+			.innerJoin(positions, eq(campaigns.positionId, positions.id))
+			.where(and(isNull(campaigns.deletedAt), isNotNull(campaigns.verifiedAt), eq(campaigns.cycleYear, ACTIVE_CYCLE)))
 	]);
 	const publicUserIds = [...new Set([...verifiedLeaderRows, ...verifiedCampaignRows].map((r) => r.id).filter((id): id is number => id !== null))];
 
-	if (publicUserIds.length === 0) return { articles: [], total: 0, page, pageSize, tags: [], mentions: [], activeTag, activeMention };
+	// Every (region, boundary) a person's seat currently spans — a held term AND
+	// a fresh run can both be active for the same person, so this is a list, not
+	// a single value.
+	const seatsByUserId = new Map<number, { region: string; boundary: string }[]>();
+	for (const r of [...verifiedLeaderRows, ...verifiedCampaignRows]) {
+		if (r.id === null) continue;
+		const list = seatsByUserId.get(r.id) ?? [];
+		list.push({ region: r.region, boundary: r.boundary });
+		seatsByUserId.set(r.id, list);
+	}
+	// Whichever levels the visitor picked — a person's seat matches if it's
+	// national (always relevant), or its region equals the matching level's name.
+	// Picking a ward doesn't exclude their county's governor/senator, it only adds
+	// a level: this is "relevant to me", not "exactly my ward".
+	const acceptableRegions = new Set<string>(['Country:Kenya']);
+	if (county) acceptableRegions.add(`County:${county.name}`);
+	if (constituency) acceptableRegions.add(`Constituencies:${constituency.seatName}`);
+	if (ward) acceptableRegions.add(`Ward:${ward.seatName}`);
+	const geoActive = !!(county || constituency || ward);
+	function matchesGeo(authorUserId: number | null): boolean {
+		if (!geoActive) return true;
+		if (authorUserId === null) return false;
+		const seats = seatsByUserId.get(authorUserId) ?? [];
+		return seats.some((s) => acceptableRegions.has(`${s.boundary}:${s.region}`));
+	}
+
+	if (publicUserIds.length === 0) {
+		return { articles: [], total: 0, page, pageSize, tags: [], mentions: [], activeTag, activeMention, countySlug, constituencySlug, wardSlug };
+	}
 
 	// Team-authored (creatorId set), published, not-deactivated — each gets its own
 	// /news/[slug] article page.
@@ -186,6 +231,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			const matchesTagged = a.mentions.some((m) => m.slug === activeMention);
 			if (!matchesPrimary && !matchesTagged) return false;
 		}
+		if (!matchesGeo(a.authorUserId)) return false;
 		return true;
 	});
 	const total = filtered.length;
@@ -199,6 +245,9 @@ export const load: PageServerLoad = async ({ url }) => {
 		tags: tagOptions,
 		mentions: mentionOptions,
 		activeTag,
-		activeMention
+		activeMention,
+		countySlug,
+		constituencySlug,
+		wardSlug
 	};
 };

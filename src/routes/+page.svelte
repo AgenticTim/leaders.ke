@@ -368,10 +368,6 @@ content slides under the sticky header. -->
 						(no clipped heading) when it doesn't. -->
 						<div class="my-auto w-full">
 						<h1 class="text-center text-2xl font-bold text-heading sm:text-3xl">Cast Your Ballot</h1>
-						<p class="mt-1 text-center text-sm text-muted">
-							Optional: get notified when a candidate you didn't see joins. Never shown on your
-							shared ballot (Kenya Data Protection Act, 2019).
-						</p>
 
 						{#if !page.data.user}
 							<!-- Signed-in casts skip these: the server fills name and contact
@@ -400,10 +396,8 @@ content slides under the sticky header. -->
 								name="consentedToContact"
 								class="mt-0.5"
 							/>
-							<span>
-								I consent to vote.ke contacting me{page.data.user
-									? ' at my account email'
-									: ''} about candidates in my area (KDPA opt-in).
+							<span class="text-muted text-sm">
+								Get notified when a new candidate you enrolls in your region.
 							</span>
 						</label>
 

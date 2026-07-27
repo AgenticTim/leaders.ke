@@ -97,7 +97,6 @@
 				// One tab per ambassador assignment, titled with the leader's name —
 				// ambassador work is part of citizen life, not a separate mode.
 				return [
-					{ href: '/dashboard', label: 'Local News' },
 					{ href: '/dashboard/my-vote', label: 'My Vote' },
 					{ href: '/dashboard/notifications', label: 'Notifications' },
 					...data.ambassadorFor.map((a: { subjectId: number; name: string }) => ({
