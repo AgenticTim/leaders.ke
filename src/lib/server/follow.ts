@@ -3,7 +3,7 @@
 // same digest shape) so rows are indistinguishable regardless of entry point.
 import { and, eq, isNull, or } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { campaigns, followers } from '$lib/server/db/schema';
+import { campaigns, followers, users } from '$lib/server/db/schema';
 
 export type FollowInput = {
 	name: string;
@@ -12,7 +12,8 @@ export type FollowInput = {
 	ward?: string;
 	/** The followed person's users.id — or resolve it from candidateId below. */
 	subjectUserId?: number;
-	/** A ballot candidateId ("campaign:<id>"); resolved to the campaign's subject person. */
+	/** A ballot candidateId ("campaign:<id>" or an aspirational "person:<slug>");
+	 * resolved to the person behind it. */
 	candidateId?: string;
 };
 
@@ -31,6 +32,16 @@ export async function followLeader(input: FollowInput): Promise<{ ok: true; name
 				.from(campaigns)
 				.where(and(eq(campaigns.id, campaignId), isNull(campaigns.deletedAt)));
 			subjectUserId = row?.subjectUserId ?? null;
+		}
+	}
+	if (!subjectUserId && input.candidateId?.startsWith('person:')) {
+		const slug = input.candidateId.slice('person:'.length);
+		if (slug) {
+			const [row] = await db
+				.select({ id: users.id })
+				.from(users)
+				.where(and(eq(users.slug, slug), isNull(users.deletedAt)));
+			subjectUserId = row?.id ?? null;
 		}
 	}
 	if (!subjectUserId) return { ok: false, error: 'Candidate not found.' };

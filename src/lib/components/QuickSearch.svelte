@@ -16,6 +16,7 @@
 		expand = true,
 		hotkey = false,
 		placeholder,
+		direction = 'down',
 		onPick
 	}: {
 		open?: boolean;
@@ -26,6 +27,9 @@
 		/** true: "/" focuses the box from anywhere (one instance per page). */
 		hotkey?: boolean;
 		placeholder?: string;
+		/** 'up' opens the suggestion list above the input, for inputs near the
+		 * bottom of a clipping (overflow-hidden) container, e.g. the ballot booth. */
+		direction?: 'down' | 'up';
 		/** Picker mode: receive the chosen item instead of navigating to it. */
 		onPick?: (item: { label: string; sub: string; path: string }) => void;
 	} = $props();
@@ -187,7 +191,9 @@
 
 	{#if open && (groups.length > 0 || (query.trim() && !onPick))}
 		<div
-			class="absolute top-full left-0 z-50 mt-2 max-h-[70vh] w-full overflow-y-auto rounded-2xl border border-border bg-surface p-2 shadow-lg"
+			class="absolute left-0 z-50 max-h-[70vh] w-full overflow-y-auto rounded-2xl border border-border bg-surface p-2 shadow-lg {direction === 'up'
+				? 'bottom-full mb-2'
+				: 'top-full mt-2'}"
 		>
 			{#each groups as group (group.name)}
 				<p class="px-3 pt-2 pb-1 text-xs font-semibold tracking-wide text-muted uppercase">{group.name}</p>

@@ -5,6 +5,7 @@
 	import { enhance } from '$app/forms';
 	import { fly } from 'svelte/transition';
 	import GeoSelect from '$lib/components/GeoSelect.svelte';
+	import QuickSearch from '$lib/components/QuickSearch.svelte';
 	import type { BallotLevel } from '$lib/server/ballot';
 	import type { ActionData, PageData } from './$types';
 
@@ -145,6 +146,22 @@
 		selections[level] = null;
 		decided[level] = true;
 		goNext();
+	}
+
+	// Aspirational write-ins: the quick search on every seat step lets a citizen
+	// pick ANY profile on the platform for that seat, vying for it or not. Stored
+	// as "person:<slug>" (resolved live by resolveCandidateById, like campaign
+	// picks); names are kept here so the chip can show who was written in.
+	let writeInNames = $state<Record<string, string>>({});
+	function pickWriteIn(level: BallotLevel, item: { label: string; path: string }) {
+		const slug = item.path.replace(/^\//, '');
+		if (!slug || slug.includes('/')) return;
+		writeInNames[`person:${slug}`] = item.label;
+		pick(level, `person:${slug}`);
+	}
+	function clearWriteIn(level: BallotLevel) {
+		selections[level] = null;
+		decided[level] = false;
 	}
 
 	async function pickRegion(region: Region, slug: string) {
@@ -370,6 +387,34 @@ content slides under the sticky header. -->
 						</div>
 					</div>
 				{/if}
+					{#if step.kind === 'seat'}
+						<!-- Aspirational write-in: search any profile on the platform and pick
+						them for this seat, whether or not they're vying for it. Sitting at
+						the bottom of the clipping booth, the list opens upward. -->
+						<div class="mx-auto mt-3 w-full max-w-md shrink-0">
+							{#if selections[step.level]?.startsWith('person:')}
+								<div class="mb-2 flex items-center justify-center gap-2 rounded-full bg-primary-soft px-4 py-2 text-sm text-on-primary">
+									<span class="truncate font-semibold">✓ {writeInNames[selections[step.level] ?? ''] ?? 'Your pick'}</span>
+									<span class="shrink-0 text-xs opacity-80">write-in</span>
+									<button
+										type="button"
+										onclick={() => clearWriteIn(step.level as BallotLevel)}
+										aria-label="Clear write-in pick"
+										class="shrink-0 rounded-full px-1.5 font-semibold transition hover:bg-primary hover:text-on-primary"
+									>
+										✕
+									</button>
+								</div>
+							{/if}
+							<QuickSearch
+								include={['Executive', 'Parliament', 'MCAs']}
+								expand={false}
+								direction="up"
+								placeholder="Suggest someone else…"
+								onPick={(item) => pickWriteIn(step.level as BallotLevel, item)}
+							/>
+						</div>
+					{/if}
 			</div>
 		{/key}
 	</div>

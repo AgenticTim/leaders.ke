@@ -69,6 +69,14 @@ const LEVEL_TITLE: Record<BallotLevel, string> = {
 
 export const BALLOT_LEVELS: BallotLevel[] = ['president', 'governor', 'senator', 'womanRep', 'mp', 'mca'];
 
+const initialsOf = (name: string) =>
+	name
+		.split(/\s+/)
+		.map((w) => w[0])
+		.join('')
+		.slice(0, 2)
+		.toUpperCase();
+
 function toCandidate(row: {
 	campaigns: typeof campaigns.$inferSelect;
 	users: typeof users.$inferSelect;
@@ -78,12 +86,7 @@ function toCandidate(row: {
 	return {
 		candidateId: `campaign:${row.campaigns.id}`,
 		name,
-		initials: name
-			.split(/\s+/)
-			.map((w) => w[0])
-			.join('')
-			.slice(0, 2)
-			.toUpperCase(),
+		initials: initialsOf(name),
 		photoUrl: row.users.photoUrl,
 		party: row.partyName,
 		path: leaderPath(row.users),
@@ -163,7 +166,10 @@ export async function claimGuestBallots(domainUserId: number, anonId: string | n
 		.where(and(eq(ballotSimulations.anonId, anonId), isNull(ballotSimulations.userId)));
 }
 
-/** Re-resolves a stored candidateId ("campaign:<id>") to live display data, or null if gone. */
+/** Re-resolves a stored candidateId to live display data, or null if gone.
+ * "campaign:<id>" is a verified run offered on the ballot; "person:<slug>" is an
+ * aspirational write-in picked via quick search — any profile on the platform,
+ * vying for that seat or not. */
 export async function resolveCandidateById(candidateId: string | null): Promise<Candidate | null> {
 	if (!candidateId) return null;
 
@@ -176,6 +182,27 @@ export async function resolveCandidateById(candidateId: string | null): Promise<
 			.leftJoin(parties, eq(campaigns.partyId, parties.id))
 			.where(and(eq(campaigns.id, id), isNull(campaigns.deletedAt)));
 		return row ? toCandidate(row) : null;
+	}
+
+	if (candidateId.startsWith('person:')) {
+		const slug = candidateId.slice('person:'.length);
+		if (!slug) return null;
+		const [row] = await db
+			.select()
+			.from(users)
+			.where(and(eq(users.slug, slug), isNull(users.deletedAt)));
+		if (!row) return null;
+		const name = fullName(row);
+		return {
+			candidateId,
+			name,
+			initials: initialsOf(name),
+			photoUrl: row.photoUrl,
+			// No run for this seat, so no party or IEBC-verified badge to show.
+			party: null,
+			path: leaderPath(row),
+			verified: false
+		};
 	}
 
 	return null;
