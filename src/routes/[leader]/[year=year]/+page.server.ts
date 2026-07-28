@@ -1,27 +1,16 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { randomBytes, randomInt, createHash } from 'node:crypto';
-import { and, desc, eq, isNull, or } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { creditTransactions, donations, followers, managers, pillars, posts, wallets } from '$lib/server/db/schema';
+import { creditTransactions, donations, managers, pillars, posts, wallets } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, getDomainUser, getOrCreateMainCampaign, leaderPath } from '$lib/server/leader';
 import { resolveCampaignRun, loadCampaignWorkspaceData } from '$lib/server/campaign';
-import { ownVerifiedContacts } from '$lib/server/dashboard';
+import { followAsAccount, unfollowAsAccount } from '$lib/server/follow';
 import { handleDeleteReviewAction, handleReviewAction } from '$lib/server/reviews';
 import { answerConstituentQuestion, PlatformOutOfCreditsError } from '$lib/server/ai';
 import { enforceAskRateLimit } from '$lib/server/aiRateLimit';
 import { getGroundingExtras } from '$lib/server/knowledge';
-import { findConstituencyBySlug, findCountyBySlug, findWardBySlug, nameToSlugs } from '$lib/data/geo';
-import { sendEmail, siteUrl } from '$lib/server/email';
-import { sendSms } from '$lib/server/sms';
 import { getPlatformSettings } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
-
-const CONFIRM_CODE_TTL_MS = 10 * 60_000;
-const CONFIRM_CODE_MAX_ATTEMPTS = 5;
-
-function hashConfirmCode(code: string) {
-	return createHash('sha256').update(code).digest('hex');
-}
 
 // /[leader]/[year]: the active campaign workspace — manifesto with delivery
 // tracker, updates, citizen reviews, vote pledges, fundraising and the AI
@@ -80,178 +69,42 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		reviewPillarOptions: workspace.reviewPillarOptions,
 		flaggedReviewCounts: workspace.flaggedReviewCounts,
 		myReview: workspace.myReview,
+		isFollowing: workspace.isFollowing,
 		signedIn: !!locals.user,
-		// Lets the Follow/Fund blocks prefill (and for Follow, hide) the name/email/
-		// geo fields for a signed-in citizen instead of asking them to retype their
-		// own details. hasLocation (county set) is the signal the whole
-		// county/constituency/ward picker is already known — Follow submits the
-		// slugs as hidden fields instead of showing GeoSelect again.
-		viewerProfile: viewer
-			? {
-					name: fullName(viewer),
-					email: locals.user?.email ?? '',
-					hasLocation: !!viewer.county,
-					...nameToSlugs(viewer)
-				}
-			: null,
+		// Lets the Fund block prefill the donor name for a signed-in citizen instead
+		// of asking them to retype it.
+		viewerProfile: viewer ? { name: fullName(viewer) } : null,
 		pledgeCount: workspace.pledgeCount,
 		fundraising: workspace.fundraising
 	};
 };
 
 export const actions: Actions = {
+	// Signed-in only — the account itself is the proof, no name/contact capture
+	// or OTP confirm needed (see followAsAccount).
 	follow: async (event) => {
-		const row = await resolveCampaignRun(event.params.leader);
-		if (!row) {
-			return fail(400, { error: 'Campaign not found.' });
-		}
+		if (!event.locals.user) return fail(401, { error: 'Log in to follow.' });
+		const domainUser = await getDomainUser(event.locals.user.id);
+		if (!domainUser) return fail(401, { error: 'Log in to follow.' });
 
-		const form = await event.request.formData();
-		const name = String(form.get('name') ?? '').trim();
-		const contact = String(form.get('contact') ?? '').trim();
-		const countySlug = String(form.get('county') ?? '').trim();
-		const constituencySlug = String(form.get('constituency') ?? '').trim();
-		const wardSlug = String(form.get('ward') ?? '').trim();
-		if (!name || !contact) return fail(400, { error: 'Your name and a phone or email are required.' });
-
-		const isEmail = contact.includes('@');
-		const emailAddress = isEmail ? contact.toLowerCase() : null;
-		const phoneNumber = isEmail ? null : contact.replace(/[^\d+]/g, '');
-		if (!isEmail && (phoneNumber?.length ?? 0) < 9) {
-			return fail(400, { error: 'Enter a valid phone number or email address.' });
-		}
-
-		// Optional, same as before ward alone was — GeoSelect's cascading UI already
-		// prevents a mismatched combination client-side, this just doesn't trust
-		// that blindly. No county falls back to the campaign's own seat region,
-		// same default this used before county/constituency existed as fields.
-		const county = countySlug ? findCountyBySlug(countySlug) : undefined;
-		if (countySlug && !county) return fail(400, { error: 'Select a valid county.' });
-		const constituency = constituencySlug ? findConstituencyBySlug(constituencySlug) : undefined;
-		if (constituencySlug && (!constituency || !county?.constituencies.includes(constituency))) {
-			return fail(400, { error: 'Select a valid constituency for that county.' });
-		}
-		const ward = wardSlug ? findWardBySlug(wardSlug) : undefined;
-		if (wardSlug && (!ward || !constituency?.wards.includes(ward))) {
-			return fail(400, { error: 'Select a valid ward for that constituency.' });
-		}
-
-		// App-layer dedupe for account-less follows: one live follow per contact per leader.
-		const duplicate = await db
-			.select({ id: followers.id })
-			.from(followers)
-			.where(
-				and(
-					eq(followers.digest, 'leader'),
-					eq(followers.digestId, row.users.id),
-					isNull(followers.deletedAt),
-					or(
-						emailAddress ? eq(followers.emailAddress, emailAddress) : undefined,
-						phoneNumber ? eq(followers.phoneNumber, phoneNumber) : undefined
-					)
-				)
-			)
-			.limit(1);
-		if (duplicate.length > 0) {
-			return fail(400, { error: 'You already follow this campaign with that contact.' });
-		}
-
-		// Double opt-in, both channels — skipped only when it's a signed-in citizen
-		// using their own already-verified account email/phone (Campaign.svelte
-		// hides the field and submits that value directly in that case, so there's
-		// nothing left to prove). A guest, or a signed-in citizen whose account
-		// contact isn't verified yet, has to confirm and stays excluded from
-		// broadcasts (see the broadcasts recipient query) until they do. Nothing
-		// else happens if they never do.
-		const viewerDomainUser = event.locals.user ? await getDomainUser(event.locals.user.id) : null;
-		const emailAlreadyVerified = isEmail && emailAddress === (event.locals.user?.email ?? '').toLowerCase() && !!viewerDomainUser?.verified.email;
-		const phoneAlreadyVerified =
-			!isEmail && !!phoneNumber && !!viewerDomainUser && (await ownVerifiedContacts(viewerDomainUser.id)).check('sms', phoneNumber);
-		const needsConfirm = isEmail ? !emailAlreadyVerified : !phoneAlreadyVerified;
-		const confirmToken = needsConfirm && isEmail ? randomBytes(24).toString('hex') : null;
-		const confirmCode = needsConfirm && !isEmail ? String(randomInt(0, 1_000_000)).padStart(6, '0') : null;
-
-		await db.insert(followers).values({
-			name,
-			emailAddress,
-			phoneNumber,
-			county: county?.name ?? row.positions.region,
-			constituency: constituency?.name ?? null,
-			ward: ward?.name ?? null,
-			digest: 'leader',
-			digestId: row.users.id,
-			// Contact channel doubles as the digest opt-in; SMS numbers get WhatsApp later, not assumed.
-			email: isEmail,
-			sms: !isEmail,
-			confirmToken,
-			confirmCodeHash: confirmCode ? hashConfirmCode(confirmCode) : null,
-			confirmCodeExpiresAt: confirmCode ? new Date(Date.now() + CONFIRM_CODE_TTL_MS) : null,
-			confirmedAt: needsConfirm ? null : new Date()
-		});
-
-		const leaderName = fullName(row.users);
-		if (needsConfirm && emailAddress) {
-			const confirmUrl = siteUrl(`/follow/confirm/${confirmToken}`);
-			await sendEmail({
-				to: emailAddress,
-				subject: `Confirm you're following ${leaderName}`,
-				text: `Hi ${name},\n\nConfirm you'd like to follow ${leaderName}'s campaign and get their updates:\n${confirmUrl}\n\nIf you didn't request this, just ignore this email.`,
-				html: `<p>Hi ${name},</p><p>Confirm you'd like to follow ${leaderName}'s campaign and get their updates:</p><p><a href="${confirmUrl}">Confirm my subscription</a></p><p>If you didn't request this, just ignore this email.</p>`
-			});
-		} else if (needsConfirm && phoneNumber && confirmCode) {
-			await sendSms(phoneNumber, `Your vote.ke code to confirm following ${leaderName} is ${confirmCode}. It expires in 10 minutes.`);
-		}
-
-		return { followed: true, name, needsConfirm, isEmail, phoneNumber: isEmail ? undefined : phoneNumber };
-	},
-
-	confirmPhone: async (event) => {
 		const row = await resolveCampaignRun(event.params.leader);
 		if (!row) return fail(400, { error: 'Campaign not found.' });
 
-		const form = await event.request.formData();
-		const phoneNumber = String(form.get('phone') ?? '').replace(/[^\d+]/g, '');
-		const code = String(form.get('code') ?? '').trim();
-		if (!phoneNumber || !code) return fail(400, { error: 'Enter the code we texted you.' });
+		const result = await followAsAccount(domainUser.id, row.users.id);
+		if (!result.ok) return fail(400, { error: result.error });
+		return { followed: true };
+	},
 
-		const [follower] = await db
-			.select()
-			.from(followers)
-			.where(
-				and(
-					eq(followers.digest, 'leader'),
-					eq(followers.digestId, row.users.id),
-					eq(followers.phoneNumber, phoneNumber),
-					isNull(followers.deletedAt),
-					isNull(followers.confirmedAt)
-				)
-			)
-			.orderBy(desc(followers.createdAt))
-			.limit(1);
+	unfollow: async (event) => {
+		if (!event.locals.user) return fail(401, { error: 'Log in first.' });
+		const domainUser = await getDomainUser(event.locals.user.id);
+		if (!domainUser) return fail(401, { error: 'Log in first.' });
 
-		// `locked: true` on these three means no resubmit of this form can ever
-		// succeed (wrong code below is the only retryable failure) — Campaign.svelte
-		// disables the code input/button rather than let the citizen keep trying.
-		if (!follower?.confirmCodeHash || !follower.confirmCodeExpiresAt) {
-			return fail(400, { error: 'No pending confirmation for that number. Follow again to get a new code.', locked: true });
-		}
-		if (follower.confirmAttempts >= CONFIRM_CODE_MAX_ATTEMPTS) {
-			return fail(400, { error: 'Too many attempts. Follow again to get a new code.', locked: true });
-		}
-		if (follower.confirmCodeExpiresAt < new Date()) {
-			return fail(400, { error: 'That code expired. Follow again to get a new one.', locked: true });
-		}
+		const row = await resolveCampaignRun(event.params.leader);
+		if (!row) return fail(400, { error: 'Campaign not found.' });
 
-		if (hashConfirmCode(code) !== follower.confirmCodeHash) {
-			await db
-				.update(followers)
-				.set({ confirmAttempts: follower.confirmAttempts + 1 })
-				.where(eq(followers.id, follower.id));
-			return fail(400, { error: 'Incorrect code.', phoneNumber });
-		}
-
-		await db.update(followers).set({ confirmedAt: new Date() }).where(eq(followers.id, follower.id));
-		return { confirmed: true, name: follower.name };
+		await unfollowAsAccount(domainUser.id, row.users.id);
+		return { unfollowed: true };
 	},
 
 	review: async (event) => {

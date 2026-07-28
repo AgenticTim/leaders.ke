@@ -8,15 +8,17 @@ import { ballotSimulations, campaigns, followers, leaders, pledges, positions, u
 import { fullName, leaderPath } from '$lib/server/leader';
 import { BALLOT_LEVELS, resolveCandidateById, type BallotLevel, type Candidate } from '$lib/server/ballot';
 
-/** Plain person ids (users.id) this citizen follows — for filtering /news to
- * just their followed leaders' posts/mentions (digestId IS the person's users.id
- * for digest 'leader', see followers.digestId's comment in schema.ts). */
-export async function listFollowedPersonIds(userId: number): Promise<number[]> {
+/** Every leader this citizen follows (person id + display name) — powers /news's
+ * per-leader "Following" filter buttons, one per person instead of a single
+ * catch-all toggle (digestId IS the person's users.id for digest 'leader', see
+ * followers.digestId's comment in schema.ts). */
+export async function listFollowedAuthors(userId: number): Promise<{ personId: number; name: string }[]> {
 	const rows = await db
-		.select({ digestId: followers.digestId })
+		.select({ personId: users.id, firstName: users.firstName, otherNames: users.otherNames })
 		.from(followers)
+		.innerJoin(users, eq(followers.digestId, users.id))
 		.where(and(eq(followers.userId, userId), eq(followers.digest, 'leader'), isNull(followers.deletedAt)));
-	return rows.map((r) => r.digestId).filter((id): id is number => id !== null);
+	return rows.map((r) => ({ personId: r.personId, name: fullName(r) }));
 }
 
 export type MyPledge = {

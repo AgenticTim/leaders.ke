@@ -2,7 +2,7 @@
 	import Avatar from '$lib/components/Avatar.svelte';
 	import { enhance } from '$app/forms';
 	import Reviews from '$lib/components/Reviews.svelte';
-	import GeoSelect from '$lib/components/GeoSelect.svelte';
+	import FollowButton from '$lib/components/FollowButton.svelte';
 	import { renderRichText } from '$lib/utils/richtext';
 	import PencilIcon from './svgs/PencilIcon.svelte';
 
@@ -16,22 +16,7 @@
 	const fmt = new Intl.NumberFormat('en-KE');
 	const dateFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' });
 
-	let following = $state(false);
 	let asking = $state(false);
-	// Only rendered when the viewer's location isn't already known (see
-	// data.viewerProfile.hasLocation below) — an anonymous visitor, or a signed-in
-	// citizen who hasn't set one on their account yet.
-	let followCounty = $state('');
-	let followConstituency = $state('');
-	let followWard = $state('');
-	// A phone-only follow needing the texted code before it counts as confirmed
-	// (see the `follow`/`confirmPhone` actions) swaps the Follow form for a
-	// code-entry step — tracked client-side (not just off `form`) so a failed
-	// code submission re-renders the same step instead of falling back to the
-	// original Follow form.
-	let awaitingPhoneCode = $state(false);
-	let pendingPhone = $state('');
-	let confirmingPhone = $state(false);
 
 	const progress = $derived(
 		data.fundraising.goal > 0
@@ -263,138 +248,7 @@
 			</div>
 
 			<!-- Follow -->
-			<div class="rounded-3xl border border-border bg-surface p-6">
-				<h2 class="text-lg font-bold text-heading">Follow this campaign</h2>
-				<p class="mt-1 text-sm text-muted">
-					Get updates from {leader.name.split(' ')[0]}'s campaign. No account needed.
-				</p>
-
-				{#if awaitingPhoneCode}
-					{#if form?.confirmed}
-						<div class="mt-4 rounded-2xl bg-primary-soft p-4 text-sm font-medium text-on-primary">
-							Karibu {form.name}! You now follow this campaign and will get its broadcasts.
-						</div>
-					{:else}
-						{#if form?.error}
-							<div class="mt-4 rounded-2xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading">
-								{form.error}
-							</div>
-						{:else}
-							<div class="mt-4 rounded-2xl bg-primary-soft p-4 text-sm font-medium text-on-primary">
-								Almost there! We texted a code to confirm you're following - enter it below.
-							</div>
-						{/if}
-						<form
-							method="post"
-							action="?/confirmPhone"
-							class="mt-3 space-y-3"
-							use:enhance={() => {
-								confirmingPhone = true;
-								return async ({ result, update }) => {
-									confirmingPhone = false;
-									if (result.type === 'success' && result.data?.confirmed) awaitingPhoneCode = false;
-									await update();
-								};
-							}}
-						>
-							<input type="hidden" name="phone" value={pendingPhone} />
-							<input
-								type="text"
-								name="code"
-								required
-								inputmode="numeric"
-								maxlength="6"
-								disabled={form?.locked}
-								placeholder="6-digit code"
-								class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none disabled:opacity-60"
-							/>
-							<button
-								type="submit"
-								disabled={confirmingPhone || form?.locked}
-								class="w-full rounded-full bg-primary px-4 py-2.5 font-semibold text-on-primary transition hover:brightness-95 focus:ring-0 focus:ring-ring focus:outline-none disabled:opacity-60"
-							>
-								{confirmingPhone ? 'Confirming…' : 'Confirm code'}
-							</button>
-						</form>
-					{/if}
-				{:else if form?.followed}
-					<div class="mt-4 rounded-2xl bg-primary-soft p-4 text-sm font-medium text-on-primary">
-						{#if form.needsConfirm && form.isEmail}
-							Almost there, {form.name}! Check your email and click the link to confirm your subscription.
-						{:else}
-							Karibu {form.name}! You now follow this campaign and will get its broadcasts.
-						{/if}
-					</div>
-				{:else}
-					{#if form?.error}
-						<div class="mt-4 rounded-2xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading">
-							{form.error}
-						</div>
-					{/if}
-					<form
-						method="post"
-						action="?/follow"
-						class="mt-4 space-y-3"
-						use:enhance={() => {
-							following = true;
-							return async ({ result, update }) => {
-								following = false;
-								if (result.type === 'success' && result.data?.followed && result.data.needsConfirm && !result.data.isEmail) {
-									awaitingPhoneCode = true;
-									pendingPhone = String(result.data.phoneNumber ?? '');
-								}
-								await update();
-							};
-						}}
-					>
-						{#if data.viewerProfile}
-							<!-- Signed in: name/email are already known, so they're never
-							re-asked — submitted as hidden fields instead of blank inputs. -->
-							<input type="hidden" name="name" value={data.viewerProfile.name} />
-							<input type="hidden" name="contact" value={data.viewerProfile.email} />
-						{:else}
-							<input
-								type="text"
-								name="name"
-								required
-								placeholder="Your name"
-								class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-							/>
-							<input
-								type="text"
-								name="contact"
-								required
-								placeholder="Phone or email"
-								class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-							/>
-						{/if}
-						{#if data.viewerProfile?.hasLocation}
-							<!-- Already set on their account — submitted as hidden fields
-							instead of asking them to pick it again. -->
-							<input type="hidden" name="county" value={data.viewerProfile.countySlug} />
-							<input type="hidden" name="constituency" value={data.viewerProfile.constituencySlug} />
-							<input type="hidden" name="ward" value={data.viewerProfile.wardSlug} />
-						{:else}
-							<p class="text-xs text-muted">Receive updates targeted to your area.</p>
-							<GeoSelect bind:county={followCounty} bind:constituency={followConstituency} bind:ward={followWard} />
-							<input type="hidden" name="county" value={followCounty} />
-							<input type="hidden" name="constituency" value={followConstituency} />
-							<input type="hidden" name="ward" value={followWard} />
-						{/if}
-						<button
-							type="submit"
-							disabled={following}
-							class="w-full rounded-full bg-primary px-4 py-2.5 font-semibold text-on-primary transition hover:brightness-95 focus:ring-0 focus:ring-ring focus:outline-none disabled:opacity-60"
-						>
-							{following ? 'Following…' : 'Follow'}
-						</button>
-						<p class="text-xs leading-relaxed text-muted">
-							You opt in to campaign updates and can opt out anytime. We never share your political
-							choices (Kenya Data Protection Act, 2019).
-						</p>
-					</form>
-				{/if}
-			</div>
+			<FollowButton candidateName={leader.name} signedIn={data.signedIn} isFollowing={data.isFollowing} />
 
 			<!-- Fundraising -->
 			<div class="rounded-3xl border border-border bg-surface p-6">

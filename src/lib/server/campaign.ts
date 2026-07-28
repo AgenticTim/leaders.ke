@@ -7,6 +7,7 @@ import { db } from '$lib/server/db';
 import { campaigns, donations, followers, parties, pillars, pledges, posts } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, resolveCurrentTerm, resolveCurrentTermByUserId } from '$lib/server/leader';
 import { getFlaggedReviewCounts, getMyReview, listApprovedReviews, listReviewPillarOptions } from '$lib/server/reviews';
+import { isFollowingAsAccount } from '$lib/server/follow';
 
 /** Resolves the seat + run a /[leader]/[year] workspace leads with (the run itself
  * whenever one exists — even for an incumbent running for a different seat than
@@ -111,6 +112,7 @@ export async function loadCampaignWorkspaceData(row: CampaignRun, viewerId?: num
 	]);
 
 	const myReview = viewerId ? await getMyReview(row.users.id, viewerId) : null;
+	const isFollowing = viewerId ? await isFollowingAsAccount(viewerId, row.users.id) : false;
 
 	// Party is per-run (campaigns.partyId), not a person-level fact — this page is
 	// specifically about the RUN (see resolveCampaignRun), so it's this run's own.
@@ -125,6 +127,7 @@ export async function loadCampaignWorkspaceData(row: CampaignRun, viewerId?: num
 		pillars: pillarRows,
 		posts: postRows.map((p) => ({ ...p, createdAt: p.createdAt.toISOString() })),
 		followers: followerRow.n,
+		isFollowing,
 		reviews: reviewRows,
 		reviewPillarOptions,
 		flaggedReviewCounts,

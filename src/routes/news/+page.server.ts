@@ -2,7 +2,7 @@ import { and, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { posts, tags, users, leaders, campaigns, positions } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, getDomainUser, leaderPath } from '$lib/server/leader';
-import { listFollowedPersonIds } from '$lib/server/citizen';
+import { listFollowedAuthors } from '$lib/server/citizen';
 import { findCountyBySlug, findConstituencyBySlug, findWardBySlug } from '$lib/data/geo';
 import { plainText } from '$lib/utils/richtext';
 import { getPageSize } from '$lib/server/settings';
@@ -46,11 +46,13 @@ export const load: PageServerLoad = async (event) => {
 	const constituency = county && constituencySlug ? findConstituencyBySlug(constituencySlug) : undefined;
 	const ward = constituency && wardSlug ? findWardBySlug(wardSlug) : undefined;
 
-	// "Following": signed-in only, folded in from the old /dashboard feed, same
-	// filter idiom as tag/mention/geo instead of a separate page.
+	// "Following": signed-in only, folded in from the old /dashboard feed — one
+	// button per leader actually followed (see followedAuthors below), not a
+	// single catch-all toggle. ?author=<personId> filters to just that one.
 	const domainUser = event.locals.user ? await getDomainUser(event.locals.user.id) : undefined;
-	const followingOnly = url.searchParams.get('following') === '1' && !!domainUser;
-	const followedPersonIds = followingOnly ? new Set(await listFollowedPersonIds(domainUser!.id)) : null;
+	const followedAuthors = domainUser ? await listFollowedAuthors(domainUser.id) : [];
+	const activeAuthorRaw = Number(url.searchParams.get('author') ?? '');
+	const activeAuthor = followedAuthors.some((a) => a.personId === activeAuthorRaw) ? activeAuthorRaw : 0;
 
 	// Only posts about/from a publicly visible person: a verified held term, or a
 	// verified aspirant campaign — same gate the rest of the platform uses. Each
@@ -109,8 +111,8 @@ export const load: PageServerLoad = async (event) => {
 			countySlug,
 			constituencySlug,
 			wardSlug,
-			followingOnly,
-			canFilterFollowing: !!domainUser
+			followedAuthors,
+			activeAuthor
 		};
 	}
 
@@ -254,7 +256,7 @@ export const load: PageServerLoad = async (event) => {
 			if (!matchesPrimary && !matchesTagged) return false;
 		}
 		if (!matchesGeo(a.authorUserId)) return false;
-		if (followedPersonIds && !(a.authorUserId !== null && followedPersonIds.has(a.authorUserId))) return false;
+		if (activeAuthor && a.authorUserId !== activeAuthor) return false;
 		return true;
 	});
 	const total = filtered.length;
@@ -272,7 +274,7 @@ export const load: PageServerLoad = async (event) => {
 		countySlug,
 		constituencySlug,
 		wardSlug,
-		followingOnly,
-		canFilterFollowing: !!domainUser
+		followedAuthors,
+		activeAuthor
 	};
 };

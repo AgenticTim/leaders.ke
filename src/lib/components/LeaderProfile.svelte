@@ -5,6 +5,7 @@
 	import ExperienceBlock from '$lib/components/ExperienceBlock.svelte';
 	import Reviews from '$lib/components/Reviews.svelte';
 	import ContactLinks from '$lib/components/contact/ContactLinks.svelte';
+	import FollowButton from '$lib/components/FollowButton.svelte';
 	import { renderRichText } from '$lib/utils/richtext';
 	import PencilIcon from './svgs/PencilIcon.svelte';
 
@@ -217,6 +218,7 @@
 			{/if}
 
 			{#if !preview}
+
 				<!-- Ask the leader (AI) -->
 				<div class="rounded-3xl border border-border bg-surface p-6">
 					<h2 class="text-lg font-bold text-heading">Ask {firstName}</h2>
@@ -291,6 +293,8 @@
 					{/if}
 				</div>
 			{/if}
+
+			<FollowButton candidateName={leader.name} signedIn={data.signedIn} isFollowing={data.isFollowing} />
 
 			{#if data.contacts.length > 0 || leader.address || Object.keys(leader.socials).length > 0}
 				<div class="rounded-3xl border border-border bg-surface p-6">

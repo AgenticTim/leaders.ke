@@ -46,6 +46,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		reviewPillarOptions: workspace.reviewPillarOptions,
 		flaggedReviewCounts: workspace.flaggedReviewCounts,
 		myReview: workspace.myReview,
+		isFollowing: workspace.isFollowing,
 		signedIn: !!locals.user,
 		pledgeCount: workspace.pledgeCount,
 		fundraising: workspace.fundraising

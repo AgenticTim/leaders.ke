@@ -77,3 +77,53 @@ export async function followLeader(input: FollowInput): Promise<{ ok: true; name
 
 	return { ok: true, name };
 }
+
+/** Whether this account already follows this leader — lets FollowButton show
+ * "Following {Name}" (and hide the button) on first render, not just after a
+ * fresh submit in the same session. */
+export async function isFollowingAsAccount(domainUserId: number, subjectUserId: number): Promise<boolean> {
+	const [row] = await db
+		.select({ id: followers.id })
+		.from(followers)
+		.where(and(eq(followers.userId, domainUserId), eq(followers.digest, 'leader'), eq(followers.digestId, subjectUserId), isNull(followers.deletedAt)))
+		.limit(1);
+	return !!row;
+}
+
+/**
+ * A signed-in citizen following a leader directly through their account — no
+ * name/contact capture or OTP confirm needed (that machinery exists only to
+ * prove an anonymous contact is real; an account is already proven). One row
+ * per (account, leader), same dedupe idea as the anonymous path's per-contact check.
+ */
+export async function followAsAccount(domainUserId: number, subjectUserId: number): Promise<{ ok: true } | { ok: false; error: string }> {
+	const duplicate = await db
+		.select({ id: followers.id })
+		.from(followers)
+		.where(and(eq(followers.userId, domainUserId), eq(followers.digest, 'leader'), eq(followers.digestId, subjectUserId), isNull(followers.deletedAt)))
+		.limit(1);
+	if (duplicate.length > 0) return { ok: false, error: 'You already follow this candidate.' };
+
+	await db.insert(followers).values({
+		userId: domainUserId,
+		digest: 'leader',
+		digestId: subjectUserId,
+		// Same "channel doubles as opt-in" convention as the anonymous path — the
+		// actual verified contact used to notify comes from the account, not this row.
+		email: true,
+		sms: true,
+		// The account itself is the confirmation — broadcasts only ever go to a
+		// confirmedAt row (see the broadcasts recipient query), so this must be
+		// set now, not left for a round-trip that will never happen.
+		confirmedAt: new Date()
+	});
+	return { ok: true };
+}
+
+/** Undoes followAsAccount — soft-deletes the account's own follow row, if any. */
+export async function unfollowAsAccount(domainUserId: number, subjectUserId: number): Promise<void> {
+	await db
+		.update(followers)
+		.set({ deletedAt: new Date() })
+		.where(and(eq(followers.userId, domainUserId), eq(followers.digest, 'leader'), eq(followers.digestId, subjectUserId), isNull(followers.deletedAt)));
+}

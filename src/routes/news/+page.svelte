@@ -32,7 +32,7 @@
 		if (county) params.set('county', county);
 		if (constituency) params.set('constituency', constituency);
 		if (ward) params.set('ward', ward);
-		if (data.followingOnly) params.set('following', '1');
+		if (data.activeAuthor) params.set('author', String(data.activeAuthor));
 		for (const [k, v] of Object.entries(extra)) {
 			if (v) params.set(k, v);
 			else params.delete(k);
@@ -40,10 +40,10 @@
 		return params;
 	}
 
-	// Toggling a tag/mention filter link: selecting the already-active one clears it.
+	// Toggling a tag/mention/author filter link: selecting the already-active one clears it.
 	const tagHref = (tag: string) => `/news?${paramsWith({ tag: data.activeTag === tag ? '' : tag })}`;
 	const mentionHref = (slug: string) => `/news?${paramsWith({ mention: data.activeMention === slug ? '' : slug })}`;
-	const followingHref = `/news?${paramsWith({ following: data.followingOnly ? '' : '1' })}`;
+	const authorHref = (personId: number) => `/news?${paramsWith({ author: data.activeAuthor === personId ? '' : String(personId) })}`;
 
 	function onGeoChange() {
 		goto(`/news?${paramsWith({})}`, { keepFocus: true, noScroll: true });
@@ -67,11 +67,13 @@
 <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6">
 	<div class="grid gap-10 lg:grid-cols-4">
 		<div class="lg:col-span-3">
-			{#if data.activeTag || data.activeMention || data.followingOnly}
+			{#if data.activeTag || data.activeMention || data.activeAuthor}
 				<div class="mb-6 flex flex-wrap items-center gap-2 text-sm text-muted">
 					<span>Filtering by</span>
-					{#if data.followingOnly}
-						<span class="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-on-primary">Following</span>
+					{#if data.activeAuthor}
+						<span class="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-on-primary">
+							{data.followedAuthors.find((a) => a.personId === data.activeAuthor)?.name ?? 'Followed leader'}
+						</span>
 					{/if}
 					{#if data.activeTag}
 						<span class="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-on-primary">{data.activeTag}</span>
@@ -148,7 +150,7 @@
 					</article>
 				{:else}
 					<p class="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted">
-						{data.activeTag || data.activeMention || data.followingOnly
+						{data.activeTag || data.activeMention || data.activeAuthor
 							? 'No articles match this filter.'
 							: 'No news yet. Check back once campaigns start posting.'}
 					</p>
@@ -170,17 +172,21 @@
 
 		<!-- rhs: filter by who you follow, location, topic tag, or a mentioned leader -->
 		<div class="space-y-6 lg:col-span-1">
-			{#if data.canFilterFollowing}
+			{#if data.followedAuthors.length > 0}
 				<div>
-					<p class="text-xs font-semibold tracking-wide text-muted uppercase">Following</p>
-					<a
-						href={followingHref}
-						class="mt-2 inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition {data.followingOnly
-							? 'border-primary bg-primary-soft text-on-primary'
-							: 'border-border bg-surface-2 text-muted hover:border-primary hover:text-primary'}"
-					>
-						Leaders you follow
-					</a>
+					<p class="text-xs font-semibold tracking-wide text-muted uppercase">Leaders you follow</p>
+					<div class="mt-2 flex flex-wrap gap-1.5">
+						{#each data.followedAuthors as a (a.personId)}
+							<a
+								href={authorHref(a.personId)}
+								class="rounded-full border px-2.5 py-1 text-xs font-medium transition {data.activeAuthor === a.personId
+									? 'border-primary bg-primary-soft text-on-primary'
+									: 'border-border bg-surface-2 text-muted hover:border-primary hover:text-primary'}"
+							>
+								{a.name}
+							</a>
+						{/each}
+					</div>
 				</div>
 			{/if}
 			<div>

@@ -10,6 +10,7 @@ import { campaigns, contacts, deliveries, experience, followers, managers, parti
 import { ACTIVE_CYCLE, campaignPath, fullName, resolveCurrentTerm, resolveCurrentTermByUserId, slugify } from '$lib/server/leader';
 import { positionSlug, SINGULAR_SLUG_BY_TITLE } from '$lib/utils/seat';
 import { getFlaggedReviewCounts, getMyReview, listApprovedReviews, listReviewPillarOptions } from '$lib/server/reviews';
+import { isFollowingAsAccount } from '$lib/server/follow';
 
 export type PublicProfileData = NonNullable<Awaited<ReturnType<typeof loadPublicProfileData>>>;
 
@@ -191,6 +192,8 @@ export async function loadPublicProfileData(
 	const deliveredCount = pillarStatusRows.filter((p) => p.deliveryStatus === 'delivered').length;
 	const inProgressCount = pillarStatusRows.filter((p) => p.deliveryStatus === 'in_progress').length;
 
+	const isFollowing = opts.viewerId ? await isFollowingAsAccount(opts.viewerId, row.users.id) : false;
+
 	const name = fullName(row.users);
 	const isVying = leadStatus !== 'former';
 
@@ -225,6 +228,7 @@ export async function loadPublicProfileData(
 			address: row.users.address ?? null,
 			socials: (row.users.socials ?? {}) as Record<string, string>
 		},
+		isFollowing,
 		contacts: contactRows.map((c) => ({ channel: c.channel, value: c.value, verified: !!c.verifiedAt })),
 		experience: {
 			education: experienceRows

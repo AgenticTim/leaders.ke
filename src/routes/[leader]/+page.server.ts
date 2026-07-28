@@ -4,6 +4,7 @@ import { db } from '$lib/server/db';
 import { campaigns, creditTransactions, pillars, posts, wallets } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, getDomainUser, resolveCurrentTerm } from '$lib/server/leader';
 import { loadPublicProfileData } from '$lib/server/publicProfile';
+import { followAsAccount, unfollowAsAccount } from '$lib/server/follow';
 import { handleDeleteReviewAction, handleReviewAction } from '$lib/server/reviews';
 import { answerConstituentQuestion, PlatformOutOfCreditsError } from '$lib/server/ai';
 import { enforceAskRateLimit } from '$lib/server/aiRateLimit';
@@ -68,6 +69,33 @@ async function publicLead(slug: string): Promise<{
 }
 
 export const actions: Actions = {
+	// Signed-in only — the account itself is the proof, no name/contact capture
+	// or OTP confirm needed (see followAsAccount).
+	follow: async (event) => {
+		if (!event.locals.user) return fail(401, { error: 'Log in to follow.' });
+		const domainUser = await getDomainUser(event.locals.user.id);
+		if (!domainUser) return fail(401, { error: 'Log in to follow.' });
+
+		const lead = await publicLead(event.params.leader);
+		if (!lead) return fail(404, { error: 'Leader not found.' });
+
+		const result = await followAsAccount(domainUser.id, lead.subjectId);
+		if (!result.ok) return fail(400, { error: result.error });
+		return { followed: true };
+	},
+
+	unfollow: async (event) => {
+		if (!event.locals.user) return fail(401, { error: 'Log in first.' });
+		const domainUser = await getDomainUser(event.locals.user.id);
+		if (!domainUser) return fail(401, { error: 'Log in first.' });
+
+		const lead = await publicLead(event.params.leader);
+		if (!lead) return fail(404, { error: 'Leader not found.' });
+
+		await unfollowAsAccount(domainUser.id, lead.subjectId);
+		return { unfollowed: true };
+	},
+
 	review: async (event) => {
 		const lead = await publicLead(event.params.leader);
 		if (!lead) error(404, 'Leader not found');
