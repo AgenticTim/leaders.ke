@@ -1,6 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { redirectWithFlash } from '$lib/server/flash';
-import { and, eq, isNull, ne } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { contacts, user, users } from '$lib/server/db/schema';
 import { parseScope, resolveVerifySubject, type DashboardUser } from '$lib/server/dashboard';
@@ -24,12 +24,13 @@ function candidateEmail(url: URL, authEmail: string): string {
  * nor the editor - the editor's own citizen contacts are theirs to reuse on any
  * profile they manage. */
 async function verifiedByOther(ownerIds: number[], email: string): Promise<boolean> {
-	const [held] = await db
+	// All holders, not limit(1): the same value may legitimately be live on several
+	// of the editor's own accounts, and any one foreign verified row must block.
+	const held = await db
 		.select({ userId: contacts.userId, verifiedAt: contacts.verifiedAt })
 		.from(contacts)
-		.where(and(eq(contacts.channel, 'email'), eq(contacts.value, email), isNull(contacts.deletedAt)))
-		.limit(1);
-	return !!(held && !ownerIds.includes(held.userId) && held.verifiedAt);
+		.where(and(eq(contacts.channel, 'email'), eq(contacts.value, email), isNull(contacts.deletedAt)));
+	return held.some((h) => !ownerIds.includes(h.userId) && h.verifiedAt);
 }
 
 // A confirmed email becomes the account's login email + verified contact, and flips
@@ -37,16 +38,14 @@ async function verifiedByOther(ownerIds: number[], email: string): Promise<boole
 // better-auth's own `user`. Handles both post-signup (email === current) and an
 // inline change (email differs — the login email moves to the new address).
 async function applyEmailVerified(subject: DashboardUser['domainUser'], email: string, syncAuth: boolean) {
-	// Drop this user's prior live email row and any other account's *unverified* hold
-	// of the new value, so the (channel, value) unique index can't collide on insert.
+	// Drop this user's prior live email row so the per-user (user, channel, value)
+	// unique index can't collide on insert. Other accounts' rows are left alone:
+	// the same person's citizen account and profiles may share a value, and a
+	// stranger's verified hold was already rejected by verifiedByOther.
 	await db
 		.update(contacts)
 		.set({ deletedAt: new Date() })
 		.where(and(eq(contacts.userId, subject.id), eq(contacts.channel, 'email'), isNull(contacts.deletedAt)));
-	await db
-		.update(contacts)
-		.set({ deletedAt: new Date() })
-		.where(and(eq(contacts.channel, 'email'), eq(contacts.value, email), isNull(contacts.deletedAt), ne(contacts.userId, subject.id)));
 
 	await db.insert(contacts).values({ userId: subject.id, channel: 'email', value: email, isPrimary: true, verifiedAt: new Date() });
 	await db.update(users).set({ verified: { ...subject.verified, email: true } }).where(eq(users.id, subject.id));

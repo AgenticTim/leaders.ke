@@ -18,12 +18,13 @@ function safeNext(next: string | null): string {
  * nor the editor - the editor's own citizen contacts are theirs to reuse on any
  * profile they manage. */
 async function verifiedByOther(ownerIds: number[], number: string): Promise<boolean> {
-	const [held] = await db
+	// All holders, not limit(1): the same value may legitimately be live on several
+	// of the editor's own accounts, and any one foreign verified row must block.
+	const held = await db
 		.select({ userId: contacts.userId, verifiedAt: contacts.verifiedAt })
 		.from(contacts)
-		.where(and(eq(contacts.channel, 'whatsapp'), eq(contacts.value, number), isNull(contacts.deletedAt)))
-		.limit(1);
-	return !!(held && !ownerIds.includes(held.userId) && held.verifiedAt);
+		.where(and(eq(contacts.channel, 'whatsapp'), eq(contacts.value, number), isNull(contacts.deletedAt)));
+	return held.some((h) => !ownerIds.includes(h.userId) && h.verifiedAt);
 }
 
 /** Same number already OTP-verified as this account's SMS contact — no need to
@@ -40,12 +41,14 @@ async function verifiedAsOwnSms(userId: number, number: string): Promise<boolean
 // Unlike sms/email (one live value per account), a person can keep several WhatsApp
 // numbers — so this only adds/verifies the given number, never removes the others.
 async function applyNumberVerified(subject: DashboardUser['domainUser'], number: string) {
-	// Drop only this exact value's rows (this user's own re-verify, or another
-	// account's *unverified* hold) so the (channel, value) unique index can't collide.
+	// Drop only the subject's own row for this exact value (a re-verify) so the
+	// per-user (user, channel, value) unique index can't collide. Other accounts'
+	// rows are left alone: the same person's citizen account and profiles may share
+	// a value, and a stranger's verified hold was already rejected by verifiedByOther.
 	await db
 		.update(contacts)
 		.set({ deletedAt: new Date() })
-		.where(and(eq(contacts.channel, 'whatsapp'), eq(contacts.value, number), isNull(contacts.deletedAt)));
+		.where(and(eq(contacts.userId, subject.id), eq(contacts.channel, 'whatsapp'), eq(contacts.value, number), isNull(contacts.deletedAt)));
 	await db.insert(contacts).values({ userId: subject.id, channel: 'whatsapp', value: number, verifiedAt: new Date() });
 	// `verified.whatsapp` means "at least one WhatsApp number is verified".
 	await db.update(users).set({ verified: { ...subject.verified, whatsapp: true } }).where(eq(users.id, subject.id));

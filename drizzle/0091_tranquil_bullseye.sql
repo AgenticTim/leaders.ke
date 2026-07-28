@@ -1,0 +1,2 @@
+DROP INDEX "one_value_per_channel";--> statement-breakpoint
+CREATE UNIQUE INDEX "one_value_per_user_channel" ON "contacts" USING btree ("user_id","channel","value") WHERE "contacts"."deleted_at" is null;

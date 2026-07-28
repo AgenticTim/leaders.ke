@@ -133,9 +133,13 @@ export const users = pgTable('users', {
 // - Cardinality: a channel's value can change over time (old phone replaced, etc.)
 //   without losing the ability to tell "the live one" from history — soft-deleted
 //   rows keep that history instead of being overwritten in place.
-// - Uniqueness: `one_value_per_channel` below is a real, database-enforced
-//   constraint spanning every user, not just one row's own data — it's what makes
-//   "you can't verify a number someone else already verified" actually race-safe.
+// - Uniqueness: `one_value_per_user_channel` below is a real, database-enforced
+//   constraint (no duplicate live rows within one account). It is deliberately
+//   per-user, NOT global: one person legitimately holds the same number/email on
+//   both their citizen account and the leader profiles they manage. Cross-user
+//   exclusivity ("you can't verify a value someone else already verified") is
+//   enforced app-level by the verifiedByOther checks in the /verify routes and
+//   contactsTab's save.
 // - Channel extensibility: adding whatsapp alongside sms/email was a new enum
 //   value, not a new column (and a new unique index, and new app-level filtering).
 export const contactChannelEnum = pgEnum('contact_channel', ['sms', 'whatsapp', 'email']);
@@ -157,8 +161,9 @@ export const contacts = pgTable('contacts', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => [
-  // One live owner per (channel, value): the same phone/email can't attach to two accounts (anti-farming)
-  uniqueIndex('one_value_per_channel').on(t.channel, t.value).where(sql`${t.deletedAt} is null`),
+  // One live row per (user, channel, value); the same person's citizen account and
+  // leader profiles may share a value, cross-user exclusivity is app-enforced.
+  uniqueIndex('one_value_per_user_channel').on(t.userId, t.channel, t.value).where(sql`${t.deletedAt} is null`),
   index('contacts_user_idx').on(t.userId),
 ]);
 

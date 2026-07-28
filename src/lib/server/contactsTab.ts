@@ -67,7 +67,11 @@ export async function loadContactsTab(event: RequestEvent) {
 }
 
 export async function saveContactsTab(event: RequestEvent) {
-	const { subject } = await getSubject(event);
+	const { subject, domainUser } = await getSubject(event);
+
+	// The editor's own proven contacts: saving one of these onto the profile
+	// carries the verification over instead of demanding a second OTP.
+	const own = await ownVerifiedContacts(domainUser.id);
 
 	const form = await event.request.formData();
 	const address = String(form.get('address') ?? '').trim();
@@ -86,9 +90,12 @@ export async function saveContactsTab(event: RequestEvent) {
 	await db.update(users).set({ address: address || null, socials }).where(eq(users.id, subject.id));
 
 	// A campaign's public contact lines (the leader profile, not a login) — saved
-	// directly on change. A value live on ANY other account is rejected up front:
-	// letting the insert collide with the (channel, value) unique index would
-	// silently drop the new value after the old row was already soft-deleted.
+	// directly on change. Only a value some OTHER person has verified is rejected;
+	// the editor's own accounts (citizen login and managed profiles) share one pool
+	// of contacts, and a stranger's unverified hold no longer collides now that the
+	// unique index is per-user. A value the editor already OTP-verified anywhere is
+	// stored verified here too.
+	const verifiedChannels: ('sms' | 'whatsapp' | 'email')[] = [];
 	const replaceContact = async (channel: 'sms' | 'whatsapp' | 'email', value: string, label: string) => {
 		const [existingContact] = await db
 			.select({ id: contacts.id, value: contacts.value })
@@ -97,12 +104,12 @@ export async function saveContactsTab(event: RequestEvent) {
 		if (existingContact?.value === value) return null;
 
 		if (value) {
-			const [holder] = await db
-				.select({ userId: contacts.userId })
+			const holders = await db
+				.select({ userId: contacts.userId, verifiedAt: contacts.verifiedAt })
 				.from(contacts)
 				.where(and(eq(contacts.channel, channel), eq(contacts.value, value), isNull(contacts.deletedAt)));
-			if (holder && holder.userId !== subject.id) {
-				return `That ${label} is already in use by another account.`;
+			if (holders.some((h) => h.verifiedAt && h.userId !== subject.id && h.userId !== domainUser.id)) {
+				return `That ${label} is already verified on another account.`;
 			}
 		}
 
@@ -110,7 +117,12 @@ export async function saveContactsTab(event: RequestEvent) {
 			await db.update(contacts).set({ deletedAt: new Date() }).where(eq(contacts.id, existingContact.id));
 		}
 		if (value) {
-			await db.insert(contacts).values({ userId: subject.id, channel, value, isPrimary: true }).onConflictDoNothing();
+			const ownVerified = own.check(channel, value);
+			if (ownVerified) verifiedChannels.push(channel);
+			await db
+				.insert(contacts)
+				.values({ userId: subject.id, channel, value, isPrimary: true, verifiedAt: ownVerified ? new Date() : null })
+				.onConflictDoNothing();
 		}
 		return null;
 	};
@@ -131,6 +143,14 @@ export async function saveContactsTab(event: RequestEvent) {
 	if (email && !email.includes('@')) return fail(400, { error: 'Enter a valid email address.' });
 	const emailConflict = await replaceContact('email', email, 'email address');
 	if (emailConflict) return fail(400, { error: emailConflict });
+
+	// Keep the subject's denormalized users.verified cache in step with any
+	// verification carried over from the editor's own contacts above.
+	if (verifiedChannels.length) {
+		const flags = { ...subject.verified };
+		for (const channel of verifiedChannels) flags[channel] = true;
+		await db.update(users).set({ verified: flags }).where(eq(users.id, subject.id));
+	}
 
 	return { saved: true };
 }

@@ -1,6 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { redirectWithFlash } from '$lib/server/flash';
-import { and, eq, isNull, ne } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { contacts, users } from '$lib/server/db/schema';
 import { parseScope, resolveVerifySubject, type DashboardUser } from '$lib/server/dashboard';
@@ -26,12 +26,13 @@ async function getSmsContact(userId: number) {
  * nor the editor - the editor's own citizen contacts are theirs to reuse on any
  * profile they manage. */
 async function verifiedByOther(ownerIds: number[], phone: string): Promise<boolean> {
-	const [held] = await db
+	// All holders, not limit(1): the same value may legitimately be live on several
+	// of the editor's own accounts, and any one foreign verified row must block.
+	const held = await db
 		.select({ userId: contacts.userId, verifiedAt: contacts.verifiedAt })
 		.from(contacts)
-		.where(and(eq(contacts.channel, 'sms'), eq(contacts.value, phone), isNull(contacts.deletedAt)))
-		.limit(1);
-	return !!(held && !ownerIds.includes(held.userId) && held.verifiedAt);
+		.where(and(eq(contacts.channel, 'sms'), eq(contacts.value, phone), isNull(contacts.deletedAt)));
+	return held.some((h) => !ownerIds.includes(h.userId) && h.verifiedAt);
 }
 
 /** Same number already OTP-verified as this account's WhatsApp contact — no need
@@ -45,16 +46,15 @@ async function verifiedAsOwnWhatsapp(userId: number, phone: string): Promise<boo
 	return !!row?.verifiedAt;
 }
 
-// A confirmed number becomes the account's single verified SMS contact.
+// A confirmed number becomes the account's single verified SMS contact. Only the
+// subject's own prior row is dropped (per-user unique index): other accounts of
+// the same person may share the value, and a stranger's verified hold was
+// already rejected by verifiedByOther.
 async function applyPhoneVerified(subject: DashboardUser['domainUser'], phone: string) {
 	await db
 		.update(contacts)
 		.set({ deletedAt: new Date() })
 		.where(and(eq(contacts.userId, subject.id), eq(contacts.channel, 'sms'), isNull(contacts.deletedAt)));
-	await db
-		.update(contacts)
-		.set({ deletedAt: new Date() })
-		.where(and(eq(contacts.channel, 'sms'), eq(contacts.value, phone), isNull(contacts.deletedAt), ne(contacts.userId, subject.id)));
 
 	await db.insert(contacts).values({ userId: subject.id, channel: 'sms', value: phone, isPrimary: true, verifiedAt: new Date() });
 	await db.update(users).set({ verified: { ...subject.verified, sms: true } }).where(eq(users.id, subject.id));
