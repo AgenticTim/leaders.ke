@@ -55,10 +55,14 @@ export const load: PageServerLoad = async (event) => {
 };
 
 export const actions: Actions = {
-	// Any visitor can pledge to any candidate shown on any ballot page, using their
-	// own identity (userId or anon_id), independent of who cast this particular
-	// ballot, same "account-less funnel" idiom as Follow, not tied to the simulator.
+	// Any signed-in visitor can pledge to any candidate shown on any ballot page,
+	// independent of who cast this particular ballot. A pledge is a named promise,
+	// so it always requires an account (guests get the auth modal client-side).
 	pledge: async (event) => {
+		if (!event.locals.user) return fail(401, { pledgeError: 'Log in to pledge.' });
+		const domainUser = await getDomainUser(event.locals.user.id);
+		if (!domainUser) return fail(401, { pledgeError: 'Log in to pledge.' });
+
 		const form = await event.request.formData();
 		const campaignId = Number(form.get('campaignId'));
 		if (!Number.isInteger(campaignId)) return fail(400, { pledgeError: 'Invalid candidate.' });
@@ -76,16 +80,20 @@ export const actions: Actions = {
 			.from(ballotSimulations)
 			.where(eq(ballotSimulations.publicId, event.params.publicId));
 
-		const { domainUser, anonId, ip } = await resolveVoterIdentity(event);
+		let ip: string | null = null;
+		try {
+			ip = event.getClientAddress();
+		} catch {
+			ip = null;
+		}
 		const userAgent = event.request.headers.get('user-agent')?.slice(0, 255) ?? null;
 
-		// The partial unique indexes keep one live pledge per (campaign, user/anon
-		// device), a repeat submission just keeps the existing pledge.
+		// The partial unique index keeps one live pledge per (campaign, user), a
+		// repeat submission just keeps the existing pledge.
 		await db
 			.insert(pledges)
 			.values({
-				userId: domainUser?.id ?? null,
-				anonId,
+				userId: domainUser.id,
 				campaignId: campaign.id,
 				simulationId: simulation?.id ?? null,
 				ip,

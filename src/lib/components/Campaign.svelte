@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import Reviews from '$lib/components/Reviews.svelte';
 	import FollowButton from '$lib/components/FollowButton.svelte';
+	import PledgeButton from '$lib/components/PledgeButton.svelte';
 	import { renderRichText } from '$lib/utils/richtext';
 	import PencilIcon from './svgs/PencilIcon.svelte';
 
@@ -246,6 +247,25 @@
 					</button>
 				</form>
 			</div>
+
+			<!-- Pledge: a signed-in promise of a 2027 vote to this run. -->
+			{#if data.campaignId}
+				<div class="rounded-3xl border border-border bg-surface p-6">
+					<h2 class="text-lg font-bold text-heading">Pledge Your Vote</h2>
+					<p class="mt-1 text-sm text-muted">
+						Promise your 2027 vote to {leader.name.split(' ')[0]}.
+					</p>
+					<div class="mt-4">
+						<PledgeButton
+							campaignId={data.campaignId}
+							candidateName={leader.name}
+							isPledged={data.isPledged}
+							signedIn={data.signedIn}
+							wide
+						/>
+					</div>
+				</div>
+			{/if}
 
 			<!-- Follow -->
 			<FollowButton candidateName={leader.name} signedIn={data.signedIn} isFollowing={data.isFollowing} />

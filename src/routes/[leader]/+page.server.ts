@@ -1,7 +1,7 @@
 import { error, fail } from '@sveltejs/kit';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { campaigns, creditTransactions, pillars, posts, wallets } from '$lib/server/db/schema';
+import { campaigns, creditTransactions, pillars, pledges, posts, wallets } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, getDomainUser, resolveCurrentTerm } from '$lib/server/leader';
 import { loadPublicProfileData } from '$lib/server/publicProfile';
 import { followAsAccount, unfollowAsAccount } from '$lib/server/follow';
@@ -17,12 +17,33 @@ import type { Actions, PageServerLoad } from './$types';
 // and a pointer to the active campaign workspace at /[leader]/[year]. The bulk
 // of the data-loading lives in $lib/server/publicProfile so admin previews
 // (a pending application, a pending claim) can render the exact same shape.
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params, locals, cookies }) => {
 	const viewer = locals.user ? await getDomainUser(locals.user.id) : null;
 
 	const data = await loadPublicProfileData(params.leader, { viewerId: viewer?.id, isAdmin: !!viewer?.adminAt });
 	if (!data) error(404, 'Leader not found');
-	return data;
+
+	// The viewer's existing pledge to this person's active run (by account, or
+	// anon device cookie for a guest), so a refresh keeps showing "Pledged ✓".
+	// Read-only here: minting a fresh anon_id is the pledge action's job.
+	const anonId = cookies.get('anon_id') ?? null;
+	let isPledged = false;
+	if (data.leadCampaignId && (viewer || anonId)) {
+		const [existingPledge] = await db
+			.select({ id: pledges.id })
+			.from(pledges)
+			.where(
+				and(
+					eq(pledges.campaignId, data.leadCampaignId),
+					isNull(pledges.deletedAt),
+					viewer ? eq(pledges.userId, viewer.id) : eq(pledges.anonId, anonId!)
+				)
+			)
+			.limit(1);
+		isPledged = !!existingPledge;
+	}
+
+	return { ...data, isPledged };
 };
 
 // Resolves a slug to its public review target: the person id, the lead campaign
@@ -94,6 +115,35 @@ export const actions: Actions = {
 
 		await unfollowAsAccount(domainUser.id, lead.subjectId);
 		return { unfollowed: true };
+	},
+
+	// Pledge a 2027 vote to this person's active run. A pledge is a named promise,
+	// so it always requires a logged-in account (guests get the auth modal
+	// client-side). The campaign is resolved server-side, never trusted from the form.
+	pledge: async (event) => {
+		if (!event.locals.user) return fail(401, { pledgeError: 'Log in to pledge.' });
+		const domainUser = await getDomainUser(event.locals.user.id);
+		if (!domainUser) return fail(401, { pledgeError: 'Log in to pledge.' });
+
+		const lead = await publicLead(event.params.leader);
+		if (!lead?.leadCampaignId) return fail(400, { pledgeError: 'This campaign is not taking pledges yet.' });
+
+		let ip: string | null = null;
+		try {
+			ip = event.getClientAddress();
+		} catch {
+			ip = null;
+		}
+		const userAgent = event.request.headers.get('user-agent')?.slice(0, 255) ?? null;
+
+		// The partial unique index keeps one live pledge per (campaign, user); a
+		// repeat submission just keeps the existing pledge.
+		await db
+			.insert(pledges)
+			.values({ userId: domainUser.id, campaignId: lead.leadCampaignId, ip, userAgent })
+			.onConflictDoNothing();
+
+		return { pledged: true };
 	},
 
 	review: async (event) => {

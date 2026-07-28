@@ -1,7 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { creditTransactions, donations, managers, pillars, posts, wallets } from '$lib/server/db/schema';
+import { creditTransactions, donations, managers, pillars, pledges, posts, wallets } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, getDomainUser, getOrCreateMainCampaign, leaderPath } from '$lib/server/leader';
 import { resolveCampaignRun, loadCampaignWorkspaceData } from '$lib/server/campaign';
 import { followAsAccount, unfollowAsAccount } from '$lib/server/follow';
@@ -17,13 +17,33 @@ import type { Actions, PageServerLoad } from './$types';
 // constituent chat. Only the active cycle has a workspace; other years bounce
 // to the permanent record. Public as soon as the run exists — verifiedAt is a
 // "Verified" badge only (see docs/URLDiscovery.md), not a visibility gate.
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params, locals, cookies }) => {
 	const recordPath = leaderPath({ slug: params.leader });
 	if (Number(params.year) !== ACTIVE_CYCLE) redirect(302, recordPath);
 
 	const viewer = locals.user ? await getDomainUser(locals.user.id) : null;
 	const row = await resolveCampaignRun(params.leader);
 	if (!row) error(404, 'Campaign not found');
+
+	// The viewer's existing pledge to this run (by account, or anon device cookie
+	// for a guest), so a refresh keeps showing "Pledged ✓". Read-only here:
+	// minting a fresh anon_id is the pledge action's job.
+	const anonId = cookies.get('anon_id') ?? null;
+	let isPledged = false;
+	if (row.campaignId && (viewer || anonId)) {
+		const [existingPledge] = await db
+			.select({ id: pledges.id })
+			.from(pledges)
+			.where(
+				and(
+					eq(pledges.campaignId, row.campaignId),
+					isNull(pledges.deletedAt),
+					viewer ? eq(pledges.userId, viewer.id) : eq(pledges.anonId, anonId!)
+				)
+			)
+			.limit(1);
+		isPledged = !!existingPledge;
+	}
 
 	const workspace = await loadCampaignWorkspaceData(row, viewer?.id);
 	const name = fullName(row.users);
@@ -70,6 +90,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		flaggedReviewCounts: workspace.flaggedReviewCounts,
 		myReview: workspace.myReview,
 		isFollowing: workspace.isFollowing,
+		campaignId: row.campaignId,
+		isPledged,
 		signedIn: !!locals.user,
 		// Lets the Fund block prefill the donor name for a signed-in citizen instead
 		// of asking them to retype it.
@@ -105,6 +127,35 @@ export const actions: Actions = {
 
 		await unfollowAsAccount(domainUser.id, row.users.id);
 		return { unfollowed: true };
+	},
+
+	// Pledge a 2027 vote to this run. A pledge is a named promise, so it always
+	// requires a logged-in account (guests get the auth modal client-side). The
+	// campaign is resolved server-side, never trusted from the form.
+	pledge: async (event) => {
+		if (!event.locals.user) return fail(401, { pledgeError: 'Log in to pledge.' });
+		const domainUser = await getDomainUser(event.locals.user.id);
+		if (!domainUser) return fail(401, { pledgeError: 'Log in to pledge.' });
+
+		const row = await resolveCampaignRun(event.params.leader);
+		if (!row?.campaignId) return fail(400, { pledgeError: 'This campaign is not taking pledges yet.' });
+
+		let ip: string | null = null;
+		try {
+			ip = event.getClientAddress();
+		} catch {
+			ip = null;
+		}
+		const userAgent = event.request.headers.get('user-agent')?.slice(0, 255) ?? null;
+
+		// The partial unique index keeps one live pledge per (campaign, user); a
+		// repeat submission just keeps the existing pledge.
+		await db
+			.insert(pledges)
+			.values({ userId: domainUser.id, campaignId: row.campaignId, ip, userAgent })
+			.onConflictDoNothing();
+
+		return { pledged: true };
 	},
 
 	review: async (event) => {
