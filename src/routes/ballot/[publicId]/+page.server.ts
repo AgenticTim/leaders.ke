@@ -30,7 +30,21 @@ export const load: PageServerLoad = async (event) => {
 	const viewer = event.locals.user ? await getDomainUser(event.locals.user.id) : undefined;
 	const isOwnBallot = !!viewer && viewer.id === row.userId;
 
+	// The viewer's existing pledges (by account, or anon device cookie for a
+	// guest), so a refresh keeps showing "Pledged ✓" instead of re-offering the
+	// button. Read-only here: minting a fresh anon_id is the pledge action's job.
+	const anonId = event.cookies.get('anon_id') ?? null;
+	let pledgedCampaignIds: number[] = [];
+	if (viewer || anonId) {
+		const pledgeRows = await db
+			.select({ campaignId: pledges.campaignId })
+			.from(pledges)
+			.where(and(isNull(pledges.deletedAt), viewer ? eq(pledges.userId, viewer.id) : eq(pledges.anonId, anonId!)));
+		pledgedCampaignIds = pledgeRows.map((r) => r.campaignId);
+	}
+
 	return {
+		pledgedCampaignIds,
 		publicId: row.publicId,
 		countyName: findCountyBySlug(row.county)?.name ?? row.county,
 		constituencyName: findConstituencyBySlug(row.constituency)?.name ?? row.constituency,

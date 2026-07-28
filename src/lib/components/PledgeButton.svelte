@@ -4,9 +4,19 @@
 	// One-click pledge to a candidate shown on a ballot result page. Any visitor's
 	// own identity (see resolveVoterIdentity), independent of whoever cast this
 	// particular simulated ballot. Posts to the page's own "?/pledge" action.
-	let { campaignId, candidateName }: { campaignId: number; candidateName: string } = $props();
+	let {
+		campaignId,
+		candidateName,
+		isPledged = false
+	}: {
+		campaignId: number;
+		candidateName: string;
+		/** Server-resolved existing pledge (survives a refresh, unlike justPledged). */
+		isPledged?: boolean;
+	} = $props();
 
-	let pledged = $state(false);
+	let justPledged = $state(false);
+	const pledged = $derived(isPledged || justPledged);
 	let pledging = $state(false);
 </script>
 
@@ -22,7 +32,7 @@
 			pledging = true;
 			return async ({ result, update }) => {
 				pledging = false;
-				if (result.type === 'success') pledged = true;
+				if (result.type === 'success') justPledged = true;
 				await update({ reset: false });
 			};
 		}}

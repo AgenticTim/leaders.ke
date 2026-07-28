@@ -1,12 +1,26 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import Avatar from '$lib/components/Avatar.svelte';
+	import LeaderCard from '$lib/components/LeaderCard.svelte';
 	import EyeIcon from '$lib/components/svgs/EyeIcon.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
 	const dateFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' });
+
+	// Pledges grouped by the seat they're for ("Governor, Nairobi County"), newest
+	// pledge first within and across groups (data arrives newest first).
+	const pledgeGroups = $derived.by(() => {
+		const map = new Map<string, typeof data.pledges>();
+		for (const pledge of data.pledges) {
+			const seat = `${pledge.positionTitle}, ${pledge.region}`;
+			const group = map.get(seat);
+			if (group) group.push(pledge);
+			else map.set(seat, [pledge]);
+		}
+		return [...map.entries()].map(([seat, items]) => ({ seat, items }));
+	});
 	const LEVEL_LABEL: Record<string, string> = {
 		president: 'President',
 		governor: 'Governor',
@@ -103,16 +117,33 @@
 	</div>
 
 	{#if data.pledges.length > 0}
-		<ul class="mt-4 space-y-3">
-			{#each data.pledges as pledge (pledge.path)}
-				<li class="rounded-2xl border border-border bg-surface p-4">
-					<a href={pledge.path} class="font-semibold text-heading hover:text-primary">
-						{pledge.leaderName}
-					</a>
-					<p class="text-sm text-muted">{pledge.positionTitle}, {pledge.region}</p>
-				</li>
-			{/each}
-		</ul>
+		<!-- Grouped by seat, each candidate rendered with the same LeaderCard the
+		directory pages (/presidents etc.) use, plus a pledged-date caption. -->
+		{#each pledgeGroups as group (group.seat)}
+			<h3 class="mt-5 text-xs font-semibold tracking-wide text-muted uppercase">
+				<span class="capitalize">{group.seat}</span>
+			</h3>
+			<div class="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+				{#each group.items as pledge (pledge.path + pledge.pledgedAt)}
+					<div>
+						<LeaderCard
+							path={pledge.path}
+							name={pledge.leaderName}
+							initials={pledge.initials}
+							photoUrl={pledge.photoUrl}
+							verified={pledge.verified}
+							party={pledge.party}
+							partyPath={pledge.partyPath}
+							positionTitle={pledge.positionTitle}
+							region={pledge.region}
+							status={pledge.status}
+							followers={pledge.followerCount}
+						/>
+						<p class="mt-1.5 px-1 text-xs text-muted">Pledged {dateFmt.format(new Date(pledge.pledgedAt))}</p>
+					</div>
+				{/each}
+			</div>
+		{/each}
 	{:else}
 		<div class="mt-4 rounded-2xl border border-dashed border-border p-8 text-center">
 			<p class="font-semibold text-heading">No pledges yet</p>

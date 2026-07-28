@@ -2,10 +2,10 @@
 // their simulated ballots. All keyed off followers.userId / pledges.userId /
 // ballotSimulations.userId, which are only populated for signed-in actions
 // (anonymous follows/pledges/ballots have none until claimed).
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { ballotSimulations, campaigns, followers, leaders, pledges, positions, users } from '$lib/server/db/schema';
-import { fullName, leaderPath } from '$lib/server/leader';
+import { ballotSimulations, campaigns, followers, leaders, parties, pledges, positions, users } from '$lib/server/db/schema';
+import { fullName, leaderPath, slugify } from '$lib/server/leader';
 import { BALLOT_LEVELS, resolveCandidateById, type BallotLevel, type Candidate } from '$lib/server/ballot';
 
 /** Every leader this citizen follows (person id + display name) — powers /news's
@@ -23,6 +23,13 @@ export async function listFollowedAuthors(userId: number): Promise<{ personId: n
 
 export type MyPledge = {
 	leaderName: string;
+	initials: string;
+	photoUrl: string | null;
+	verified: boolean;
+	party: string | null;
+	partyPath: string | null;
+	status: string;
+	followerCount: number;
 	path: string;
 	positionTitle: string;
 	region: string;
@@ -30,22 +37,54 @@ export type MyPledge = {
 };
 
 export async function listMyPledges(userId: number): Promise<MyPledge[]> {
+	// Joined off the campaign itself (subjectUserId + positionId), never REQUIRING
+	// campaigns.leaderId: that's only set for incumbents, so routing through
+	// leaders would silently drop every pledge to a pure aspirant's run. The left
+	// join still picks up an incumbent's status ('current' etc.) when it exists.
 	const rows = await db
 		.select()
 		.from(pledges)
 		.innerJoin(campaigns, eq(pledges.campaignId, campaigns.id))
-		.innerJoin(leaders, eq(campaigns.leaderId, leaders.id))
-		.innerJoin(users, eq(leaders.userId, users.id))
-		.innerJoin(positions, eq(leaders.positionId, positions.id))
-		.where(and(eq(pledges.userId, userId), isNull(pledges.deletedAt)));
+		.innerJoin(users, eq(campaigns.subjectUserId, users.id))
+		.innerJoin(positions, eq(campaigns.positionId, positions.id))
+		.leftJoin(parties, eq(campaigns.partyId, parties.id))
+		.leftJoin(leaders, eq(campaigns.leaderId, leaders.id))
+		.where(and(eq(pledges.userId, userId), isNull(pledges.deletedAt)))
+		.orderBy(desc(pledges.createdAt));
 
-	return rows.map((r) => ({
-		leaderName: fullName(r.users),
-		path: leaderPath(r.users),
-		positionTitle: r.positions.title,
-		region: r.positions.region,
-		pledgedAt: r.pledges.createdAt.toISOString()
-	}));
+	// Follower reach per pledged person, same figure the directory cards show.
+	const personIds = [...new Set(rows.map((r) => r.users.id))];
+	const followerRows = personIds.length
+		? await db
+				.select({ userId: followers.digestId, n: count() })
+				.from(followers)
+				.where(and(eq(followers.digest, 'leader'), inArray(followers.digestId, personIds), isNull(followers.deletedAt)))
+				.groupBy(followers.digestId)
+		: [];
+	const followersBy = new Map(followerRows.map((r) => [r.userId, r.n]));
+
+	return rows.map((r) => {
+		const name = fullName(r.users);
+		return {
+			leaderName: name,
+			initials: name
+				.split(/\s+/)
+				.map((w) => w[0])
+				.join('')
+				.slice(0, 2)
+				.toUpperCase(),
+			photoUrl: r.users.photoUrl,
+			verified: !!r.campaigns.verifiedAt,
+			party: r.parties?.name ?? null,
+			partyPath: r.parties?.name ? `/parties/${slugify(r.parties.name)}` : null,
+			status: r.leaders?.status ?? 'aspirant',
+			followerCount: followersBy.get(r.users.id) ?? 0,
+			path: leaderPath(r.users),
+			positionTitle: r.positions.title,
+			region: r.positions.region,
+			pledgedAt: r.pledges.createdAt.toISOString()
+		};
+	});
 }
 
 export type MyBallot = {

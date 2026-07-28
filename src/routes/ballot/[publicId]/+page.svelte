@@ -88,7 +88,7 @@
 					<!-- Pledge and Follow the candidate you just picked. -->
 					<div class="flex shrink-0 flex-col sm:flex-row items-center gap-2">
 						{#if campaignId}
-							<PledgeButton {campaignId} candidateName={candidate.name} />
+							<PledgeButton {campaignId} candidateName={candidate.name} isPledged={data.pledgedCampaignIds.includes(campaignId)} />
 						{/if}
 						<FollowCard
 							candidateName={candidate.name}
