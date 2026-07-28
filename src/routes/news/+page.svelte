@@ -23,8 +23,8 @@
 		if (data.wardSlug) ward = data.wardSlug;
 	});
 
-	// Carries whichever filters (tag/mention/geo) are currently active into a new
-	// link, so toggling one never drops the others.
+	// Carries whichever filters (tag/mention/geo/following) are currently active
+	// into a new link, so toggling one never drops the others.
 	function paramsWith(extra: Record<string, string>): URLSearchParams {
 		const params = new URLSearchParams();
 		if (data.activeTag) params.set('tag', data.activeTag);
@@ -32,6 +32,7 @@
 		if (county) params.set('county', county);
 		if (constituency) params.set('constituency', constituency);
 		if (ward) params.set('ward', ward);
+		if (data.followingOnly) params.set('following', '1');
 		for (const [k, v] of Object.entries(extra)) {
 			if (v) params.set(k, v);
 			else params.delete(k);
@@ -42,6 +43,7 @@
 	// Toggling a tag/mention filter link: selecting the already-active one clears it.
 	const tagHref = (tag: string) => `/news?${paramsWith({ tag: data.activeTag === tag ? '' : tag })}`;
 	const mentionHref = (slug: string) => `/news?${paramsWith({ mention: data.activeMention === slug ? '' : slug })}`;
+	const followingHref = `/news?${paramsWith({ following: data.followingOnly ? '' : '1' })}`;
 
 	function onGeoChange() {
 		goto(`/news?${paramsWith({})}`, { keepFocus: true, noScroll: true });
@@ -65,9 +67,12 @@
 <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6">
 	<div class="grid gap-10 lg:grid-cols-4">
 		<div class="lg:col-span-3">
-			{#if data.activeTag || data.activeMention}
+			{#if data.activeTag || data.activeMention || data.followingOnly}
 				<div class="mb-6 flex flex-wrap items-center gap-2 text-sm text-muted">
 					<span>Filtering by</span>
+					{#if data.followingOnly}
+						<span class="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-on-primary">Following</span>
+					{/if}
 					{#if data.activeTag}
 						<span class="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-on-primary">{data.activeTag}</span>
 					{/if}
@@ -143,7 +148,9 @@
 					</article>
 				{:else}
 					<p class="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted">
-						{data.activeTag || data.activeMention ? 'No articles match this filter.' : 'No news yet. Check back once campaigns start posting.'}
+						{data.activeTag || data.activeMention || data.followingOnly
+							? 'No articles match this filter.'
+							: 'No news yet. Check back once campaigns start posting.'}
 					</p>
 				{/each}
 			</div>
@@ -161,8 +168,21 @@
 			/>
 		</div>
 
-		<!-- rhs: filter by location, topic tag, or a mentioned leader -->
+		<!-- rhs: filter by who you follow, location, topic tag, or a mentioned leader -->
 		<div class="space-y-6 lg:col-span-1">
+			{#if data.canFilterFollowing}
+				<div>
+					<p class="text-xs font-semibold tracking-wide text-muted uppercase">Following</p>
+					<a
+						href={followingHref}
+						class="mt-2 inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition {data.followingOnly
+							? 'border-primary bg-primary-soft text-on-primary'
+							: 'border-border bg-surface-2 text-muted hover:border-primary hover:text-primary'}"
+					>
+						Leaders you follow
+					</a>
+				</div>
+			{/if}
 			<div>
 				<p class="text-xs font-semibold tracking-wide text-muted uppercase">Local news</p>
 				<div class="mt-2">

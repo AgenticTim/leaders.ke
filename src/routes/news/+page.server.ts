@@ -1,7 +1,8 @@
 import { and, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { posts, tags, users, leaders, campaigns, positions } from '$lib/server/db/schema';
-import { ACTIVE_CYCLE, fullName, leaderPath } from '$lib/server/leader';
+import { ACTIVE_CYCLE, fullName, getDomainUser, leaderPath } from '$lib/server/leader';
+import { listFollowedPersonIds } from '$lib/server/citizen';
 import { findCountyBySlug, findConstituencyBySlug, findWardBySlug } from '$lib/data/geo';
 import { plainText } from '$lib/utils/richtext';
 import { getPageSize } from '$lib/server/settings';
@@ -32,7 +33,8 @@ type Article = {
 	createdAt: string;
 };
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async (event) => {
+	const { url } = event;
 	const pageSize = await getPageSize();
 	const page = Math.max(1, Number(url.searchParams.get('page') ?? 1));
 	const activeTag = url.searchParams.get('tag') ?? '';
@@ -43,6 +45,12 @@ export const load: PageServerLoad = async ({ url }) => {
 	const county = countySlug ? findCountyBySlug(countySlug) : undefined;
 	const constituency = county && constituencySlug ? findConstituencyBySlug(constituencySlug) : undefined;
 	const ward = constituency && wardSlug ? findWardBySlug(wardSlug) : undefined;
+
+	// "Following": signed-in only, folded in from the old /dashboard feed, same
+	// filter idiom as tag/mention/geo instead of a separate page.
+	const domainUser = event.locals.user ? await getDomainUser(event.locals.user.id) : undefined;
+	const followingOnly = url.searchParams.get('following') === '1' && !!domainUser;
+	const followedPersonIds = followingOnly ? new Set(await listFollowedPersonIds(domainUser!.id)) : null;
 
 	// Only posts about/from a publicly visible person: a verified held term, or a
 	// verified aspirant campaign — same gate the rest of the platform uses. Each
@@ -89,7 +97,21 @@ export const load: PageServerLoad = async ({ url }) => {
 	}
 
 	if (publicUserIds.length === 0) {
-		return { articles: [], total: 0, page, pageSize, tags: [], mentions: [], activeTag, activeMention, countySlug, constituencySlug, wardSlug };
+		return {
+			articles: [],
+			total: 0,
+			page,
+			pageSize,
+			tags: [],
+			mentions: [],
+			activeTag,
+			activeMention,
+			countySlug,
+			constituencySlug,
+			wardSlug,
+			followingOnly,
+			canFilterFollowing: !!domainUser
+		};
 	}
 
 	// Team-authored (creatorId set), published, not-deactivated — each gets its own
@@ -232,6 +254,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			if (!matchesPrimary && !matchesTagged) return false;
 		}
 		if (!matchesGeo(a.authorUserId)) return false;
+		if (followedPersonIds && !(a.authorUserId !== null && followedPersonIds.has(a.authorUserId))) return false;
 		return true;
 	});
 	const total = filtered.length;
@@ -248,6 +271,8 @@ export const load: PageServerLoad = async ({ url }) => {
 		activeMention,
 		countySlug,
 		constituencySlug,
-		wardSlug
+		wardSlug,
+		followingOnly,
+		canFilterFollowing: !!domainUser
 	};
 };
