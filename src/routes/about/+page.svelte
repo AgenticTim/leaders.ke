@@ -5,7 +5,7 @@
 
 <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
 	<h1 class="text-3xl font-bold text-heading">About vote.ke</h1>
-	<p class="mt-3 text-lg text-muted">Smart Kenya votes here.</p>
+	<p class="mt-3 text-lg text-muted">Know your leaders and practise your vote.</p>
 
 	<div class="mt-8 space-y-6 text-sm leading-relaxed text-heading">
 		<p>

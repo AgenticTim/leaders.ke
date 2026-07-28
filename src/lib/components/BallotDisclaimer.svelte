@@ -4,7 +4,7 @@
 	<b>This is NOT an official IEBC ballot.</b>
 	<span>It is meant for educational purposes only. </span>
 	<span>No votes are registered, tallied or published. </span>
-	<span>Visit <a href="https://www.iebc.or.ke" class="underline hover:text-heading">IEBC.or.ke</a>
+	<span>Visit <a href="https://www.iebc.or.ke" class="underline hover:text-heading" target="_blank">IEBC.or.ke</a>
 	for official voting information. </span>
-	<span>Your data privacy is governed by KDPA 2019.</span> 
+	<span>Your selection is kept private under KDPA 2019.</span> 
 </div>

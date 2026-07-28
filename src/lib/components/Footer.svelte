@@ -87,9 +87,9 @@
 		"g"), which at this size otherwise bleeds past leading-none's line box into
 		the row below. Top-aligning (not centering) inside the shorter box means only
 		that descender gets clipped, not the tops of the letters. -->
-		<div class="-mt-10 -z-10 h-[24cqw] overflow-hidden ">
+		<div class="-z-10 h-[32cqw] overflow-hidden mt-5 -mb-5 lg:-mt-10 lg:-mb-10">
 			<p
-				class="flex select-none items-start justify-center gap-[0.08em] ml-[-0.1em] text-[24cqw] font-bold leading-none tracking-tighter text-primary/20"
+				class="flex select-none items-start justify-center gap-[0.08em] ml-[-0.2em] text-[32cqw] font-bold leading-none tracking-tighter text-primary/20"
 			>
 				<span class="">vote.ke</span>
 		</p>
@@ -97,7 +97,7 @@
 		<div
 			class="mt-10 flex flex-col items-center justify-between gap-2 border-t border-border pt-6 text-xs text-muted sm:flex-row"
 		>
-			<p>© {new Date().getFullYear()} vote.ke - Smart Kenya votes here</p>
+			<p>© {new Date().getFullYear()} vote.ke - Know your leaders and practise your vote.</p>
 			<p>Adhering to IEBC regulations &amp; the Data Protection Act (2019)</p>
 		</div>
 	</div>

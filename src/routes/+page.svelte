@@ -27,7 +27,7 @@
 	function levelRegion(level: BallotLevel): string {
 		switch (level) {
 			case 'president':
-				return 'Team Wantam or Tutam?';
+				return 'A simulated voting experience';
 			case 'governor':
 			case 'senator':
 			case 'womanRep':
