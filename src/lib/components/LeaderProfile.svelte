@@ -28,6 +28,13 @@
 	const leader = $derived(data.leader);
 	const firstName = leader.name.split(' ')[0]
 
+	// A pure aspirant doesn't currently hold ANY electoral seat, so there's no
+	// accurate "Current X" to state — the whole card (heading + contestants link)
+	// is dropped rather than showing a misleading title (e.g. their own candidacy).
+	const currentRole = $derived(
+		leader.status === 'aspirant' ? null : { title: data.breadcrumb.positionTitle, institution: data.breadcrumb.regionLabel }
+	);
+
 	const fmt = new Intl.NumberFormat('en-KE');
 	const dateFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' });
 
@@ -132,7 +139,9 @@
 									dateLabel={item.badge === 'aspirant'
 										? `Vying · from ${item.from}`
 										: item.from
-											? `${item.from}${item.to ? `–${item.to}` : ' – present'}`
+											? item.to === item.from
+												? `${item.from}`
+												: `${item.from}${item.to ? `–${item.to}` : ' – present'}`
 											: ''}
 									badge={item.badge}
 									badgeClass={item.badge === 'current' ? 'bg-primary-soft text-on-primary' : 'bg-surface text-muted'}
@@ -192,19 +201,24 @@
 		<!-- Sidebar: Ask, contact, claim status, seat links -->
 		<div class="space-y-6">
 			
-			{#if data.campaign}
-				<a href={data.campaign.path} class="block w-full border border-primary rounded-full px-4 py-2 text-lg text-primary text-center font-semibold transition hover:brightness-95 disabled:opacity-60">
-					🚀 {data.campaign.year} Campaign
-				</a>
-			{:else if data.isVying}
+			{#if data.isVying}
+			<div class="rounded-3xl border border-border bg-surface p-6 flex flex-col gap-3">
+				<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">{data.campaign?.year ?? 2027} Campaign</h2>
+				{#if data.campaign?.positionTitle}
+					<a href={data.campaign.path} class="block w-full border border-primary rounded-full px-4 py-2 text-lg text-primary text-center font-semibold transition hover:brightness-95 disabled:opacity-60">
+						🚀 Running for {data.campaign.positionTitle}{data.campaign.regionLabel && data.campaign.regionLabel !== 'Kenya' ? `, ${data.campaign.regionLabel}` : ''}
+					</a>
+				{:else}
 				<p class="block w-full border border-border rounded-full px-4 py-2 text-lg text-muted text-center font-semibold ">
 					No Campaign Listed
 				</p>
+				{/if}
+			</div>
 			{/if}
 
 			{#if !preview}
 				<!-- Ask the leader (AI) -->
-				<div class="rounded-3xl border border-primary bg-surface p-6">
+				<div class="rounded-3xl border border-border bg-surface p-6">
 					<h2 class="text-lg font-bold text-heading">Ask {firstName}</h2>
 					<p class="mt-1 text-sm text-muted">
 						Answers come from the manifesto and public updates, instantly.
@@ -261,19 +275,25 @@
 				</div>
 			{/if}
 
-			<div class="rounded-3xl border border-border bg-surface-2 p-6">
-				<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">{data.breadcrumb.positionTitle}{#if data.breadcrumb.regionLabel}, {data.breadcrumb.regionLabel}{/if}</h2>
-				<ul class="mt-3 space-y-2 text-sm">
-					<li>
-						<a href="{data.breadcrumb.seatCyclePath}/2027" class="font-medium text-heading hover:text-primary">
-							🗳️ {data.numContestants} contestants for 2027 →
-						</a>
-					</li>
-				</ul>
-			</div>
+			{#if currentRole}
+				<div class="rounded-3xl border border-border bg-surface p-6">
+					<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">
+						Current {currentRole.title}{#if currentRole.institution}, {currentRole.institution}{/if}
+					</h2>
+					{#if data.numContestants > 0}
+						<ul class="mt-3 space-y-2 text-sm">
+							<li>
+								<a href="{data.breadcrumb.seatCyclePath}/2027" class="font-medium text-heading hover:text-primary">
+									🗳️ {data.numContestants} contestants for 2027 →
+								</a>
+							</li>
+						</ul>
+					{/if}
+				</div>
+			{/if}
 
 			{#if data.contacts.length > 0 || leader.address || Object.keys(leader.socials).length > 0}
-				<div class="rounded-3xl border border-border bg-surface-2 p-6">
+				<div class="rounded-3xl border border-border bg-surface p-6">
 					<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">Contact</h2>
 					<div class="mt-4">
 						<ContactLinks phone={contactPhone} email={contactEmail} socials={leader.socials} share={!preview} shareTitle={leader.name} />

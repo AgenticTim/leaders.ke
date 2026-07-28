@@ -55,7 +55,14 @@ export async function resolveCampaignRun(
 			.where(and(eq(campaigns.subjectUserId, row.users.id), eq(campaigns.cycleYear, ACTIVE_CYCLE), isNull(campaigns.parentCampaignId), isNull(campaigns.deletedAt)));
 		campaignId = c?.id ?? 0;
 	}
-	return { users: row.users, positions: position, status, verified, campaignId, leaderId };
+
+	// The seat this person actually HOLDS right now, if any — independent of which
+	// run this workspace is about (an incumbent Senator running for President still
+	// currently holds Senator; a pure aspirant holds nothing yet, so this is null).
+	const currentPosition =
+		currentTerm && currentTerm.leaders.status !== 'former' ? `${currentTerm.positions.title}, ${currentTerm.positions.region}` : null;
+
+	return { users: row.users, positions: position, status, verified, campaignId, leaderId, currentPosition };
 }
 
 export type CampaignRun = NonNullable<Awaited<ReturnType<typeof resolveCampaignRun>>>;

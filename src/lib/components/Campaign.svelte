@@ -198,12 +198,15 @@
 		<!-- Sidebar -->
 		<div class="space-y-6">
 			
-			<a href={data.recordPath} class="block w-full border border-primary rounded-full px-4 py-2 text-lg text-primary text-center font-semibold transition hover:brightness-95 disabled:opacity-60">
-				Full Profile →
-			</a>
+			<div class="rounded-3xl border border-border bg-surface p-6 flex flex-col gap-3">
+				<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">Current Position</h2>
+				<a href={data.recordPath} class="block w-full border border-primary rounded-full px-4 py-2 text-lg text-primary text-center font-semibold transition hover:brightness-95 disabled:opacity-60">
+					{data.currentPosition ? data.currentPosition: "Visit Full Profile →"}
+				</a>
+			</div>
 
 			<!-- Ask the campaign (AI) -->
-			<div class="rounded-3xl border border-primary bg-surface p-6">
+			<div class="rounded-3xl border border-border bg-surface p-6">
 				<h2 class="text-lg font-bold text-heading">Ask {leader.name.split(' ')[0]}</h2>
 				<p class="mt-1 text-sm text-muted">
 					Answers come from the manifesto and public updates, instantly.

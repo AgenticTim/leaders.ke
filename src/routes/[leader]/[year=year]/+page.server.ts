@@ -56,6 +56,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	return {
 		year: Number(params.year),
 		recordPath,
+		currentPosition: row.currentPosition,
 		canEdit,
 		leaderSlug: params.leader,
 		leader: {

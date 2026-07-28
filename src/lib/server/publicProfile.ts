@@ -53,17 +53,25 @@ export async function loadPublicProfileData(
 	if (!leadPosition) return null;
 
 	let leadCampaignId = 0;
+	// The office this cycle's campaign is actually FOR — distinct from leadPosition
+	// when a sitting officeholder (currentTerm) is running for something else (e.g.
+	// a Governor running for President): leadPosition stays their held seat, but the
+	// campaign card still needs to name what they're campaigning for.
+	let campaignPosition: { title: string; region: string } | null = null;
 	if (leadsWithRun) {
 		leadCampaignId = activeRun!.campaigns.id;
+		campaignPosition = { title: activeRun!.positions.title, region: activeRun!.positions.region };
 	} else if (currentTerm) {
 		// Campaigns are person+cycle scoped (subjectUserId), same key as an
 		// aspirant's activeRun — leaderId on `campaigns` is only ever a nullable
 		// secondary link (seed-campaigns.ts never sets it), never the lookup key.
 		const [c] = await db
-			.select({ id: campaigns.id })
+			.select({ id: campaigns.id, title: positions.title, region: positions.region })
 			.from(campaigns)
+			.innerJoin(positions, eq(campaigns.positionId, positions.id))
 			.where(and(eq(campaigns.subjectUserId, row.users.id), eq(campaigns.cycleYear, ACTIVE_CYCLE), isNull(campaigns.parentCampaignId), isNull(campaigns.deletedAt)));
 		leadCampaignId = c?.id ?? 0;
+		campaignPosition = c ? { title: c.title, region: c.region } : null;
 	}
 
 	const [
@@ -258,7 +266,9 @@ export async function loadPublicProfileData(
 						// the matching /previews/[userId]/[year] route, not the public URL.
 						path: typeof idOrSlug === 'number' ? `/previews/${idOrSlug}/${ACTIVE_CYCLE}` : campaignPath(row.users),
 						pillarCount: pillarRow.n,
-						latestPost: latestPost[0] ? { title: latestPost[0].title, createdAt: latestPost[0].createdAt.toISOString() } : null
+						latestPost: latestPost[0] ? { title: latestPost[0].title, createdAt: latestPost[0].createdAt.toISOString() } : null,
+						positionTitle: campaignPosition?.title ?? '',
+						regionLabel: campaignPosition?.region ?? ''
 					}
 				: null,
 		delivery: { total: pillarStatusRows.length, delivered: deliveredCount, inProgress: inProgressCount },
