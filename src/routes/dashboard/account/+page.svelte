@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import PhoneInput from '$lib/components/contact/PhoneInput.svelte';
 	import EmailInput from '$lib/components/contact/EmailInput.svelte';
+	import VerifyContactModal from '$lib/components/auth/VerifyContactModal.svelte';
 	import GeoSelect from '$lib/components/GeoSelect.svelte';
 	import type { PageProps } from './$types';
 
@@ -18,15 +19,34 @@
 	let email = $state(data.email);
 	let smsPhone = $state(data.smsPhone);
 	let whatsappPhone = $state(data.whatsappPhone);
-	let verified = $state(data.verified);
+	// Derived (not snapshotted) so the badges flip the moment the verify modal's
+	// success redirect refreshes `data` without remounting this page.
+	const verified = $derived(data.verified);
+
+	// Contact verification happens in a modal over this page; it lives outside the
+	// form below because a form can't nest inside another form.
+	let verifyOpen = $state(false);
+	let verifyChannel = $state<'email' | 'sms' | 'whatsapp'>('email');
+	let verifyTarget = $state('');
+	function openVerify(channel: 'email' | 'sms' | 'whatsapp') {
+		return (target: string) => {
+			verifyChannel = channel;
+			verifyTarget = target;
+			verifyOpen = true;
+		};
+	}
 
 	// A channel can only be selected to notify on if it's actually verified — an
 	// unverified address/number isn't reachable, so forcing it off (and disabling
 	// the control) here keeps the UI honest instead of silently ignoring the field
 	// server-side.
-	let notifyEmail = $state(data.notificationPrefs.email && verified.email);
-	let notifySms = $state(data.notificationPrefs.sms && verified.sms);
-	let notifyWhatsapp = $state(data.notificationPrefs.whatsapp && verified.whatsapp);
+	// svelte-ignore state_referenced_locally -- deliberate initial-value capture;
+	// the user's later checkbox toggles must not be clobbered by data refreshes.
+	let notifyEmail = $state(data.notificationPrefs.email && data.verified.email);
+	// svelte-ignore state_referenced_locally
+	let notifySms = $state(data.notificationPrefs.sms && data.verified.sms);
+	// svelte-ignore state_referenced_locally
+	let notifyWhatsapp = $state(data.notificationPrefs.whatsapp && data.verified.whatsapp);
 	let notifyNewCandidates = $state(data.notifyNewCandidates);
 
 	const NOTIFY_ICONS = {
@@ -85,7 +105,7 @@
 
 		<div class="flex gap-3 items-end">
 			<div class="flex-1">
-				<EmailInput bind:value={email} verified={verified.email} verifiedValues={data.ownVerified.email} />
+				<EmailInput bind:value={email} verified={verified.email} verifiedValues={data.ownVerified.email} onVerify={openVerify('email')} />
 			</div>
 			<label
 					title={verified.email ? '' : 'Verify this email to enable notifications on it.'}
@@ -101,7 +121,7 @@
 
 		<div class="flex gap-3 items-end">
 			<div class="flex-1">
-				<PhoneInput bind:value={smsPhone} label="Phone number" field="sms" verified={verified.sms} verifiedValues={data.ownVerified.sms}/>
+				<PhoneInput bind:value={smsPhone} label="Phone number" field="sms" verified={verified.sms} verifiedValues={data.ownVerified.sms} onVerify={openVerify('sms')} />
 				<input type="hidden" name="smsPhone" value={smsPhone} />
 			</div>
 			<label
@@ -118,7 +138,7 @@
 
 		<div class="flex gap-3 items-end">
 			<div class="flex-1">
-				<PhoneInput bind:value={whatsappPhone} label="WhatsApp number" field="whatsapp" verified={verified.whatsapp} verifiedValues={data.ownVerified.whatsapp}/>
+				<PhoneInput bind:value={whatsappPhone} label="WhatsApp number" field="whatsapp" verified={verified.whatsapp} verifiedValues={data.ownVerified.whatsapp} onVerify={openVerify('whatsapp')} />
 				<input type="hidden" name="whatsappPhone" value={whatsappPhone} />
 			</div>
 			<label
@@ -168,5 +188,5 @@
 		</div>
 	</form>
 
-
+	<VerifyContactModal bind:open={verifyOpen} channel={verifyChannel} destination={verifyTarget} />
 </div>

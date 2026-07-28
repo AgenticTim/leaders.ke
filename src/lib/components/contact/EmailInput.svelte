@@ -2,8 +2,9 @@
 	import { page } from '$app/state';
 
 	// Email counterpart to PhoneInput: an email field with an inline verified badge.
-	// Unchanged + verified shows "✓ Verified"; any edit swaps to a Verify link (which
-	// carries the typed value to /verify/email) plus a Reset back to the saved value.
+	// Unchanged + verified shows "✓ Verified"; any edit swaps to a Verify affordance
+	// (a link carrying the typed value to /verify/email, or a button handing it to
+	// the host's onVerify modal) plus a Reset back to the saved value.
 	let {
 		value = $bindable(''),
 		label = 'Email',
@@ -13,7 +14,8 @@
 		filled = false,
 		scope = 'account',
 		verifiable = true,
-		verifiedValues = []
+		verifiedValues = [],
+		onVerify = undefined
 	}: {
 		value?: string;
 		label?: string;
@@ -32,6 +34,10 @@
 		/** Addresses this user already verified elsewhere (e.g. their citizen
 		 * account) — typing one shows ✓ immediately, preventing a double OTP. */
 		verifiedValues?: string[];
+		/** When set, Verify opens the host's VerifyEmailModal (with the typed value)
+		 * instead of navigating to /verify/email. Lives on the host because this
+		 * input sits inside the host's own form, where a nested modal form can't. */
+		onVerify?: (email: string) => void;
 	} = $props();
 
 	let original = $state(value);
@@ -73,7 +79,11 @@
 		{:else if verifiable && value && isVerifiedNow}
 			<span class="grid place-items-center px-4 py-0.5 text-sm text-primary rounded-r-xl text-nowrap" >✓ Verified</span>
 		{:else if verifiable && value}
-			<a href={verifyHref} data-sveltekit-preload-data="off" class="grid place-items-center py-0.5{ value === original && ' pr-3'} text-sm text-primary">Verify</a>
+			{#if onVerify}
+				<button type="button" onclick={() => onVerify?.(value)} class="grid place-items-center py-0.5{ value === original && ' pr-3'} text-sm text-primary">Verify</button>
+			{:else}
+				<a href={verifyHref} data-sveltekit-preload-data="off" class="grid place-items-center py-0.5{ value === original && ' pr-3'} text-sm text-primary">Verify</a>
+			{/if}
 			{#if value !== original}
 				<span class="grid place-items-center px-1 py-0.5 text-sm text-on-primary" >·</span>
 				<button type="button" onclick={() => value = original} class="grid place-items-center pr-3 py-0.5 text-sm text-primary rounded-r-xl">Reset</button>

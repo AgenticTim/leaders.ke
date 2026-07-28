@@ -13,11 +13,15 @@
 	let {
 		next = '/dashboard',
 		googleEnabled = false,
-		lockedEmail = null
+		lockedEmail = null,
+		onVerifyEmail = undefined
 	}: {
 		next?: string;
 		googleEnabled?: boolean;
 		lockedEmail?: string | null;
+		/** Modal hosts pass this to intercept the action's redirect to
+		 * /verify/email and show the verify step in place instead of navigating. */
+		onVerifyEmail?: (email: string) => void;
 	} = $props();
 
 	// Dev convenience only — never prefilled in a production build.
@@ -49,7 +53,18 @@
 		return async ({ result }) => {
 			submitting = false;
 			if (result.type === 'failure') message = String((result.data as { message?: string })?.message ?? 'Registration failed');
-			else await applyAction(result);
+			else {
+				// Session cookie is set at this point; a modal host swaps to its
+				// in-place verify step instead of following the /verify/email redirect.
+				if (result.type === 'redirect' && onVerifyEmail) {
+					const target = new URL(result.location, window.location.origin);
+					if (target.pathname === '/verify/email') {
+						onVerifyEmail(target.searchParams.get('email') ?? '');
+						return;
+					}
+				}
+				await applyAction(result);
+			}
 		};
 	}}
 >

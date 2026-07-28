@@ -1,15 +1,20 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
+	import Modal from '$lib/components/Modal.svelte';
 	import LoginForm from './LoginForm.svelte';
 	import SignupForm from './SignupForm.svelte';
+	import VerifyOtpForm from './VerifyOtpForm.svelte';
 
 	// Log in / Sign up as a modal, so auth becomes a transitional step inside a
 	// flow (follow a campaign, save a simulated vote, pledge…) instead of a
-	// navigation away from it. On success the shared forms' own /login|/signup
-	// actions redirect to `next` — point it back at the host page (with whatever
-	// intent param resumes the pending action, e.g. ?save=1) and the flow
-	// continues where it left off. Google is a full-page OAuth round-trip either
-	// way; `next` still brings them back.
+	// navigation away from it. An email signup/login that still needs email
+	// verification stays in the overlay too: the /login|/signup action's redirect
+	// to /verify/email is intercepted (onVerifyEmail) and swapped for the verify
+	// step in place, so the whole auth+verify+resume chain never leaves the host
+	// page. Only the verify step's own success redirect points at `next` (with
+	// whatever intent param resumes the pending action, e.g. ?save=1). Google is
+	// a full-page OAuth round-trip either way; `next` still brings them back.
 	let {
 		open = $bindable(false),
 		next = '/dashboard',
@@ -22,69 +27,62 @@
 		message?: string;
 	} = $props();
 
-	let mode = $state<'login' | 'signup'>('login');
+	let mode = $state<'login' | 'signup' | 'verify'>('login');
+	let verifyEmail = $state('');
 
 	const googleEnabled = $derived(!!page.data.googleEnabled);
+	const title = $derived(
+		mode === 'login' ? 'Welcome back' : mode === 'signup' ? 'Create your account' : 'Verify your email'
+	);
 
-	function onkeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') open = false;
+	// The auth action already set the session cookie, but page data is deliberately
+	// NOT refreshed here: the host's signed-out branch owns this modal, and
+	// invalidating would unmount it mid-verify. The verify step's success redirect
+	// (back to `next`) refreshes everything at the end.
+	function toVerify(email: string) {
+		verifyEmail = email;
+		mode = 'verify';
+	}
+
+	// Bailing out of the verify step still leaves them signed in: refresh the
+	// host page so it stops showing signed-out UI.
+	function onclose() {
+		if (mode === 'verify') invalidateAll();
 	}
 </script>
 
-<svelte:window {onkeydown} />
+<Modal bind:open {title} {onclose}>
+	{#if mode === 'verify'}
+		<p class="mt-3 text-sm text-muted">
+			Enter the code we sent to <span class="font-semibold text-heading">{verifyEmail}</span> to continue.
+		</p>
+	{:else if message}
+		<p class="mt-3 rounded-xl bg-primary-soft p-3 text-sm text-on-primary">{message}</p>
+	{/if}
 
-{#if open}
-	<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-	<div
-		class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4"
-		onclick={(e) => {
-			if (e.target === e.currentTarget) open = false;
-		}}
-	>
-		<div
-			role="dialog"
-			aria-modal="true"
-			aria-label={mode === 'login' ? 'Sign in' : 'Create your account'}
-			class="my-auto w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-lg sm:p-8 text-left"
-		>
-			<div class="flex items-start justify-between gap-3">
-				<h2 class="text-xl font-bold text-heading">
-					{mode === 'login' ? 'Welcome back' : 'Create your account'}
-				</h2>
-				<button
-					type="button"
-					onclick={() => (open = false)}
-					aria-label="Close"
-					class="rounded-md px-2 py-1 text-sm font-semibold text-muted transition hover:bg-surface-2 hover:text-heading"
-				>
-					✕
-				</button>
-			</div>
-			{#if message}
-				<p class="mt-3 rounded-xl bg-primary-soft p-3 text-sm text-on-primary">{message}</p>
-			{/if}
-
-			<div class="mt-5">
-				{#if mode === 'login'}
-					<LoginForm {next} {googleEnabled} />
-				{:else}
-					<SignupForm {next} {googleEnabled} />
-				{/if}
-			</div>
-
-			<div class="mt-6 border-t border-border pt-4 text-center text-sm text-muted">
-				{#if mode === 'login'}
-					New here?
-					<button type="button" onclick={() => (mode = 'signup')} class="font-semibold text-primary hover:underline">
-						Create an account
-					</button>
-				{:else}
-					Already have an account?
-					<button type="button" onclick={() => (mode = 'login')} class="font-semibold text-primary hover:underline">
-						Sign in
-					</button>
-				{/if}
-			</div>
-		</div>
+	<div class="mt-5">
+		{#if mode === 'login'}
+			<LoginForm {next} {googleEnabled} onVerifyEmail={toVerify} />
+		{:else if mode === 'signup'}
+			<SignupForm {next} {googleEnabled} onVerifyEmail={toVerify} />
+		{:else}
+			<VerifyOtpForm destination={verifyEmail} {next} autoSend onVerified={() => (open = false)} />
+		{/if}
 	</div>
-{/if}
+
+	{#if mode !== 'verify'}
+		<div class="mt-6 border-t border-border pt-4 text-center text-sm text-muted">
+			{#if mode === 'login'}
+				New here?
+				<button type="button" onclick={() => (mode = 'signup')} class="font-semibold text-primary hover:underline">
+					Create an account
+				</button>
+			{:else}
+				Already have an account?
+				<button type="button" onclick={() => (mode = 'login')} class="font-semibold text-primary hover:underline">
+					Sign in
+				</button>
+			{/if}
+		</div>
+	{/if}
+</Modal>

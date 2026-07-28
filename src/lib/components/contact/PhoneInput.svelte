@@ -12,7 +12,8 @@
 		filled = false,
 		scope = 'account',
 		verifiable = true,
-		verifiedValues = []
+		verifiedValues = [],
+		onVerify = undefined
 	}: {
 		value?: string;
 		field?: string; // sms | whatsapp
@@ -31,6 +32,11 @@
 		/** Numbers (254… form) this user already verified elsewhere (e.g. their
 		 * citizen account) — typing one shows ✓ immediately, preventing a double OTP. */
 		verifiedValues?: string[];
+		/** When set, Verify opens the host's VerifyContactModal (with the normalized
+		 * 254… number) instead of navigating to /verify/[field]. Lives on the host
+		 * because this input sits inside the host's own form, where a nested modal
+		 * form can't. */
+		onVerify?: (phone: string) => void;
 	} = $props();
 	// Stored numbers are normalized to 254XXXXXXXXX; the field sits after a "+254"
 	// prefix, so show just the local part (712345678) rather than "+254 254…".
@@ -81,7 +87,11 @@
 			<span class="grid place-items-center px-4 py-0.5 text-sm text-primary rounded-r-xl text-nowrap" >✓ Verified</span>
 		{:else if verifiable && value}
 			<span class="flex items-center gap-2 px-4 py-0.5 text-sm text-primary text-nowrap rounded-r-xl">
-				<a href={verifyHref} data-sveltekit-preload-data="off" class="">Verify</a>
+				{#if onVerify}
+					<button type="button" onclick={() => normalized && onVerify?.(normalized)} class="">Verify</button>
+				{:else}
+					<a href={verifyHref} data-sveltekit-preload-data="off" class="">Verify</a>
+				{/if}
 				{#if value !== original}
 					<span class="" >·</span>
 					<button type="button" onclick={() => value = original} class="rounded-r-xl">Reset</button>

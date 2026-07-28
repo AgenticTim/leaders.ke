@@ -111,13 +111,19 @@ export const actions: Actions = {
 		if (await verifiedByOther([subject.id, domainUser.id], email)) {
 			return fail(400, { emailError: `${email} is already verified on another account.` });
 		}
+		// auto=1 marks the on-mount send a modal-hosted form fires (its host page
+		// never runs this route's load, which is what sends on arrival): reuse a
+		// still-pending code instead of firing a duplicate on every modal open.
+		if (String(form.get('auto') ?? '') === '1' && (await hasPendingOtp('email', email))) {
+			return { emailSent: true, cooldown: await otpCooldownRemaining('email', email) };
+		}
 		const linkPath = scope === 'account' ? '/verify/email' : `/verify/email?scope=${scope}${slug ? `&slug=${slug}` : ''}`;
 		try {
 			await sendOtp(subject.id, 'email', email, subject.firstName, linkPath);
 		} catch (error) {
 			return fail(400, { emailError: error instanceof Error ? error.message : 'Could not send code' });
 		}
-		return { emailSent: true };
+		return { emailSent: true, cooldown: (await getPlatformSettings()).otpCooldownSeconds };
 	},
 
 	verifyCode: async (event) => {

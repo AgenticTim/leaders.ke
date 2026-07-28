@@ -102,7 +102,13 @@ export const actions: Actions = {
 		}
 		if (await verifiedAsOwnSms(subject.id, normalized)) {
 			await applyNumberVerified(subject, normalized);
-			return { phoneSent: true };
+			return { phoneSent: true, alreadyVerified: true };
+		}
+		// auto=1 marks the on-mount send a modal-hosted form fires (its host page
+		// never runs this route's load, which is what sends on arrival): reuse a
+		// still-pending code instead of firing a duplicate on every modal open.
+		if (String(form.get('auto') ?? '') === '1' && (await hasPendingOtp('whatsapp', normalized))) {
+			return { phoneSent: true, cooldown: await otpCooldownRemaining('whatsapp', normalized) };
 		}
 		try {
 			// Stub: no WhatsApp Business API yet — reuses the same gateway/console stub
@@ -111,7 +117,7 @@ export const actions: Actions = {
 		} catch (error) {
 			return fail(400, { phoneError: error instanceof Error ? error.message : 'Could not send code' });
 		}
-		return { phoneSent: true };
+		return { phoneSent: true, cooldown: (await getPlatformSettings()).otpCooldownSeconds };
 	},
 
 	verifyCode: async (event) => {

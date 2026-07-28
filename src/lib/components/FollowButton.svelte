@@ -109,9 +109,9 @@
 		<button
 			type="button"
 			onclick={() => (authOpen = true)}
-			class="mt-4 block w-full rounded-full border border-primary px-4 py-2.5 text-center font-semibold text-primary transition hover:bg-primary hover:text-on-primary"
+			class="mt-4 block w-full rounded-full border bg-primary px-4 py-2.5 text-center font-semibold text-on-primary transition hover:brightness-95 disabled:opacity-60"
 		>
-			Log in to follow {firstName}
+			Follow {firstName}
 		</button>
 		<AuthModal
 			bind:open={authOpen}

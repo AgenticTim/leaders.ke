@@ -4,6 +4,7 @@
 	import { PLATFORMS, stripPrefix, socialsToLinks, type SocialLink } from '$lib/components/contact/socials';
 	import PhoneInput from '$lib/components/contact/PhoneInput.svelte';
 	import EmailInput from '$lib/components/contact/EmailInput.svelte';
+	import VerifyContactModal from '$lib/components/auth/VerifyContactModal.svelte';
 
 	// The campaign family's (/dashboard/[slug]/contacts) +page.server.ts shapes
 	// `data` and hosts the actions this form posts to (relative ?/action URLs).
@@ -37,6 +38,19 @@
 	// profile's contacts; 'claim' (claim family) stages the OTP proof inside the
 	// pending claim's evidence instead.
 	const verifyScope = $derived(data.verifyScope ?? 'profile');
+
+	// Contact verification happens in a modal over this tab; it lives outside the
+	// form below because a form can't nest inside another form.
+	let verifyOpen = $state(false);
+	let verifyChannel = $state<'email' | 'sms' | 'whatsapp'>('email');
+	let verifyTarget = $state('');
+	function openVerify(channel: 'email' | 'sms' | 'whatsapp') {
+		return (target: string) => {
+			verifyChannel = channel;
+			verifyTarget = target;
+			verifyOpen = true;
+		};
+	}
 
 	const isSocialActive = (kind: string) => socialLinks.some((s) => s.kind === kind);
 	function toggleSocial(kind: string) {
@@ -111,11 +125,11 @@
 
 		<div class="grid gap-3 sm:grid-cols-2">
 			<div class="rounded-xl ">
-				<PhoneInput bind:value={sms} label="Public phone number" scope={verifyScope} verified={data.smsVerified ?? false} verifiedValues={data.ownVerified?.sms ?? []} required filled={!starRed('Phone number')} />
+				<PhoneInput bind:value={sms} label="Public phone number" scope={verifyScope} verified={data.smsVerified ?? false} verifiedValues={data.ownVerified?.sms ?? []} required filled={!starRed('Phone number')} onVerify={openVerify('sms')} />
 				<input type="hidden" name="sms" value={sms} />
 			</div>
 			<div>
-				<PhoneInput bind:value={whatsapp} label="Whatsapp number" field="whatsapp" scope={verifyScope} verified={data.whatsappVerified ?? false} verifiedValues={data.ownVerified?.whatsapp ?? []} />
+				<PhoneInput bind:value={whatsapp} label="Whatsapp number" field="whatsapp" scope={verifyScope} verified={data.whatsappVerified ?? false} verifiedValues={data.ownVerified?.whatsapp ?? []} onVerify={openVerify('whatsapp')} />
 				<input type="hidden" name="whatsapp" value={whatsapp} />
 			</div>
 		</div>
@@ -124,7 +138,7 @@
 
 		<label class="grid gap-3 sm:grid-cols-2">
 			<div>
-				<EmailInput bind:value={email} verified={data.emailVerified} scope={verifyScope} verifiedValues={data.ownVerified?.email ?? []} required filled={!starRed('Email address')} />
+				<EmailInput bind:value={email} verified={data.emailVerified} scope={verifyScope} verifiedValues={data.ownVerified?.email ?? []} required filled={!starRed('Email address')} onVerify={openVerify('email')} />
 				<input type="hidden" name="email" value={email} />
 			</div>
 			<div>
@@ -207,4 +221,5 @@
 		</div>
 	</form>
 
+	<VerifyContactModal bind:open={verifyOpen} channel={verifyChannel} destination={verifyTarget} scope={verifyScope} />
 </div>
