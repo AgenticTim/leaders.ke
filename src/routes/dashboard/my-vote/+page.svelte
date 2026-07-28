@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import Avatar from '$lib/components/Avatar.svelte';
+	import EyeIcon from '$lib/components/svgs/EyeIcon.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -20,8 +21,13 @@
 
 <div class="flex min-h-[70vh] flex-col">
 <div>
+
+	<div class="mt-4 flex flex-col sm:flex-row items-center justify-between">
+		<h2 class="text-sm font-semibold text-heading">Simulations</h2>
+		<p class="text-sm italic text-muted">My voting practice sessions</p>
+	</div>
+
 	{#if data.ballots.length > 0}
-		<h2 class="mt-4 text-sm font-semibold text-heading">Simulated votes</h2>
 		<!-- One row per saved simulation, one column per seat level: a cell is the
 		actual candidate that simulation picked (live data, same as the share page),
 		so scanning down a column compares how your picks changed across ballots. -->
@@ -31,7 +37,7 @@
 					<tr class="bg-surface-2 text-left text-xs font-semibold tracking-wide text-muted uppercase">
 						<th class="p-3 font-semibold">Region</th>
 						{#each data.ballots[0].results as { level } (level)}
-							<th class="p-3 font-semibold">{LEVEL_LABEL[level]}</th>
+							<th class="p-3 font-semibold ">{LEVEL_LABEL[level]}</th>
 						{/each}
 						<th class="p-3"></th>
 					</tr>
@@ -40,10 +46,10 @@
 					{#each data.ballots as ballot (ballot.publicId)}
 						<tr class="bg-surface">
 							<td class="p-3 align-top">
-								<a href="/ballot/{ballot.publicId}" class="text-sm font-medium text-heading hover:text-primary">
+								<p class="mt-1 text-xs text-muted">{dateFmt.format(new Date(ballot.createdAt))}</p>
+								<a href="/ballot/{ballot.publicId}" class="text-xs text-muted hover:text-primary capitalize">
 									{ballot.ward}, {ballot.constituency}, {ballot.county}
 								</a>
-								<p class="mt-1 text-xs text-muted">{dateFmt.format(new Date(ballot.createdAt))}</p>
 							</td>
 							{#each ballot.results as { level, candidate } (level)}
 								<td class="p-3 align-top">
@@ -60,7 +66,13 @@
 									{/if}
 								</td>
 							{/each}
-							<td class="p-3 align-top">
+							<td class="p-3 flex gap-2 items-center ">
+									<a href="/ballot/{ballot.publicId}"
+										aria-label="View this ballot"
+										class="grid size-9 place-items-center rounded-full border border-border text-sm font-semibold text-muted transition hover:bg-surface-2 hover:text-heading"
+									>
+										<EyeIcon/>
+									</a>
 								<form
 									method="post"
 									action="?/deleteBallot"
@@ -72,7 +84,7 @@
 									<button
 										type="submit"
 										aria-label="Delete this ballot"
-										class="rounded-md px-2 py-1 text-sm font-semibold text-muted transition hover:bg-surface-2 hover:text-heading"
+										class="grid size-9 place-items-center rounded-full border border-border text-sm font-semibold text-muted transition hover:bg-surface-2 hover:text-heading"
 									>
 										✕
 									</button>
@@ -85,7 +97,10 @@
 		</div>
 	{/if}
 
-	<h2 class="mt-6 text-sm font-semibold text-heading">Candidates I have pledged to vote for</h2>
+	<div class="mt-6 flex flex-col sm:flex-row items-center justify-between">
+		<h2 class="text-sm font-semibold text-heading">My Pledges</h2>
+		<p class="text-sm italic text-muted">Candidates I promise to vote for</p>
+	</div>
 
 	{#if data.pledges.length > 0}
 		<ul class="mt-4 space-y-3">

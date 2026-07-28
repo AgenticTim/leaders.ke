@@ -82,7 +82,7 @@
 	const tileClass = 'block py-2.5 text-center text-sm font-medium text-text transition hover:bg-surface-2 hover:text-heading';
 	// Wraps a row of tiles: one shared dim border round the outside, divided
 	// internally by hairlines instead of every tile drawing (and doubling up) its own.
-	const tileGridClass = 'grid overflow-hidden rounded-md border border-border/60 divide-x divide-y divide-border/60';
+	const tileGridClass = 'grid overflow-hidden rounded-3xl border border-border/60 divide-x divide-y divide-border/60';
 </script>
 
 <header class="sticky top-0 z-40 border-b border-border bg-surface/80 backdrop-blur">
@@ -206,16 +206,13 @@
 		<nav class="border-t border-border bg-surface lg:hidden">
 			<div class="mx-auto max-w-7xl space-y-4 px-2 py-3 sm:px-4">
 				{#if user && isLeaderAccount}
-					<div>
-						<p class="mb-2 text-center text-xs font-semibold tracking-wide text-muted uppercase">My Teams</p>
-						<div class="{tileGridClass} grid-cols-2">
-							{#each myCampaigns as c (c.basePath)}
-								<a href="{c.basePath}/profile" onclick={() => (menuOpen = false)} class={tileClass}>{c.name}</a>
-							{/each}
-							{#if isAdminUser}
-								<a href="/dashboard/admin/profiles" onclick={() => (menuOpen = false)} class={tileClass}>Platform Admin</a>
-							{/if}
-						</div>
+					<div class="{tileGridClass}">
+						{#each myCampaigns as c (c.basePath)}
+							<a href="{c.basePath}/profile" onclick={() => (menuOpen = false)} class={tileClass}>{c.name}</a>
+						{/each}
+						{#if isAdminUser}
+							<a href="/dashboard/admin/profiles" onclick={() => (menuOpen = false)} class={tileClass}>Platform Admin</a>
+						{/if}
 					</div>
 				{/if}
 

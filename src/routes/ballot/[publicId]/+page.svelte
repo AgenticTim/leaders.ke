@@ -102,7 +102,7 @@
 	</div>
 
 	<div class="mt-10 flex flex-col items-center gap-3 text-center">
-		<div class="flex items-center gap-6">
+		<div class="flex items-center gap-4">
 			{#if data.isOwnBallot}
 				<a href="/dashboard/my-vote" class="text-sm font-medium text-primary hover:underline">✓ Saved to My Vote</a>
 			{:else if page.data.user}
@@ -117,11 +117,11 @@
 			{:else}
 				<a
 					href="/signup?next={encodeURIComponent(`/ballot/${data.publicId}?save=1`)}&intent=ballot"
-					class="rounded-full bg-primary px-4 py-2 font-semibold text-on-primary transition hover:brightness-95"
+					class="rounded-full border border-primary px-4 py-2 font-semibold text-primary transition hover:brightness-95"
 				>
 					Save This Vote
 				</a>
-				<a href="/" class="rounded-full bg-primary px-6 py-3 font-semibold text-on-primary transition hover:brightness-95">Simulate Your Vote</a>
+				<a href="/" class="rounded-full bg-primary px-4 py-2 font-semibold text-on-primary transition hover:brightness-95">Simulate Your Vote</a>
 			{/if}
 			<ShareButton title="My 2027 simulated ballot on vote.ke" />
 		</div>
