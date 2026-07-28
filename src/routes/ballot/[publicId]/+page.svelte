@@ -104,7 +104,7 @@
 	<div class="mt-10 flex flex-col items-center gap-3 text-center">
 		<div class="flex items-center gap-4">
 			{#if data.isOwnBallot}
-				<a href="/dashboard/my-vote" class="text-sm font-medium text-primary hover:underline">✓ Saved to My Vote</a>
+				<a href="/dashboard/my-vote" class="text-sm font-medium text-primary hover:underline">✓ Simulation Saved</a>
 			{:else if page.data.user}
 				<form method="post" action="?/saveVote" bind:this={saveVoteForm} use:enhance>
 					<button

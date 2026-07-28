@@ -2,7 +2,6 @@
 	import Avatar from '$lib/components/Avatar.svelte';
 	import BallotDisclaimer from '$lib/components/BallotDisclaimer.svelte';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
 	import { fly } from 'svelte/transition';
 	import GeoSelect from '$lib/components/GeoSelect.svelte';
@@ -20,6 +19,26 @@
 		mca: 'Pick Your MCA'
 	};
 	const SEAT_ORDER: BallotLevel[] = ['president', 'governor', 'senator', 'womanRep', 'mp', 'mca'];
+
+	// Muted subtitle under each seat heading, naming the region it's actually for
+	// (president is national, so it gets none). Only shown once that region is
+	// picked — while it's still missing the heading below already explains that.
+	function levelRegion(level: BallotLevel): string {
+		switch (level) {
+			case 'president':
+				return 'Team Wantam or Tutam?';
+			case 'governor':
+			case 'senator':
+			case 'womanRep':
+				return data.countyName ? `${data.countyName} County` : '';
+			case 'mp':
+				return data.constituencyName ? `${data.constituencyName} Constituency` : '';
+			case 'mca':
+				return data.wardName ? `${data.wardName} Ward` : '';
+			default:
+				return '';
+		}
+	}
 
 	// The booth is a wizard, not a page: one full-viewport step at a time, no
 	// vertical scrolling anywhere — wide option sets wrap into extra columns and
@@ -231,13 +250,16 @@ content slides under the sticky header. -->
 		{#key stepIndex}
 			<div
 				in:fly={{ x: 240, duration: 250 }}
-				class="mx-auto flex h-full w-full max-w-7xl flex-col pt-4 sm:pt-6 px-4 sm:px-6"
+				class="mx-auto flex h-full w-full max-w-7xl flex-col pt-4 sm:pt-8 lg:pt-12 px-4 sm:px-6"
 			>
 				{#if step.kind === 'seat'}
 					{@const candidates = candidatesFor(step.level)}
 					<h1 class="shrink-0 text-center text-2xl font-bold text-heading sm:text-3xl">
 						{LEVEL_HEADING[step.level]}
 					</h1>
+					{#if levelRegion(step.level)}
+						<p class="shrink-0 pt-1 sm:pt-2 lg:pt-4 text-center text-sm text-muted">{levelRegion(step.level)}</p>
+					{/if}
 
 					{#if candidates === null}
 						<div class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">

@@ -261,28 +261,6 @@
 				</div>
 			{/if}
 
-			{#if !preview && data.canClaim}
-				<div class="rounded-3xl bg-primary p-6 text-on-primary">
-					<h2 class="text-lg font-bold text-on-primary">Managing {firstName}?</h2>
-					<p class="mt-2 text-sm text-on-primary/80">
-						Get access to modify this page.
-					</p>
-					<a
-						href="/onboard/profile?profile={leader.slug}"
-						class="mt-4 inline-block rounded-full bg-surface px-5 py-2.5 text-sm font-semibold text-heading transition hover:bg-surface-2"
-					>
-						Claim this profile
-					</a>
-				</div>
-			{:else if !preview && data.isManaged}
-				<div class="rounded-3xl border border-border bg-surface-2 p-6">
-					<h2 class="text-lg font-bold text-heading">Claimed &amp; Managed</h2>
-					<p class="mt-2 text-sm text-muted">
-						<a href="/contact-us" class="font-medium text-primary hover:underline">Contact us</a> if this is a mistake.
-					</p>
-				</div>
-			{/if}
-
 			<div class="rounded-3xl border border-border bg-surface-2 p-6">
 				<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">{data.breadcrumb.positionTitle}{#if data.breadcrumb.regionLabel}, {data.breadcrumb.regionLabel}{/if}</h2>
 				<ul class="mt-3 space-y-2 text-sm">
@@ -331,6 +309,29 @@
 					</div>
 				</div>
 			{/if}
+
+			{#if !preview && data.canClaim}
+				<div class="rounded-3xl bg-primary p-6 text-on-primary">
+					<h2 class="text-lg font-bold text-on-primary">Managing {firstName}?</h2>
+					<p class="mt-2 text-sm text-on-primary/80">
+						Get access to modify this page.
+					</p>
+					<a
+						href="/onboard/profile?profile={leader.slug}"
+						class="mt-4 inline-block rounded-full bg-surface px-5 py-2.5 text-sm font-semibold text-heading transition hover:bg-surface-2"
+					>
+						Claim this profile
+					</a>
+				</div>
+			{:else if !preview && data.isManaged}
+				<div class="rounded-3xl border border-border bg-surface-2 p-6">
+					<h2 class="text-lg font-bold text-heading">Claimed &amp; Managed</h2>
+					<p class="mt-2 text-sm text-muted">
+						<a href="/contact-us" class="font-medium text-primary hover:underline">Contact us</a> if this is a mistake.
+					</p>
+				</div>
+			{/if}
+
 
 		</div>
 	</div>
