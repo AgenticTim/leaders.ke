@@ -3,8 +3,9 @@
 // are only populated for signed-in actions (anonymous follows/pledges have none).
 import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { campaigns, followers, leaders, pledges, positions, posts, users } from '$lib/server/db/schema';
+import { ballotSimulations, campaigns, followers, leaders, pledges, positions, posts, users } from '$lib/server/db/schema';
 import { fullName, leaderPath } from '$lib/server/leader';
+import { BALLOT_LEVELS, resolveCandidateById, type BallotLevel, type Candidate } from '$lib/server/ballot';
 
 export type FollowedLeader = {
 	leaderId: number;
@@ -115,4 +116,43 @@ export async function listMyPledges(userId: number): Promise<MyPledge[]> {
 		region: r.positions.region,
 		pledgedAt: r.pledges.createdAt.toISOString()
 	}));
+}
+
+export type MyBallot = {
+	publicId: string;
+	county: string;
+	constituency: string;
+	ward: string;
+	createdAt: string;
+	results: { level: BallotLevel; candidate: Candidate | null }[];
+};
+
+/** Every simulated ballot linked to this account: cast signed in, or claimed
+ * later via signup/login (claimGuestBallots) or Save Vote on someone else's
+ * shared link, newest first. Each carries its own resolved candidate per level
+ * (never frozen — re-fetched live, same as the /ballot/[publicId] share page),
+ * so the My Vote table can render an actual leader card per cell. */
+export async function listMyBallots(userId: number): Promise<MyBallot[]> {
+	const rows = await db
+		.select()
+		.from(ballotSimulations)
+		.where(eq(ballotSimulations.userId, userId))
+		.orderBy(desc(ballotSimulations.createdAt));
+
+	return Promise.all(
+		rows.map(async (r) => {
+			const selections = r.selections as Record<BallotLevel, string | null>;
+			const results = await Promise.all(
+				BALLOT_LEVELS.map(async (level) => ({ level, candidate: await resolveCandidateById(selections[level] ?? null) }))
+			);
+			return {
+				publicId: r.publicId,
+				county: r.county,
+				constituency: r.constituency,
+				ward: r.ward,
+				createdAt: r.createdAt.toISOString(),
+				results
+			};
+		})
+	);
 }

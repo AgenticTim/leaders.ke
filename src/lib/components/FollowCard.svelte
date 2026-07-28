@@ -9,13 +9,17 @@
 		subjectUserId = null,
 		candidateId = null,
 		county = '',
-		ward = ''
+		ward = '',
+		compact = false
 	}: {
 		candidateName: string;
 		subjectUserId?: number | null;
 		candidateId?: string | null;
 		county?: string;
 		ward?: string;
+		// Smaller trigger button, plain "Follow" instead of "Follow {firstName}" —
+		// for placing it side by side with another button (e.g. Pledge).
+		compact?: boolean;
 	} = $props();
 
 	let open = $state(false);
@@ -32,15 +36,18 @@
 	<button
 		type="button"
 		onclick={() => (open = true)}
-		class="w-full rounded-full border border-primary px-3 py-1.5 text-sm font-semibold text-primary transition hover:bg-primary hover:text-on-primary"
+		aria-label={compact ? `Follow ${candidateName}` : undefined}
+		class="rounded-full border border-primary font-semibold text-primary transition hover:bg-primary hover:text-on-primary {compact
+			? 'px-3 py-1 text-xs'
+			: 'w-full px-3 py-1.5 text-sm'}"
 	>
-		Follow {candidateName.split(/\s+/)[0]}
+		{compact ? 'Follow' : `Follow ${candidateName.split(/\s+/)[0]}`}
 	</button>
 {:else}
 	<form
 		method="post"
 		action="/follow"
-		class="space-y-2"
+		class="w-48 space-y-2"
 		use:enhance={() => {
 			following = true;
 			followError = null;

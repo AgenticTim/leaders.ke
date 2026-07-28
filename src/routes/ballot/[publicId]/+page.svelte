@@ -1,6 +1,11 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import Avatar from '$lib/components/Avatar.svelte';
 	import FollowCard from '$lib/components/FollowCard.svelte';
+	import PledgeButton from '$lib/components/PledgeButton.svelte';
+	import ShareButton from '$lib/components/ShareButton.svelte';
 	import type { BallotLevel } from '$lib/server/ballot';
 	import type { PageData } from './$types';
 
@@ -14,6 +19,23 @@
 		mp: 'Member of Parliament',
 		mca: 'Member of County Assembly'
 	};
+
+	function campaignIdOf(candidateId: string): number | null {
+		if (!candidateId.startsWith('campaign:')) return null;
+		const id = Number(candidateId.slice('campaign:'.length));
+		return Number.isInteger(id) ? id : null;
+	}
+
+	// Landed back here signed in after the signup detour (see the saveVote action).
+	// If the account picked this ballot up on its own (anon_id matched, so it's
+	// already theirs), just clean the URL; otherwise finish saving automatically
+	// instead of making them click again.
+	let saveVoteForm: HTMLFormElement | undefined = $state();
+	$effect(() => {
+		if (page.url.searchParams.get('save') !== '1' || !page.data.user) return;
+		if (data.isOwnBallot) goto(`/ballot/${data.publicId}`, { replaceState: true, keepFocus: true, noScroll: true });
+		else saveVoteForm?.requestSubmit();
+	});
 </script>
 
 <svelte:head>
@@ -60,13 +82,18 @@
 					{/if}
 				</div>
 				{#if candidate}
-					<!-- Follow the candidate you just picked. -->
-					<div class="w-40 shrink-0 sm:w-48">
+					{@const campaignId = campaignIdOf(candidate.candidateId)}
+					<!-- Pledge and Follow the candidate you just picked. -->
+					<div class="flex shrink-0 flex-col sm:flex-row items-center gap-2">
+						{#if campaignId}
+							<PledgeButton {campaignId} candidateName={candidate.name} />
+						{/if}
 						<FollowCard
 							candidateName={candidate.name}
 							candidateId={candidate.candidateId}
 							county={data.countyName}
 							ward={data.wardName}
+							compact
 						/>
 					</div>
 				{/if}
@@ -75,13 +102,30 @@
 	</div>
 
 	<div class="mt-10 flex flex-col items-center gap-3 text-center">
-		<a
-			href="/"
-			class="rounded-full bg-primary px-6 py-3 font-semibold text-on-primary transition hover:brightness-95"
-		>
-			Simulate Your Vote
-		</a>
-		<p class="max-w-3xl text-xs text-muted">
+		<div class="flex items-center gap-6">
+			{#if data.isOwnBallot}
+				<a href="/dashboard/my-vote" class="text-sm font-medium text-primary hover:underline">✓ Saved to My Vote</a>
+			{:else if page.data.user}
+				<form method="post" action="?/saveVote" bind:this={saveVoteForm} use:enhance>
+					<button
+						type="submit"
+						class="rounded-full bg-primary px-4 py-2 font-semibold text-on-primary transition hover:brightness-95"
+					>
+						Save My Vote
+					</button>
+				</form>
+			{:else}
+				<a
+					href="/signup?next={encodeURIComponent(`/ballot/${data.publicId}?save=1`)}&intent=ballot"
+					class="rounded-full bg-primary px-4 py-2 font-semibold text-on-primary transition hover:brightness-95"
+				>
+					Save This Vote
+				</a>
+				<a href="/" class="rounded-full bg-primary px-6 py-3 font-semibold text-on-primary transition hover:brightness-95">Simulate Your Vote</a>
+			{/if}
+			<ShareButton title="My 2027 simulated ballot on vote.ke" />
+		</div>
+		<p class="mt-4 max-w-3xl text-xs text-muted">
 			This is a simulated voting experience for the 2027 General Election. It is not an official
 			ballot, does not register any vote, and results are never tallied or published per candidate.
 			Data is handled under the Kenya Data Protection Act (2019). For official voter information,

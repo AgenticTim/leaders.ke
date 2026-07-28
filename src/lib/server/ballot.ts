@@ -1,11 +1,50 @@
 // Candidate resolution for the homepage ballot simulator. Only surfaces
 // verified 2027 runs (campaigns) — a real ballot lists candidates, which are runs
 // for office, not held terms. ACTIVE_CYCLE (2027) is the cycle this ballot covers.
+import { randomBytes } from 'node:crypto';
+import type { RequestEvent } from '@sveltejs/kit';
 import { and, eq, isNull, isNotNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { ballotSimulations, campaigns, parties, positions, users } from '$lib/server/db/schema';
-import { ACTIVE_CYCLE, fullName, leaderPath } from '$lib/server/leader';
+import { ACTIVE_CYCLE, fullName, getDomainUser, leaderPath } from '$lib/server/leader';
 import type { County, Constituency, Ward } from '$lib/data/geo';
+
+/** Anonymous device id for the long-lived 'anon_id' cookie: 32 hex chars. */
+function anonDeviceId(): string {
+	return randomBytes(16).toString('hex');
+}
+
+/** A fresh /ballot/[publicId] slug. */
+export function newBallotPublicId(): string {
+	return randomBytes(6).toString('hex'); // 12 hex chars, matches ballotSimulations.publicId(12)
+}
+
+/**
+ * Resolves who's acting on the ballot booth or a shared ballot page: a signed-in
+ * domain user, or (for a guest) the long-lived 'anon_id' device cookie, minted on
+ * first use. Shared by casting, pledging to a candidate, and saving someone
+ * else's shared ballot as your own, every write that needs to know "whose is this".
+ */
+export async function resolveVoterIdentity(
+	event: RequestEvent
+): Promise<{ domainUser: Awaited<ReturnType<typeof getDomainUser>> | undefined; anonId: string | null; ip: string | null }> {
+	const domainUser = event.locals.user ? await getDomainUser(event.locals.user.id) : undefined;
+	let anonId: string | null = null;
+	if (!domainUser) {
+		anonId = event.cookies.get('anon_id') ?? null;
+		if (!anonId) {
+			anonId = anonDeviceId();
+			event.cookies.set('anon_id', anonId, { path: '/', httpOnly: true, maxAge: 60 * 60 * 24 * 365 });
+		}
+	}
+	let ip: string | null = null;
+	try {
+		ip = event.getClientAddress();
+	} catch {
+		ip = null;
+	}
+	return { domainUser, anonId, ip };
+}
 
 export type BallotLevel = 'president' | 'governor' | 'senator' | 'womanRep' | 'mp' | 'mca';
 

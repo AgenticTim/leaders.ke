@@ -165,24 +165,25 @@
 				for candidates, current officeholders, and the teams behind them.
 			</p>
 			<div class="mt-8 flex flex-wrap gap-3">
+
+				<a
+					href="/features"
+					class="rounded-full border border-border bg-surface px-6 py-3 font-semibold text-heading transition hover:bg-surface-2"
+				>
+					Features
+				</a>
+				<!-- Citizens belong in the booth; this page sells to leaders. -->
+				<a
+					href="/pricing"
+					class="rounded-full border border-border bg-surface px-6 py-3 font-semibold text-heading transition hover:bg-surface-2"
+				>
+					Pricing
+				</a>
 				<a
 					href="/onboard/profile"
 					class="rounded-full bg-primary px-6 py-3 font-semibold text-on-primary transition hover:brightness-95 focus:ring-0 focus:ring-ring focus:outline-none"
 				>
 					🚀 Get onboard
-				</a>
-				<a
-					href="/presidents"
-					class="rounded-full border border-border bg-surface px-6 py-3 font-semibold text-heading transition hover:bg-surface-2"
-				>
-					Explore leaders
-				</a>
-				<!-- Citizens belong in the booth; this page sells to leaders. -->
-				<a
-					href="/"
-					class="rounded-full border border-border bg-surface px-6 py-3 font-semibold text-heading transition hover:bg-surface-2"
-				>
-					Voter? Cast your ballot
 				</a>
 			</div>
 		</div>
