@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Avatar from '$lib/components/Avatar.svelte';
+	import AuthModal from '$lib/components/auth/AuthModal.svelte';
 	import FollowCard from '$lib/components/FollowCard.svelte';
 	import PledgeButton from '$lib/components/PledgeButton.svelte';
 	import ShareButton from '$lib/components/ShareButton.svelte';
@@ -31,6 +32,7 @@
 	// already theirs), just clean the URL; otherwise finish saving automatically
 	// instead of making them click again.
 	let saveVoteForm: HTMLFormElement | undefined = $state();
+	let authOpen = $state(false);
 	$effect(() => {
 		if (page.url.searchParams.get('save') !== '1' || !page.data.user) return;
 		if (data.isOwnBallot) goto(`/ballot/${data.publicId}`, { replaceState: true, keepFocus: true, noScroll: true });
@@ -115,13 +117,19 @@
 					</button>
 				</form>
 			{:else}
-				<a
-					href="/signup?next={encodeURIComponent(`/ballot/${data.publicId}?save=1`)}&intent=ballot"
+				<button
+					type="button"
+					onclick={() => (authOpen = true)}
 					class="rounded-full border border-primary px-4 py-2 font-semibold text-primary transition hover:brightness-95"
 				>
 					Save This Vote
-				</a>
+				</button>
 				<a href="/" class="rounded-full bg-primary px-4 py-2 font-semibold text-on-primary transition hover:brightness-95">Simulate Your Vote</a>
+				<AuthModal
+					bind:open={authOpen}
+					next="/ballot/{data.publicId}?save=1"
+					message="Create an account to save this ballot and see how your leaders perform."
+				/>
 			{/if}
 			<ShareButton title="My 2027 simulated ballot on vote.ke" />
 		</div>

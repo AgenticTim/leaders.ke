@@ -87,8 +87,7 @@
 
 <header class="sticky top-0 z-40 border-b border-border bg-surface/80 backdrop-blur">
 	<div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-		<a href="/" class="flex items-center gap-2 font-semibold text-heading">
-			<span class="grid size-8 place-items-center rounded-lg bg-primary text-on-primary">V</span>
+		<a href="/" class="flex items-center gap-2 font-semibold text-heading text-2xl">
 			<span>vote<span class="text-primary">.ke</span></span>
 		</a>
 

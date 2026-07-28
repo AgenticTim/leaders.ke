@@ -383,7 +383,7 @@
 		<p class="mt-2 text-sm">Your payment helps us verify your candidature against IEBC records, continuously build and maintain our systems and pay for the infrastructure.</p>
 	</div>
 
-	<!-- Leaders.ke vs a private/DIY campaign platform: features that only exist
+	<!-- Vote.ke vs a private/DIY campaign platform: features that only exist
 	     because other leaders are on this same platform, so a standalone site
 	     can never replicate them regardless of its own budget. -->
 	<h2 class="mt-14 text-2xl font-bold text-heading">Vote KE vs a Private Campaign Platform</h2>

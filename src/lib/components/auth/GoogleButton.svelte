@@ -1,13 +1,18 @@
 <script lang="ts">
-	// "Continue with Google" for the login and signup pages. Posts to the page's
-	// ?/google action, which starts the OAuth flow and 302s to Google — so this is
-	// a plain form (no use:enhance), letting the browser follow the external
-	// redirect natively. `next` rides along as a hidden field since ?/google drops
-	// the page's own query string.
-	let { label = 'Continue with Google', next = '/dashboard' }: { label?: string; next?: string } = $props();
+	// "Continue with Google" for the login and signup pages. Posts to a ?/google
+	// action, which starts the OAuth flow and 302s to Google — so this is a plain
+	// form (no use:enhance), letting the browser follow the external redirect
+	// natively. `next` rides along as a hidden field since ?/google drops the
+	// page's own query string. `action` is overridable with an absolute path
+	// (e.g. "/login?/google") so AuthModal can post it from any page.
+	let {
+		label = 'Continue with Google',
+		next = '/dashboard',
+		action = '?/google'
+	}: { label?: string; next?: string; action?: string } = $props();
 </script>
 
-<form method="post" action="?/google">
+<form method="post" {action}>
 	<input type="hidden" name="next" value={next} />
 	<button
 		type="submit"

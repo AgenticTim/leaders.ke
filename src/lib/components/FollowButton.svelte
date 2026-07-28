@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import AuthModal from '$lib/components/auth/AuthModal.svelte';
 
 	// Signed-in-only follow: posts to the current page's own "?/follow" action
 	// (see /[leader] and /[leader]/[year]'s server files) — no name/contact
-	// capture or OTP confirm, the account itself is the proof. A guest gets a
-	// "Log in to follow" link back to this same page instead of a form.
+	// capture or OTP confirm, the account itself is the proof. A guest gets the
+	// auth modal (back to this same page after) instead of a form.
 	let { candidateName, signedIn, isFollowing = false }: { candidateName: string; signedIn: boolean; isFollowing?: boolean } = $props();
+
+	let authOpen = $state(false);
 
 	const firstName = $derived(candidateName.split(/\s+/)[0]);
 
@@ -19,6 +23,16 @@
 	let justUnfollowed = $state(false);
 	const followed = $derived((isFollowing || justFollowed) && !justUnfollowed);
 	let followError = $state<string | null>(null);
+
+	// Landed back here signed in after the auth-modal detour (?follow=1 rode along
+	// on `next`) — finish the follow automatically instead of making them click
+	// again, then clean the URL. Same resume idiom as the ballot page's ?save=1.
+	let followFormEl: HTMLFormElement | undefined = $state();
+	$effect(() => {
+		if (page.url.searchParams.get('follow') !== '1' || !signedIn) return;
+		if (!followed) followFormEl?.requestSubmit();
+		goto(page.url.pathname, { replaceState: true, keepFocus: true, noScroll: true });
+	});
 </script>
 
 <div class="rounded-3xl border border-border bg-surface p-6">
@@ -66,6 +80,7 @@
 			method="post"
 			action="?/follow"
 			class="mt-4"
+			bind:this={followFormEl}
 			use:enhance={() => {
 				following = true;
 				followError = null;
@@ -91,11 +106,17 @@
 	{:else}
 		<h2 class="text-lg font-bold text-heading">Follow {firstName}</h2>
 		<p class="mt-1 text-sm text-muted">Get updates from {firstName}'s campaign.</p>
-		<a
-			href="/login?next={encodeURIComponent(page.url.pathname)}"
+		<button
+			type="button"
+			onclick={() => (authOpen = true)}
 			class="mt-4 block w-full rounded-full border border-primary px-4 py-2.5 text-center font-semibold text-primary transition hover:bg-primary hover:text-on-primary"
 		>
 			Log in to follow {firstName}
-		</a>
+		</button>
+		<AuthModal
+			bind:open={authOpen}
+			next="{page.url.pathname}?follow=1"
+			message="Log in to follow {candidateName} and get campaign updates."
+		/>
 	{/if}
 </div>

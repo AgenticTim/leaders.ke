@@ -13,9 +13,14 @@
 </script>
 
 <div class="w-full max-w-md rounded-2xl border border-border bg-surface p-8 shadow-sm">
-	<h1 class="text-2xl font-bold text-heading">{title}</h1>
+	<div class="flex items-baseline justify-between text-2xl font-semibold">
+		<h1 class="text-heading">{title}</h1>
+		<a href="/" class="text-heading">
+			<span>vote<span class="text-primary">.ke</span></span>
+		</a>
+	</div>
 	{#if subtitle}
-		<p class="mt-1 text-sm text-muted">{subtitle}</p>
+		<p class="mt-4 text-sm text-muted">{subtitle}</p>
 	{/if}
 
 	<div class="mt-6">
