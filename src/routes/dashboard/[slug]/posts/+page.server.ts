@@ -121,6 +121,7 @@ export const load: PageServerLoad = async (event) => {
 		venue?: string;
 		startAt?: string;
 		sentiment?: string | null; // mentions only: ingest-time tone classification
+		sourceUrl?: string | null; // mentions only: where the coverage lives
 		createdAt: string;
 	};
 
@@ -155,6 +156,7 @@ export const load: PageServerLoad = async (event) => {
 			title: m.post.title,
 			body: m.post.aiSummary ?? m.post.body.slice(0, 160),
 			sentiment: m.post.sentiment,
+			sourceUrl: m.post.sourceUrl,
 			createdAt: m.post.createdAt.toISOString()
 		}))
 	];

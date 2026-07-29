@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page as pageStore } from '$app/state';
 	import Pagination from '$lib/components/admin/Pagination.svelte';
+	import ShareButtons from '$lib/components/ShareButtons.svelte';
 	import RichTextEditor from '$lib/components/RichTextEditor.svelte';
 	import MentionPicker from '$lib/components/MentionPicker.svelte';
 	import { plainText } from '$lib/utils/richtext';
@@ -404,7 +405,11 @@
 						{/if}
 						<div class="mt-3 flex flex-wrap items-center justify-between gap-2">
 							<p class="text-xs text-muted">{item.views ?? 0} views · {item.votes ?? 0} likes</p>
-							<div class="flex gap-2">
+							<div class="flex flex-wrap gap-2">
+								{#if item.isPublic && item.slug}
+									<!-- Cross-post the public article (7.3): intent links, no connector needed. -->
+									<ShareButtons text={item.title} url="{pageStore.url.origin}/news/{item.slug}" />
+								{/if}
 								<button
 									type="button"
 									onclick={() => startEdit(item)}
@@ -436,12 +441,18 @@
 						<p class="mt-3 text-sm leading-relaxed whitespace-pre-line">{item.body}</p>
 					{:else}
 						<p class="mt-2 text-sm leading-relaxed">{item.body}</p>
-						<form method="post" action="?/draftResponse" class="mt-3" use:enhance>
-							<input type="hidden" name="postId" value={item.id} />
-							<button type="submit" class="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-on-primary transition hover:brightness-95">
-								Draft response
-							</button>
-						</form>
+						<div class="mt-3 flex flex-wrap items-center gap-2">
+							<form method="post" action="?/draftResponse" use:enhance>
+								<input type="hidden" name="postId" value={item.id} />
+								<button type="submit" class="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-on-primary transition hover:brightness-95">
+									Draft response
+								</button>
+							</form>
+							{#if item.sourceUrl}
+								<!-- Amplify (or rebut) the coverage itself on the campaign's socials. -->
+								<ShareButtons text={item.title} url={item.sourceUrl} />
+							{/if}
+						</div>
 					{/if}
 				</li>
 			{:else}
