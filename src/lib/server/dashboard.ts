@@ -5,7 +5,8 @@ import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { getDomainUser, getLeaderContext, getLeaderContextBySlug, isPlatformAdmin, type LeaderContext } from '$lib/server/leader';
-import { contacts as contactsTable, managers, type users } from '$lib/server/db/schema';
+import { contacts as contactsTable, managers, users as usersTable, type users } from '$lib/server/db/schema';
+import { user as authUser } from '$lib/server/db/auth.schema';
 
 // A one-shot flag set right before a login/signup redirect lands on plain
 // '/dashboard' (never on an explicit next= like an invite link — see the login
@@ -106,24 +107,40 @@ export async function getRouteLeaderContext(
 }
 
 /**
- * The viewer's own OTP-verified contacts, keyed for the contact forms: typing a
+ * The viewer's own proven contacts, keyed for the contact forms: typing a
  * value they already proved control of shows "✓ Verified" immediately — no
  * second OTP round-trip on any profile they create, claim, or manage.
+ * Proof comes from OTP-verified contacts rows PLUS the account's own login
+ * email when better-auth marks it verified — some accounts (OAuth signups
+ * before the hook wrote rows, seeded demo logins) verified their email
+ * without a contacts row ever being written.
  */
 export async function ownVerifiedContacts(claimantId: number) {
 	const rows = await db
 		.select({ channel: contactsTable.channel, value: contactsTable.value })
 		.from(contactsTable)
 		.where(and(eq(contactsTable.userId, claimantId), isNotNull(contactsTable.verifiedAt), isNull(contactsTable.deletedAt)));
+
+	const [login] = await db
+		.select({ email: authUser.email })
+		.from(usersTable)
+		.innerJoin(authUser, eq(usersTable.authUserId, authUser.id))
+		.where(and(eq(usersTable.id, claimantId), eq(authUser.emailVerified, true)));
+	const loginEmail = login?.email?.toLowerCase() ?? null;
+
 	const byChannel = (channel: string) => rows.filter((c) => c.channel === channel).map((c) => c.value);
 	// sms and whatsapp share one phone number pool: proving control of a number on
 	// either channel counts as verified on both, so typing it into the other
 	// field also shows "✓ Verified" instead of another OTP round-trip.
 	const phone = [...new Set([...byChannel('sms'), ...byChannel('whatsapp')])];
+	const email = [...new Set([...byChannel('email'), ...(loginEmail ? [loginEmail] : [])])];
 	return {
-		check: (channel: string, value: string) =>
-			!!value && rows.some((c) => c.value === value && (channel === 'sms' || channel === 'whatsapp' ? c.channel === 'sms' || c.channel === 'whatsapp' : c.channel === channel)),
-		lists: { sms: phone, whatsapp: phone, email: byChannel('email') }
+		check: (channel: string, value: string) => {
+			if (!value) return false;
+			if (channel === 'email' && loginEmail && value.toLowerCase() === loginEmail) return true;
+			return rows.some((c) => c.value === value && (channel === 'sms' || channel === 'whatsapp' ? c.channel === 'sms' || c.channel === 'whatsapp' : c.channel === channel));
+		},
+		lists: { sms: phone, whatsapp: phone, email }
 	};
 }
 

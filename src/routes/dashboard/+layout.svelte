@@ -276,9 +276,21 @@
 
 		<div class="flex flex-wrap items-center justify-between gap-2 w-full">
 			{#if mode === 'campaign' && data.leaderContext}
-				<p class="text-sm text-muted">
-					{data.leaderContext.positionTitle}, {data.leaderContext.region}
-					· <span class="capitalize">{data.leaderContext.status}</span>
+				<!-- A fresh application has no seat yet (Campaign tab unsaved), so the
+				seat fragment and its separators only render once a title exists.
+				While required fields are outstanding, the checklist replaces the
+				status word here — the sole "Required:" line in the layout. -->
+				<p class="text-sm text-muted flex flex-wrap gap-1">
+					{#if data.leaderContext.positionTitle}
+						{data.leaderContext.positionTitle}{data.leaderContext.region
+							? `, ${data.leaderContext.region}`
+							: ''} ·
+					{/if}
+					{#if data.application && missingFields.length > 0}
+						<span>Required: </span>{missingFields.join(', ')}
+					{:else}
+						<span class="capitalize">{data.leaderContext.status}</span>
+					{/if}
 				</p>
 				{#if data.leaderContext.verified}
 					<span class="shrink-0 rounded-full bg-primary-soft px-4 py-1.5 text-xs font-semibold text-on-primary">✓ Profile Verified</span>
@@ -429,23 +441,6 @@
 				<input type="hidden" name="next" value={page.url.pathname} />
 				<input type="hidden" name="action" bind:this={adminActionEl} />
 			</form>
-		</div>
-	{/if}
-
-	<!-- Consolidated checklist: collapsed to just its title, click to expand the
-	full list of what's still outstanding across every tab. -->
-	<!-- The layout load computes `application` off the viewer's own context even on
-	citizen pages, so also gate on the mode the checklist belongs to. -->
-	{#if data.application && mode === 'campaign'}
-		<div class="flex items-center">
-			{#if missingFields.length > 0}
-				<div class="mt-3 flex flex-wrap gap-1.5 text-sm text-muted">
-					<span class="">Required: </span>
-					{#each missingFields as field, i (field)}
-					<span>{field}{i < missingFields.length - 1 ? ',' : ''}</span>
-					{/each}
-				</div>
-			{/if}
 		</div>
 	{/if}
 
