@@ -7,6 +7,7 @@
 	import FollowCard from '$lib/components/FollowCard.svelte';
 	import PledgeButton from '$lib/components/PledgeButton.svelte';
 	import ShareButton from '$lib/components/ShareButton.svelte';
+	import WhatsAppShareButton from '$lib/components/WhatsAppShareButton.svelte';
 	import type { BallotLevel } from '$lib/server/ballot';
 	import type { PageData } from './$types';
 
@@ -109,7 +110,7 @@
 	</div>
 
 	<div class="mt-10 flex flex-col items-center gap-3 text-center">
-		<div class="flex items-center gap-4">
+		<div class="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
 			{#if data.isOwnBallot}
 				<a href="/dashboard/my-vote" class="text-sm font-medium text-primary hover:underline">✓ Simulation Saved</a>
 			{:else if page.data.user}
@@ -122,13 +123,6 @@
 					</button>
 				</form>
 			{:else}
-				<button
-					type="button"
-					onclick={() => (authOpen = true)}
-					class="rounded-full border border-primary px-4 py-2 font-semibold text-primary transition hover:brightness-95"
-				>
-					Save This Vote
-				</button>
 				<a href="/" class="rounded-full bg-primary px-4 py-2 font-semibold text-on-primary transition hover:brightness-95">Simulate Your Vote</a>
 				<AuthModal
 					bind:open={authOpen}
@@ -137,6 +131,7 @@
 				/>
 			{/if}
 			<ShareButton title="My 2027 simulated ballot on vote.ke" />
+			<WhatsAppShareButton text="I'll vote for these leaders in 2027:" />
 		</div>
 		<p class="mt-4 max-w-3xl text-xs text-muted">
 			This is a simulated voting experience for the 2027 General Election. It is not an official
