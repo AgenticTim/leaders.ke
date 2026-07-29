@@ -759,6 +759,10 @@ export const subscriptions = pgTable('subscriptions', {
   paymentMethod: varchar('payment_method', { length: 30 }), // 'mpesa' | 'card' | 'bank'
   paymentReference: varchar('payment_reference', { length: 100 }).unique(), // gateway transaction id, for idempotent webhook handling
   cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+  // Renewal-sweep bookkeeping (see $lib/server/subscriptionSweep.ts): each email
+  // fires once per subscription, stamped here so repeated sweeps stay silent.
+  renewalReminderSentAt: timestamp('renewal_reminder_sent_at', { withTimezone: true }),
+  expiryNotifiedAt: timestamp('expiry_notified_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [

@@ -309,6 +309,10 @@ export async function notifyPayerOfPayment(opts: {
 	cycle: string;
 	amount: number;
 	subscriptionEndsAt: Date;
+	/** Gateway reference + channel, when a real charge carries them — turns the
+	 * thank-you into a proper receipt the payer can reconcile against M-Pesa/bank. */
+	reference?: string;
+	method?: string;
 }) {
 	const [subject] = await db.select({ firstName: users.firstName, otherNames: users.otherNames }).from(users).where(eq(users.id, opts.subjectUserId));
 	const profileName = subject ? fullName(subject) : 'your profile';
@@ -316,12 +320,13 @@ export async function notifyPayerOfPayment(opts: {
 	const cycleLabel = opts.cycle.charAt(0).toUpperCase() + opts.cycle.slice(1);
 	const amountLabel = new Intl.NumberFormat('en-KE').format(opts.amount);
 	const endsAtLabel = opts.subscriptionEndsAt.toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' });
+	const receiptLine = opts.reference ? ` Receipt: ${opts.reference}${opts.method ? ` (${opts.method})` : ''}.` : '';
 
 	await notifyUser(opts.payerUserId, {
 		kind: 'claim',
-		title: 'Thanks for your payment',
+		title: 'Payment receipt — thank you',
 		// href covers the dashboard link (notifyUser appends it as a "Click here…" link).
-		body: `Thanks for your payment of KES ${amountLabel} for ${profileName}'s ${tierLabel} plan (${cycleLabel}). Your subscription runs until ${endsAtLabel}.`,
+		body: `Thanks for your payment of KES ${amountLabel} for ${profileName}'s ${tierLabel} plan (${cycleLabel}). Your subscription runs until ${endsAtLabel}.${receiptLine}`,
 		href: `/dashboard/${opts.slug}/profile`,
 		linkLabel: 'Click here to access your dashboard'
 	});

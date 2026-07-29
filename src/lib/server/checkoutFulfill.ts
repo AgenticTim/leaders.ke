@@ -98,7 +98,9 @@ export async function fulfillSubscriptionPayment(
 			tier: meta.tier,
 			cycle: meta.cycle,
 			amount: meta.amount,
-			subscriptionEndsAt: endsAt
+			subscriptionEndsAt: endsAt,
+			reference,
+			method: verified.method
 		});
 
 		return { ok: true, slug: result.slug };
