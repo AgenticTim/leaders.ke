@@ -1,9 +1,28 @@
 // Account-less candidate follows written to the `followers` table, mirroring
 // the campaign page's ?/follow action (same validation, same app-layer dedupe,
 // same digest shape) so rows are indistinguishable regardless of entry point.
-import { and, eq, isNull, or } from 'drizzle-orm';
+import { and, count, eq, isNull, or } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { campaigns, followers, users } from '$lib/server/db/schema';
+import { getPersonTier } from '$lib/server/invites';
+import { getPackageFeatures } from '$lib/server/packages';
+
+/** The package's citizen-subscriptions cap (null = unlimited): a campaign at
+ * its cap takes no NEW followers until it upgrades — the tier gate the pricing
+ * table sells as 10,000 / 100,000 / Unlimited. Existing follows are never
+ * dropped by a downgrade; only new ones are blocked. */
+async function followerCapReached(subjectUserId: number): Promise<boolean> {
+	const tier = await getPersonTier(subjectUserId);
+	const cap = (await getPackageFeatures(tier))?.subscriptions ?? null;
+	if (cap === null) return false;
+	const [{ n }] = await db
+		.select({ n: count() })
+		.from(followers)
+		.where(and(eq(followers.digest, 'leader'), eq(followers.digestId, subjectUserId), isNull(followers.deletedAt)));
+	return n >= cap;
+}
+
+const CAP_MESSAGE = "This campaign has reached its package's follower limit.";
 
 export type FollowInput = {
 	name: string;
@@ -73,6 +92,8 @@ export async function followLeader(input: FollowInput): Promise<{ ok: true; name
 		return { ok: false, error: 'You already follow this candidate with that contact.' };
 	}
 
+	if (await followerCapReached(subjectUserId)) return { ok: false, error: CAP_MESSAGE };
+
 	await db.insert(followers).values({
 		name,
 		emailAddress,
@@ -114,6 +135,8 @@ export async function followAsAccount(domainUserId: number, subjectUserId: numbe
 		.where(and(eq(followers.userId, domainUserId), eq(followers.digest, 'leader'), eq(followers.digestId, subjectUserId), isNull(followers.deletedAt)))
 		.limit(1);
 	if (duplicate.length > 0) return { ok: false, error: 'You already follow this candidate.' };
+
+	if (await followerCapReached(subjectUserId)) return { ok: false, error: CAP_MESSAGE };
 
 	await db.insert(followers).values({
 		userId: domainUserId,

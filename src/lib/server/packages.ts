@@ -22,6 +22,12 @@ export const BILLING_CYCLES = ['monthly', 'annual'] as const;
 type SubscriptionTier = (typeof SUBSCRIPTION_TIERS)[number];
 type BillingCycle = (typeof BILLING_CYCLES)[number];
 
+/** Tier order for feature gates: a feature sold as "Mobilize and up" checks
+ * tierAtLeast(tier, 'mobilize') instead of enumerating tiers at every gate. */
+export function tierAtLeast(tier: SubscriptionTier, min: SubscriptionTier): boolean {
+	return SUBSCRIPTION_TIERS.indexOf(tier) >= SUBSCRIPTION_TIERS.indexOf(min);
+}
+
 /** Every currently-active rate (activeTo is null), one per (tier, cycle). */
 export async function listCurrentPricing(): Promise<PricingRow[]> {
 	const rows = await db.select().from(pricing).where(isNull(pricing.activeTo));

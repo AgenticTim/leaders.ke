@@ -12,6 +12,7 @@ import { user as authUsers } from '$lib/server/db/auth.schema';
 import { activeTermForPerson, fullName, getRunCampaign } from '$lib/server/leader';
 import { sendEmail } from '$lib/server/email';
 import { getPlatformSettings } from '$lib/server/settings';
+import { getPackageFeatures } from '$lib/server/packages';
 
 /** This person's current paid tier, defaulting to the lowest tier ('kickstart')
  * when they have no active subscription (billing is user-scoped). */
@@ -39,6 +40,25 @@ export async function emailHasAccount(email: string): Promise<boolean> {
  * they're not an existing team member here (caller should fall back to a normal
  * emailed invite).
  */
+/** The package's active-role cap (managers 2/5/∞, ambassadors 10/100/∞ per the
+ * pricing table). Counts ACTIVE role rows, not invites — freeing a seat by
+ * deactivating someone makes room again. Throws the upgrade prompt on a full team. */
+export async function assertRoleCapacity(subjectUserId: number, role: 'manager' | 'ambassador'): Promise<void> {
+	const tier = await getPersonTier(subjectUserId);
+	const features = await getPackageFeatures(tier);
+	const cap = (role === 'manager' ? features?.managers : features?.ambassadors) ?? null;
+	if (cap === null) return;
+
+	const table = role === 'manager' ? managers : ambassadors;
+	const [{ n }] = await db
+		.select({ n: count() })
+		.from(table)
+		.where(and(eq(table.subjectUserId, subjectUserId), eq(table.isActive, true), isNull(table.deletedAt)));
+	if (n >= cap) {
+		throw new Error(`The ${tier} package allows up to ${cap} active ${role}s. Upgrade the package to add more.`);
+	}
+}
+
 export async function tryDirectGrant(subjectUserId: number, role: 'manager' | 'ambassador', email: string): Promise<{ userId: number } | null> {
 	const normalizedEmail = email.trim().toLowerCase();
 
@@ -62,8 +82,10 @@ export async function tryDirectGrant(subjectUserId: number, role: 'manager' | 'a
 	if (!isManager && !isAmbassador) return null;
 
 	if (role === 'manager' && !isManager) {
+		await assertRoleCapacity(subjectUserId, 'manager');
 		await db.insert(managers).values({ userId: account.userId, subjectUserId, roles: {} });
 	} else if (role === 'ambassador' && !isAmbassador) {
+		await assertRoleCapacity(subjectUserId, 'ambassador');
 		await db.insert(ambassadors).values({ userId: account.userId, subjectUserId, roles: {} });
 	}
 	return { userId: account.userId };
@@ -142,6 +164,11 @@ export async function createInvite(
 	if (lifetimeCount >= limit) {
 		throw new Error(`This team has reached its lifetime invite limit (${limit}) for the ${tier} package.`);
 	}
+
+	// Package cap on ACTIVE role seats, distinct from the lifetime-invite spam
+	// guard above: a full manager/ambassador roster blocks the invite up front
+	// rather than after the invitee accepts.
+	if (role === 'manager' || role === 'ambassador') await assertRoleCapacity(subjectUserId, role);
 
 	await db
 		.update(invites)
@@ -335,6 +362,13 @@ export async function acceptInvite(token: string, userId: number, signedInEmail:
 			.from(managers)
 			.where(and(eq(managers.userId, userId), eq(managers.subjectUserId, invite.subjectUserId), isNull(managers.deletedAt)));
 		if (!existing) {
+			// The roster may have filled between invite and acceptance — the seat
+			// cap holds at the door too, not just at invite time.
+			try {
+				await assertRoleCapacity(invite.subjectUserId, 'manager');
+			} catch (err) {
+				return { ok: false as const, error: err instanceof Error ? err.message : 'The team is full.' };
+			}
 			await db.insert(managers).values({ userId, subjectUserId: invite.subjectUserId, roles: {} });
 		}
 	} else if (invite.role === 'ambassador') {
@@ -347,6 +381,11 @@ export async function acceptInvite(token: string, userId: number, signedInEmail:
 				and(eq(ambassadors.userId, userId), eq(ambassadors.subjectUserId, invite.subjectUserId), isNull(ambassadors.deletedAt))
 			);
 		if (!existing) {
+			try {
+				await assertRoleCapacity(invite.subjectUserId, 'ambassador');
+			} catch (err) {
+				return { ok: false as const, error: err instanceof Error ? err.message : 'The team is full.' };
+			}
 			await db.insert(ambassadors).values({ userId, subjectUserId: invite.subjectUserId, roles: {} });
 		}
 	} else {
