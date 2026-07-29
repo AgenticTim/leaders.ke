@@ -8,8 +8,9 @@
 
 	// The hero headline is two cycling halves: any left word reads naturally with
 	// any right word, so the pairs don't need to line up.
-	const leftSet = ['Leadership', 'Campaign', 'Publicity', 'Coalition', 'Advocacy', 'Citizen\'s', 'Movement'];
-	const rightSet = ['Launchpad', 'Copilot', 'Panel', 'Catalyst', 'Arsenal', 'Companion', 'Machinery'];
+	const leftSet = ['Leadership', 'Campaign', 'Publicity'];
+	const rightSet = ['Launchpad', 'Copilot', 'Panel'];
+
 
 	// Campaign toolkit grid: what a subscription buys. `live` distinguishes
 	// shipped features from roadmap items (badged "Coming soon") — the badge
@@ -97,28 +98,6 @@
 			quote: 'We treat the profile link like our digital office. It goes on every poster we print.',
 			name: 'Communications lead',
 			role: 'Senatorial campaign, Nairobi'
-		}
-	];
-
-	// Placeholder news until the aggregation pipeline (Phase 5) lands.
-	const promotedNews = [
-		{
-			tag: 'Finance Bill',
-			title: 'Aspirants weigh in on the 2027 fiscal framework',
-			summary: 'Twelve verified candidates published positions on the proposed tax changes this week.',
-			time: '2h ago'
-		},
-		{
-			tag: 'Youth & Jobs',
-			title: 'Gen Z voter registration drive crosses 500k',
-			summary: 'Campaign ambassadors mobilized first-time voters across 23 counties.',
-			time: '5h ago'
-		},
-		{
-			tag: 'Devolution',
-			title: 'County manifestos compared side by side',
-			summary: 'vote.ke digest breaks down health and water pledges by region.',
-			time: '1d ago'
 		}
 	];
 
@@ -310,29 +289,6 @@
 	</div>
 </section>
 
-<!-- Promoted news: the public civic layer; later fed by the PR desk pipeline -->
-<section class="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-	<div class="mb-8">
-		<h2 class="text-2xl font-bold text-heading">Latest civic news</h2>
-		<p class="mt-1 text-sm text-muted">Aggregated daily from verified media, tagged to leaders</p>
-	</div>
-
-	<div class="grid gap-4 md:grid-cols-3">
-		{#each promotedNews as item (item.title)}
-			<article class="flex flex-col rounded-2xl border border-border bg-surface p-6">
-				<span
-					class="w-fit rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-on-primary"
-				>
-					{item.tag}
-				</span>
-				<h3 class="mt-3 font-semibold text-heading">{item.title}</h3>
-				<p class="mt-2 flex-1 text-sm leading-relaxed">{item.summary}</p>
-				<p class="mt-4 text-xs text-muted">{item.time}</p>
-			</article>
-		{/each}
-	</div>
-</section>
-
 <!-- Pricing teaser + CTA -->
 <section class="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
 	<div
@@ -347,7 +303,7 @@
 				href="/onboard/profile"
 				class="rounded-full bg-surface px-6 py-3 font-semibold text-heading transition hover:bg-surface-2"
 			>
-				Launch Your Campaign
+				🚀 Launch Your Campaign
 			</a>
 		</div>
 	</div>
