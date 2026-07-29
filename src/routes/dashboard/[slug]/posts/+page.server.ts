@@ -13,6 +13,8 @@ import type { Actions, PageServerLoad } from './$types';
 // merged into one feed (was split across /posts and /pr). Broadcasts (medium
 // email/sms/whatsapp) still live under /dashboard/broadcasts.
 const CRISIS_THRESHOLD_24H = 3;
+// Negative-tone mentions in 24h that alone flag a crisis, whatever the volume.
+const NEGATIVE_THRESHOLD_24H = 2;
 
 export const load: PageServerLoad = async (event) => {
 	const { ctx } = await requireLeader(event);
@@ -30,7 +32,7 @@ export const load: PageServerLoad = async (event) => {
 	const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 	const mentionFilter = and(eq(tags.subjectUserId, ctx.profileUser.id), isNull(tags.deletedAt), isNull(posts.deletedAt));
 
-	const [ownPosts, mentionRows, dayRow, eventRows] = await Promise.all([
+	const [ownPosts, mentionRows, dayRow, negative24h, eventRows] = await Promise.all([
 		db.select().from(posts).where(ownPostFilter).orderBy(desc(posts.createdAt)),
 		db
 			.select({ tagId: tags.id, post: posts })
@@ -42,6 +44,13 @@ export const load: PageServerLoad = async (event) => {
 			.select({ n: count() })
 			.from(tags)
 			.where(and(eq(tags.subjectUserId, ctx.profileUser.id), isNull(tags.deletedAt), gte(tags.createdAt, dayAgo)))
+			.then(([r]) => r.n),
+		// Negative-tone mentions in the same window — the second crisis trigger.
+		db
+			.select({ n: count() })
+			.from(tags)
+			.innerJoin(posts, eq(tags.postId, posts.id))
+			.where(and(eq(tags.subjectUserId, ctx.profileUser.id), isNull(tags.deletedAt), gte(tags.createdAt, dayAgo), eq(posts.sentiment, 'negative'), isNull(posts.deletedAt)))
 			.then(([r]) => r.n),
 		ctx.campaignId
 			? db
@@ -111,6 +120,7 @@ export const load: PageServerLoad = async (event) => {
 		views?: number;
 		venue?: string;
 		startAt?: string;
+		sentiment?: string | null; // mentions only: ingest-time tone classification
 		createdAt: string;
 	};
 
@@ -144,6 +154,7 @@ export const load: PageServerLoad = async (event) => {
 			tagId: m.tagId,
 			title: m.post.title,
 			body: m.post.aiSummary ?? m.post.body.slice(0, 160),
+			sentiment: m.post.sentiment,
 			createdAt: m.post.createdAt.toISOString()
 		}))
 	];
@@ -180,7 +191,10 @@ export const load: PageServerLoad = async (event) => {
 		authorName: fullName(ctx.profileUser),
 		tags: allTags,
 		mentions24h: dayRow,
-		crisis: dayRow >= CRISIS_THRESHOLD_24H,
+		negative24h,
+		// Crisis is volume OR tone: a burst of coverage, or several negative
+		// stories even at normal volume — either way, respond before it sets.
+		crisis: dayRow >= CRISIS_THRESHOLD_24H || negative24h >= NEGATIVE_THRESHOLD_24H,
 		drafts: ownPosts.filter((p) => !p.public).map((d) => ({ id: d.id, title: d.title })),
 		editTarget
 	};

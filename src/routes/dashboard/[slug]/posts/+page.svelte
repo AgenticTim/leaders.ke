@@ -98,7 +98,13 @@
 
 {#if data.crisis}
 	<div class="mb-6 rounded-2xl border border-primary bg-primary-soft p-5">
-		<p class="font-bold text-on-primary">⚠ Coverage spike: {data.mentions24h} mentions in 24 hours</p>
+		<p class="font-bold text-on-primary">
+			{#if data.negative24h > 0}
+				⚠ Coverage turning: {data.negative24h} negative of {data.mentions24h} mention{data.mentions24h === 1 ? '' : 's'} in 24 hours
+			{:else}
+				⚠ Coverage spike: {data.mentions24h} mentions in 24 hours
+			{/if}
+		</p>
 		<p class="mt-1 text-sm text-on-primary/90">
 			Review the mentions below and get a response out before the story settles without your side.
 		</p>
@@ -352,16 +358,30 @@
 								{/if}
 							</p>
 						</div>
-						<span
-							class="rounded-full px-2.5 py-0.5 text-xs font-semibold {item.kind === 'event'
-								? 'bg-surface-2 text-heading'
-								: item.kind === 'mention'
-									? 'border border-border bg-surface-2 text-muted'
-									: item.isPublic
-										? 'bg-primary-soft text-on-primary'
-										: 'border border-border bg-surface-2 text-muted'}"
-						>
-							{item.kind === 'event' ? 'Event' : item.kind === 'mention' ? 'Mention' : item.isPublic ? 'Public' : 'Draft'}
+						<span class="flex shrink-0 items-center gap-1.5">
+							{#if item.kind === 'mention' && item.sentiment}
+								<!-- Tone chip from ingest-time classification (7.2). -->
+								<span
+									class="rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize {item.sentiment === 'negative'
+										? 'bg-red-500/15 text-red-600'
+										: item.sentiment === 'positive'
+											? 'bg-primary-soft text-on-primary'
+											: 'border border-border bg-surface-2 text-muted'}"
+								>
+									{item.sentiment}
+								</span>
+							{/if}
+							<span
+								class="rounded-full px-2.5 py-0.5 text-xs font-semibold {item.kind === 'event'
+									? 'bg-surface-2 text-heading'
+									: item.kind === 'mention'
+										? 'border border-border bg-surface-2 text-muted'
+										: item.isPublic
+											? 'bg-primary-soft text-on-primary'
+											: 'border border-border bg-surface-2 text-muted'}"
+							>
+								{item.kind === 'event' ? 'Event' : item.kind === 'mention' ? 'Mention' : item.isPublic ? 'Public' : 'Draft'}
+							</span>
 						</span>
 					</div>
 

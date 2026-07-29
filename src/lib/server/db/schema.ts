@@ -524,6 +524,10 @@ export const posts = pgTable('posts', {
   aiSummary: text('ai_summary'),
   manualSummary: text('manual_summary'),
   medium: varchar('medium', { length: 50 }).notNull(), // 'web' | 'sms' | 'whatsapp'
+  // Tone of an aggregated mention (creatorId null): 'positive' | 'neutral' |
+  // 'negative', classified at ingest (see $lib/server/newsIngest.ts). Null for
+  // a team's own posts and for mentions not yet classified.
+  sentiment: varchar('sentiment', { length: 10 }),
   approved: boolean('approved').default(false).notNull(),
   public: boolean('public').default(false).notNull(),
   votes: integer('votes').default(0).notNull(), // "likes" in the News CMS

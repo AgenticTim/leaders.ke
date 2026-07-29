@@ -184,3 +184,46 @@ export async function answerConstituentQuestion(
 	}
 	return { answer: heuristicAnswer(leader, question), source: 'heuristic' };
 }
+
+// ── Mention sentiment (TODO 7.2) ────────────────────────────────────────────
+
+export type MentionSentiment = 'positive' | 'neutral' | 'negative';
+
+// Heuristic fallback lexicon for keyless dev: crude, but it keeps the PR desk's
+// sentiment surfaces testable without an API key. Kenyan-press verbs included.
+const NEGATIVE_WORDS = /scandal|corrupt|probe|arrest|slam|blast|fraud|court|sued|impeach|critici[sz]|accus|attack|fail|loss|graft|misuse|crisis|protest|clash|fake|stolen|bribe|dismiss|reject|condemn|storm out|walked out|heckle/i;
+const POSITIVE_WORDS = /launch|win|won|praise|commission|award|deliver|celebrat|endors|donat|unveil|boost|champion|honou?r|graduat|empower|support|open(s|ed) (a|the|new)|lauded|applaud/i;
+
+function heuristicSentiment(text: string): MentionSentiment {
+	const negative = NEGATIVE_WORDS.test(text);
+	const positive = POSITIVE_WORDS.test(text);
+	if (negative && !positive) return 'negative';
+	if (positive && !negative) return 'positive';
+	return 'neutral';
+}
+
+/** Classifies one news mention's tone TOWARD the named leader. Haiku (cheap,
+ * one word out) when a key is set; the keyword heuristic otherwise or on any
+ * API failure — sentiment must never make ingestion itself fail. */
+export async function classifyMentionSentiment(leaderName: string, title: string, body: string): Promise<MentionSentiment> {
+	const text = `${title}\n${body}`.slice(0, 2000);
+	if (!env.ANTHROPIC_API_KEY) return heuristicSentiment(text);
+
+	try {
+		const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+		const response = await client.messages.create({
+			model: 'claude-haiku-4-5-20251001',
+			max_tokens: 5,
+			system:
+				'You classify Kenyan political news coverage. Reply with exactly one word - positive, neutral, or negative - describing the tone of the article TOWARD the named politician (not the general mood of the story).',
+			messages: [{ role: 'user', content: `Politician: ${leaderName}\n\nArticle:\n${text}` }]
+		});
+		const word = response.content.find((b) => b.type === 'text')?.text.trim().toLowerCase() ?? '';
+		if (word.includes('positive')) return 'positive';
+		if (word.includes('negative')) return 'negative';
+		return 'neutral';
+	} catch (err) {
+		console.error('[news] sentiment classification failed, using heuristic:', err instanceof Error ? err.message : err);
+		return heuristicSentiment(text);
+	}
+}

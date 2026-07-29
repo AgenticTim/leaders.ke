@@ -13,6 +13,7 @@ import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { campaigns, leaders, posts, tags, users } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName } from '$lib/server/leader';
+import { classifyMentionSentiment } from '$lib/server/ai';
 
 const MAX_ITEMS_PER_PERSON = 5; // newest few per run — a daily cadence never needs more
 const FETCH_DELAY_MS = 400; // sequential + spaced: a polite crawler Google won't throttle
@@ -102,6 +103,7 @@ async function ingestForPerson(person: { userId: number; name: string }): Promis
 			.where(and(eq(posts.title, item.title.slice(0, 255)), eq(tags.subjectUserId, person.userId), isNull(posts.deletedAt)));
 		if (byTitle) continue;
 
+		const sentiment = await classifyMentionSentiment(person.name, item.title, item.description);
 		const [post] = await db
 			.insert(posts)
 			.values({
@@ -109,6 +111,7 @@ async function ingestForPerson(person: { userId: number; name: string }): Promis
 				body: item.description || item.title,
 				sourceUrl: item.link,
 				medium: 'web',
+				sentiment,
 				approved: true,
 				public: true,
 				...(item.pubDate && !isNaN(item.pubDate.getTime()) ? { createdAt: item.pubDate } : {})
@@ -139,5 +142,25 @@ export async function ingestNews(opts: { limitPeople?: number } = {}): Promise<{
 		}
 		await new Promise((r) => setTimeout(r, FETCH_DELAY_MS));
 	}
+
+	await backfillSentiment();
+
 	return { people: people.length, inserted, failed };
+}
+
+/** Classifies mentions that predate sentiment (seeded demo rows, articles
+ * ingested before 7.2) — a bounded batch per run, so a large backlog drains
+ * across a few daily sweeps instead of burning one giant API session. */
+async function backfillSentiment(batch = 40): Promise<void> {
+	const rows = await db
+		.select({ id: posts.id, title: posts.title, body: posts.body, taggedUserId: tags.subjectUserId })
+		.from(posts)
+		.innerJoin(tags, eq(tags.postId, posts.id))
+		.where(and(isNull(posts.creatorId), isNull(posts.sentiment), isNull(posts.deletedAt), isNull(tags.deletedAt)))
+		.limit(batch);
+	for (const row of rows) {
+		const [person] = await db.select({ firstName: users.firstName, otherNames: users.otherNames }).from(users).where(eq(users.id, row.taggedUserId));
+		const sentiment = await classifyMentionSentiment(person ? fullName(person) : '', row.title, row.body);
+		await db.update(posts).set({ sentiment }).where(eq(posts.id, row.id));
+	}
 }
