@@ -11,6 +11,8 @@
 
 	// While the quick search is expanded it covers the nav links' space.
 	let searchOpen = $state(false);
+	// Mobile-only: whether the full-width search row under the bar is showing.
+	let mobileSearchOpen = $state(false);
 
 	// Under /dashboard the layout's own load already computed myCampaigns/pendingClaims/
 	// isAdmin (it's mid-request there anyway) — page.data has them for free. Everywhere
@@ -113,6 +115,25 @@
 
 		<div class="flex items-center gap-2">
 			<ThemeToggle />
+			<!-- Mobile search toggle: the full-width search row below only renders
+			while this is on, so the bar doesn't permanently tax mobile height. -->
+			<button
+				type="button"
+				onclick={() => (mobileSearchOpen = !mobileSearchOpen)}
+				aria-label="Toggle search"
+				aria-expanded={mobileSearchOpen}
+				class="grid size-9 place-items-center rounded-full border border-border bg-surface-2 text-heading transition hover:bg-surface-3 focus:ring-0 focus:ring-ring focus:outline-none lg:hidden"
+			>
+				{#if mobileSearchOpen}
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4">
+						<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+					</svg>
+				{:else}
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4">
+						<path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.34-4.34M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
+					</svg>
+				{/if}
+			</button>
 			{#if user}
 				<div class="hidden items-center gap-2 md:flex">
 					<NotificationsPanel />
@@ -169,10 +190,10 @@
 					Log in
 				</a>
 				<a
-					href="/onboard/profile"
+					href="/for-leaders"
 					class="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95 focus:ring-0 focus:ring-ring focus:outline-none"
 				>
-					Get started
+					Join
 				</a>
 			{/if}
 			<!-- Hamburger: mobile-only trigger for the nav panel -->
@@ -255,9 +276,12 @@
 			</div>
 		</nav>
 	{/if}
-	<!-- Mobile: the search gets its own full-width row under the bar (a block wrapper,
-	     and expand={false} so the input is always w-full instead of shrink-until-focused). -->
-	<div class="block px-4 pb-3 lg:hidden">
-		<QuickSearch bind:open={searchOpen} expand={false} />
-	</div>
+	<!-- Mobile: the search row appears only while the bar's search icon is on —
+	a permanent row taxed every mobile viewport (especially the booth).
+	expand={false} keeps the input w-full instead of shrink-until-focused. -->
+	{#if mobileSearchOpen}
+		<div class="block px-4 pb-3 lg:hidden">
+			<QuickSearch bind:open={searchOpen} expand={false} />
+		</div>
+	{/if}
 </header>

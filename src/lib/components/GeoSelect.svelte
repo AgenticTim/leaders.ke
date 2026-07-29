@@ -79,50 +79,44 @@
 	}
 </script>
 
-<!-- Mobile: label left of its select in a tight row (less vertical space);
-sm and up: labels above, three columns. -->
-<div class="grid grid-cols-1 gap-1.5 sm:grid-cols-3 sm:gap-3">
-	<label class="flex items-center gap-2 sm:block">
-		<span class="w-24 shrink-0 text-xs font-medium text-muted sm:w-auto">County</span>
-		<select
-			value={county}
-			onchange={(e) => pickCounty(e.currentTarget.value)}
-			class="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none sm:mt-1 sm:py-2"
-		>
-			<option value="">Select county</option>
-			{#each counties as c (c.code)}
-				<option value={geoSlug(c.name)}>{c.name}</option>
-			{/each}
-		</select>
-	</label>
+<!-- One tight row at every size, no labels (the placeholder option names each
+field; aria-label keeps it accessible) — minimal vertical footprint. -->
+<div class="grid grid-cols-3 gap-1.5 sm:gap-3">
+	<select
+		value={county}
+		onchange={(e) => pickCounty(e.currentTarget.value)}
+		aria-label="County"
+		class="w-full min-w-0 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none sm:px-3 sm:py-2"
+	>
+		<option value="">County</option>
+		{#each counties as c (c.code)}
+			<option value={geoSlug(c.name)}>{c.name}</option>
+		{/each}
+	</select>
 
-	<label class="flex items-center gap-2 sm:block">
-		<span class="w-24 shrink-0 text-xs font-medium text-muted sm:w-auto">Constituency</span>
-		<select
-			value={constituency}
-			onchange={(e) => pickConstituency(e.currentTarget.value)}
-			disabled={!selectedCounty}
-			class="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none disabled:opacity-50 sm:mt-1 sm:py-2"
-		>
-			<option value="">Select constituency</option>
-			{#each constituencies as c (c.code)}
-				<option value={geoSlug(c.seatName)}>{c.name}</option>
-			{/each}
-		</select>
-	</label>
+	<select
+		value={constituency}
+		onchange={(e) => pickConstituency(e.currentTarget.value)}
+		disabled={!selectedCounty}
+		aria-label="Constituency"
+		class="w-full min-w-0 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none disabled:opacity-50 sm:px-3 sm:py-2"
+	>
+		<option value="">Constituency</option>
+		{#each constituencies as c (c.code)}
+			<option value={geoSlug(c.seatName)}>{c.name}</option>
+		{/each}
+	</select>
 
-	<label class="flex items-center gap-2 sm:block">
-		<span class="w-24 shrink-0 text-xs font-medium text-muted sm:w-auto">Ward</span>
-		<select
-			value={ward}
-			onchange={(e) => pickWard(e.currentTarget.value)}
-			disabled={!selectedConstituency}
-			class="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none disabled:opacity-50 sm:mt-1 sm:py-2"
-		>
-			<option value="">Select ward</option>
-			{#each wards as w (w.seatName)}
-				<option value={geoSlug(w.seatName)}>{w.name}</option>
-			{/each}
-		</select>
-	</label>
+	<select
+		value={ward}
+		onchange={(e) => pickWard(e.currentTarget.value)}
+		disabled={!selectedConstituency}
+		aria-label="Ward"
+		class="w-full min-w-0 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none disabled:opacity-50 sm:px-3 sm:py-2"
+	>
+		<option value="">Ward</option>
+		{#each wards as w (w.seatName)}
+			<option value={geoSlug(w.seatName)}>{w.name}</option>
+		{/each}
+	</select>
 </div>

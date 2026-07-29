@@ -29,7 +29,7 @@
 <button
 	type="button"
 	onclick={share}
-	class="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-semibold text-heading transition hover:bg-surface-2"
+	class="inline-flex items-center gap-1.5 rounded-full border border-border px-3 sm:px-4 py-2 text-sm font-semibold text-heading transition hover:bg-surface-2"
 >
 	<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4">
 		<circle cx="18" cy="5" r="3" />

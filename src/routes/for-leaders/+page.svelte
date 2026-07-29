@@ -140,7 +140,7 @@
 				<WordCycler words={leftSet} />
 				<WordCycler words={rightSet} delay={1000} />
 			</h1>
-			<p class="mt-12 text-lg leading-relaxed">
+			<p class="mt-8 sm:mt-12 text-base sm:text-lg leading-relaxed">
 				Citizens are practising their 2027 vote on this site right now. 
 				Get a verified page they can trust, and access tools that turn visitors into followers, pledges, and votes.
 				<span class="font-semibold">
@@ -148,18 +148,19 @@
 				</span>
 			</p>
 			<!-- Primary action first; a single secondary keeps attention on claiming. -->
-			<div class="mt-12 flex flex-wrap gap-3">
+			<div class="mt-8 sm:mt-12 flex flex-wrap gap-2 sm:gap-3">
 				<a
 					href="/onboard/profile"
-					class="rounded-full bg-primary px-6 py-3 font-semibold text-on-primary transition hover:brightness-95 focus:ring-0 focus:ring-ring focus:outline-none"
+					class="rounded-full bg-primary px-4 py-3 sm:px-6 sm:py-3 font-semibold text-on-primary transition hover:brightness-95 focus:ring-0 focus:ring-ring focus:outline-none"
 				>
 					🚀 Claim your page
 				</a>
 				<a
 					href="/pricing"
-					class="rounded-full border border-border bg-surface px-6 py-3 font-semibold text-heading transition hover:bg-surface-2"
+					class="rounded-full border border-border bg-surface px-4 py-3 sm:px-6 sm:py-3 font-semibold text-heading transition hover:bg-surface-2"
 				>
-					Pricing from KES 2,500/mo
+					<span class="hidden sm:inline">Pricing from KES 2,500/mo</span>
+					<span class="inline sm:hidden">From 2,500/mo</span>
 				</a>
 			</div>
 		</div>

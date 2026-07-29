@@ -49,7 +49,7 @@
 	/>
 </svelte:head>
 
-<div class="mx-auto max-w-7xl px-4 py-12 sm:px-6">
+<div class="mx-auto max-w-7xl px-4 py-8 sm:px-10">
 	<div class="text-center">
 		<span
 			class="inline-flex items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-on-primary"
@@ -109,21 +109,21 @@
 		{/each}
 	</div>
 
-	<div class="mt-10 flex flex-col items-center gap-3 text-center">
-		<div class="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+	<div class="mt-10 flex flex-col items-center gap-2 sm:gap-3 text-center">
+		<div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
 			{#if data.isOwnBallot}
 				<a href="/dashboard/my-vote" class="text-sm font-medium text-primary hover:underline">✓ Simulation Saved</a>
 			{:else if page.data.user}
 				<form method="post" action="?/saveVote" bind:this={saveVoteForm} use:enhance>
 					<button
 						type="submit"
-						class="rounded-full bg-primary px-4 py-2 font-semibold text-on-primary transition hover:brightness-95"
+						class="rounded-full bg-primary px-3 sm:px-4 py-2 font-semibold text-on-primary transition hover:brightness-95"
 					>
 						Save My Vote
 					</button>
 				</form>
 			{:else}
-				<a href="/" class="rounded-full bg-primary px-4 py-2 font-semibold text-on-primary transition hover:brightness-95">Simulate Your Vote</a>
+				<a href="/" class="rounded-full bg-primary px-3 sm:px-4 py-2 font-semibold text-on-primary transition hover:brightness-95">Simulate Your Vote</a>
 				<AuthModal
 					bind:open={authOpen}
 					next="/ballot/{data.publicId}?save=1"
@@ -133,11 +133,5 @@
 			<ShareButton title="My 2027 simulated ballot on vote.ke" />
 			<WhatsAppShareButton text="I'll vote for these leaders in 2027:" />
 		</div>
-		<p class="mt-4 max-w-3xl text-xs text-muted">
-			This is a simulated voting experience for the 2027 General Election. It is not an official
-			ballot, does not register any vote, and results are never tallied or published per candidate.
-			Data is handled under the Kenya Data Protection Act (2019). For official voter information,
-			visit the <a href="https://www.iebc.or.ke" class="underline hover:text-heading">IEBC</a>.
-		</p>
 	</div>
 </div>

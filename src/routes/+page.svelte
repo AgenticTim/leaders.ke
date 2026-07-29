@@ -185,6 +185,23 @@
 	function candidatesFor(level: BallotLevel) {
 		return data.levels.find((l) => l.level === level)?.candidates ?? null;
 	}
+
+	// Every card is the stacked square design (avatar above centered text); only
+	// the ARRANGEMENT adapts to the field size below lg: 1 = centered hero,
+	// 2 = side by side, 3 = vertical list, 4+ = two-column grid (odd remainders
+	// center on their own row via flex-wrap + justify-center). On lg+ every
+	// count renders the large cards (grow to a cap, wrap, rows centered).
+	const LG_CONTAINER = 'lg:mx-auto lg:w-full lg:max-w-7xl lg:flex-row lg:flex-wrap lg:justify-center lg:gap-3';
+	const LG_CARD = 'lg:w-auto lg:basis-60 lg:max-w-90 lg:grow lg:p-4 lg:text-center lg:text-sm';
+	function candidateLayout(n: number) {
+		if (n === 1)
+			return { container: `flex justify-center ${LG_CONTAINER}`, card: `w-64 p-4 text-sm lg:grow-0 ${LG_CARD}`, avatar: 'size-32' };
+		if (n === 2)
+			return { container: `flex justify-center gap-2 sm:gap-3 ${LG_CONTAINER}`, card: `w-[calc(50%-0.25rem)] max-w-56 p-3 text-xs sm:text-sm ${LG_CARD}`, avatar: 'size-20 lg:size-32' };
+		if (n === 3)
+			return { container: `mx-auto flex w-full max-w-md flex-col gap-2 ${LG_CONTAINER}`, card: `w-full p-3 text-xs sm:text-sm ${LG_CARD}`, avatar: 'size-20 lg:size-32' };
+		return { container: `mx-auto flex w-full max-w-2xl flex-wrap justify-center gap-2 ${LG_CONTAINER}`, card: `basis-[calc(50%-0.25rem)] max-w-[calc(50%-0.25rem)] p-3 text-xs sm:text-sm ${LG_CARD}`, avatar: 'size-16 lg:size-32' };
+	}
 	// The region step a seat depends on — the escape hatch when a seat step is
 	// reached while its geography is unset (possible via the GeoSelect bar).
 	function regionStepFor(level: BallotLevel): number {
@@ -253,15 +270,15 @@
 
 <!-- Full-viewport booth below the header: step area, controls, the
 always-visible geo bar, then the disclaimer. The page never scrolls vertically.
-Below lg the header carries its extra full-width search row (~3.2rem), so the
-booth's height subtracts it too — otherwise the bottom overflows and centered
-content slides under the sticky header. -->
+The mobile search row is toggled (hidden by default) since the header's search
+icon landed, so the header is 4rem tall at every breakpoint; opening the search
+row pushes the booth down transiently, which is fine. -->
 <form method="post" use:enhance class="contents">
 <input type="hidden" name="county" value={county} />
 <input type="hidden" name="constituency" value={constituency} />
 <input type="hidden" name="ward" value={ward} />
 <input type="hidden" name="selections" value={JSON.stringify(selections)} />
-<div class="flex h-[calc(100dvh-7.2rem)] flex-col overflow-hidden lg:h-[calc(100dvh-4rem)]">
+<div class="flex h-[calc(100dvh-4rem)] flex-col overflow-hidden">
 	<!-- Step area -->
 	<div class="min-h-0 flex-1 overflow-hidden">
 		{#key stepIndex}
@@ -296,30 +313,24 @@ content slides under the sticky header. -->
 							</p>
 						</div>
 					{:else}
-						<!-- Centered wrapping rows across max-w-7xl: more cards per row the
-						wider the screen, and partial rows stay centered. my-auto (not
-						justify-center on the scroller) centers short content without
+						<!-- Count-adaptive tiles (see candidateLayout): hero card for 1,
+						pair for 2, vertical list for 3, two-column grid for 4+. my-auto
+						(not justify-center on the scroller) centers short content without
 						clipping the top rows once the list overflows. -->
+						{@const layout = candidateLayout(candidates.length)}
 						<div class="flex min-h-0 flex-1 flex-col overflow-y-auto">
-							<!-- One stacked card layout (photo top, name + party below) at every
-							size. Cards grow from an 11rem base to a 15rem cap: full rows
-							stretch across the container, and once cards hit the cap the
-							leftover space (and any partial last row) centers. Two per row
-							on mobile. -->
-							<div class="my-auto flex w-full flex-wrap justify-center gap-2 py-3 sm:gap-3">
+							<div class="my-auto py-3 {layout.container}">
 								{#each candidates as candidate (candidate.candidateId)}
 									<button
 										type="button"
 										onclick={() => pick(step.level, candidate.candidateId)}
-										class="flex max-w-[calc(50%-0.25rem)] grow basis-[calc(50%-0.25rem)] flex-col items-center gap-2 rounded-2xl border p-3 text-center text-xs sm:text-sm transition sm:max-w-90 sm:basis-60 sm:p-4 {selections[
-											step.level
-										] === candidate.candidateId
+										class="flex flex-col items-center gap-2 rounded-2xl border text-center transition {layout.card} {selections[step.level] === candidate.candidateId
 											? 'border-primary bg-primary-soft'
 											: 'border-border bg-surface hover:border-primary'}"
 									>
-										<Avatar name={candidate.name} initials={candidate.initials} photoUrl={candidate.photoUrl} sizeClass="size-20 lg:size-32" />
-										<span>
-											<span class="flex items-center justify-center gap-1 font-semibold text-heading">
+										<Avatar name={candidate.name} initials={candidate.initials} photoUrl={candidate.photoUrl} sizeClass={layout.avatar} />
+										<span class="min-w-0">
+											<span class="flex items-center gap-1 font-semibold text-heading justify-center">
 												{candidate.name}
 												{#if candidate.verified}
 													<svg viewBox="0 0 24 24" fill="currentColor" class="size-4 text-primary" aria-label="Verified">
@@ -468,6 +479,14 @@ content slides under the sticky header. -->
 		</div>
 	</div>
 
+	<!-- Desktop keeps the disclaimer inside the no-scroll viewport; on mobile the
+	booth needs every pixel, so it renders after the wrapper instead (below the
+	fold — scroll to read it). -->
+	<div class="hidden lg:block">
+		<BallotDisclaimer />
+	</div>
+</div>
+<div class="lg:hidden">
 	<BallotDisclaimer />
 </div>
 </form>
