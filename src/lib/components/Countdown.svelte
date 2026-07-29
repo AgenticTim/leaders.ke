@@ -22,7 +22,7 @@
 	{#each units as unit (unit.label)}
 		<div class="flex flex-col items-center">
 			<span
-				class="grid min-w-14 place-items-center rounded-xl bg-surface-2 px-2 pt-3 text-2xl font-bold tabular-nums text-heading sm:min-w-16 sm:text-3xl"
+				class="grid min-w-14 place-items-center rounded-xl bg-surface-2 px-2 py-3 text-2xl font-bold tabular-nums text-heading sm:min-w-16 sm:text-3xl"
 			>
 				{String(unit.value).padStart(2, '0')}
 			</span>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Countdown from '$lib/components/Countdown.svelte';
+	import type { PageData } from './$types';
 	import SloganCycler from '$lib/components/SloganCycler.svelte';
 	import WordCycler from '$lib/components/WordCycler.svelte';
 
@@ -101,12 +102,16 @@
 		}
 	];
 
-	const stats = [
-		{ value: '1,450+', label: 'Elective positions' },
-		{ value: '8,900+', label: 'Leader profiles' },
-		{ value: '47', label: 'Counties covered' }
-	];
+	let { data }: { data: PageData } = $props();
 
+	// Live counts from the load function — never hand-maintained numbers a
+	// campaign team could catch out of date.
+	const fmt = new Intl.NumberFormat('en-KE');
+	const stats = $derived([
+		{ value: fmt.format(data.positionCount), label: 'Elective positions' },
+		{ value: fmt.format(data.profileCount), label: 'Leader profiles' },
+		{ value: fmt.format(data.campaignCount), label: '2027 campaigns' }
+	]);
 </script>
 
 <svelte:head>
@@ -123,46 +128,39 @@
 		class="pointer-events-none absolute inset-0 bg-linear-to-b from-primary-soft/40 to-transparent"
 	></div>
 	<div class="relative mx-auto grid max-w-7xl gap-5 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:py-24">
-		<div class="flex flex-col justify-center">
+		<div class="flex flex-col justify-center max-w-xl">
 			<span
 				class="mb-4 inline-flex w-fit items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-on-primary"
 			>
 				<span class="size-2 rounded-full bg-primary"></span>
-				The platform that verifies who is vying
+				Your voters are already here.
 			</span>
 			<!-- Two halves of the headline cycle independently, staggered so only one
 			word swaps at a time (e.g. "Campaign Machinery" → "Campaign Dashboard"). -->
-			<h1 class="text-4xl font-extrabold tracking-tight text-heading sm:text-5xl">
+			<h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-heading">
 				<WordCycler words={leftSet} />
 				<WordCycler words={rightSet} delay={1000} />
 			</h1>
-			<div class="mt-4">
-				<SloganCycler />
-			</div>
-			<p class="mt-4 max-w-lg text-base leading-relaxed">
-				A verified profile, your manifesto, your followers and your PR, all in one place. Built
-				for candidates, current officeholders, and the teams behind them.
+			<p class="mt-12 text-lg leading-relaxed">
+				Citizens are practising their 2027 vote on this site right now. 
+				Get a verified page they can trust, and access tools that turn visitors into followers, pledges, and votes.
+				<span class="font-semibold">
+					Be the name they recognize.
+				</span>
 			</p>
-			<div class="mt-8 flex flex-wrap gap-3">
-
-				<a
-					href="/features"
-					class="rounded-full border border-border bg-surface px-6 py-3 font-semibold text-heading transition hover:bg-surface-2"
-				>
-					Features
-				</a>
-				<!-- Citizens belong in the booth; this page sells to leaders. -->
-				<a
-					href="/pricing"
-					class="rounded-full border border-border bg-surface px-6 py-3 font-semibold text-heading transition hover:bg-surface-2"
-				>
-					Pricing
-				</a>
+			<!-- Primary action first; a single secondary keeps attention on claiming. -->
+			<div class="mt-12 flex flex-wrap gap-3">
 				<a
 					href="/onboard/profile"
 					class="rounded-full bg-primary px-6 py-3 font-semibold text-on-primary transition hover:brightness-95 focus:ring-0 focus:ring-ring focus:outline-none"
 				>
-					🚀 Get onboard
+					🚀 Claim your page
+				</a>
+				<a
+					href="/pricing"
+					class="rounded-full border border-border bg-surface px-6 py-3 font-semibold text-heading transition hover:bg-surface-2"
+				>
+					Pricing from KES 2,500/mo
 				</a>
 			</div>
 		</div>
@@ -290,7 +288,7 @@
 </section>
 
 <!-- Pricing teaser + CTA -->
-<section class="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
+<section class="mx-auto max-w-7xl px-4 py-16 sm:px-6">
 	<div
 		class="flex flex-col items-center gap-4 rounded-3xl bg-primary px-6 py-12 text-center text-on-primary"
 	>
