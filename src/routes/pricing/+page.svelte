@@ -26,7 +26,6 @@
 				'100 ambassadors',
 				'100,000 citizen subscriptions',
 				'Analytics: page views, conversions, pledges',
-				'Agentic AI chat on your profile, campaign & channels',
 				'3,000 credits/mo'
 			]
 		},
@@ -45,14 +44,14 @@
 	// Base features every package includes, regardless of tier.
 	const baseFeatures = [
 		'Custom page, neat link, QR code',
+		'Agentic AI chat on profile, campaign',
 		'Publish manifesto and past delivery',
 		'IEBC blue-check verification',
 		'Private voter register',
 		'Press desk: publish news, tag leaders, parties',
 		'Broadcast to citizens using credits*',
 		'Fundraising toolkit*',
-		'Free platform maintenance',
-		'Free support'
+		'Free support and platform maintenance',
 	];
 
 	// Comparison rows: same metric across all three tiers ("—" means not included).
@@ -61,7 +60,6 @@
 		{ label: 'Campaign ambassadors', values: ['10', '100', 'Unlimited'] },
 		{ label: 'Citizen subscriptions', values: ['10,000', '100,000', 'Unlimited'] },
 		{ label: 'Analytics: page views, conversions, pledges', values: ['—', '✓', '✓'] },
-		{ label: 'Agentic AI chat on profile, campaign, channels', values: ['—', '✓', '✓'] },
 		{ label: 'PR AI Agent: daily news research', values: ['—', '—', '✓'] },
 		{ label: 'Voter heatmap per ward', values: ['—', '—', '✓'] },
 		{ label: 'Sentiment Intelligence suite: campaign, competition', values: ['—', '—', '✓'] },
@@ -72,6 +70,13 @@
 	// platform too, so a private/DIY campaign site can never replicate them.
 	// available is either '✓' (shipped) or a target month for what isn't yet.
 	const networkFeatures = [
+		{
+			feature: 'Agentic AI',
+			description:
+				'Scale your reach infinitely through an AI grounded on your data and instructions. Answer to your constituents 24/7/365 without hiring more staff or building your own system.',
+			available: '✓',
+			href: null
+		},
 		{
 			feature: 'Compare',
 			description: 'Side by side manifesto, delivery record and reviews against rivals for the same seat.',
@@ -105,49 +110,49 @@
 		{
 			feature: 'Endorsement cards',
 			description: 'Shareable graphics when a leader or alliance endorses you.',
-			available: "Aug '26",
+			available: "Aug 2026",
 			href: null
 		},
 		{
 			feature: 'Debate prep pack',
 			description: "AI brief of your record against each rival's published record.",
-			available: "Aug '26",
+			available: "Aug 2026",
 			href: null
 		},
 		{
 			feature: 'Right of reply',
 			description: 'Respond inline when tagged in a rival\'s post or a news mention.',
-			available: "Aug '26",
+			available: "Aug 2026",
 			href: null
 		},
 		{
 			feature: 'Combo ticket pledges',
 			description: 'A citizen pledges to a President, Governor and MP combo, tracked as one.',
-			available: "Aug '26",
+			available: "Aug 2026",
 			href: null
 		},
 		{
 			feature: 'Cross campaign ambassador pool',
 			description: 'One ambassador mobilizing for a whole ticket, not just one candidate.',
-			available: "Aug '26",
+			available: "Sep 2026",
 			href: null
 		},
 		{
 			feature: 'Portable team reputation',
 			description: 'A badge for managers and ambassadors who have worked on multiple campaigns.',
-			available: "Aug '26",
+			available: "Sep 2026",
 			href: null
 		},
 		{
 			feature: 'Benchmarking analytics',
 			description: 'Your conversion rate compared to the average for your seat.',
-			available: "Aug '26",
+			available: "Sep 2026",
 			href: null
 		},
 		{
 			feature: 'Joint town hall',
 			description: 'One question, compared answers from every candidate on the same seat.',
-			available: "Aug '26",
+			available: "Sep 2026",
 			href: null
 		}
 	];
@@ -232,7 +237,7 @@
 			<WordCycler words={leftSet}/> Your <WordCycler words={rightSet}/>
 		</h1>
 		<p class="mx-auto mt-4 max-w-xl text-base leading-relaxed">
-			One flat rate, any office. Hover a package to explore it.
+			A flat monthly rate plus PAYG to top up your broadcast credits.
 		</p>
 	</div>
 

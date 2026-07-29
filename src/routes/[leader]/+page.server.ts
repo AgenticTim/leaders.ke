@@ -10,8 +10,6 @@ import { answerConstituentQuestion, PlatformOutOfCreditsError } from '$lib/serve
 import { enforceAskRateLimit } from '$lib/server/aiRateLimit';
 import { getGroundingExtras } from '$lib/server/knowledge';
 import { getPlatformSettings } from '$lib/server/settings';
-import { getPersonTier } from '$lib/server/invites';
-import { tierAtLeast } from '$lib/server/packages';
 import type { Actions, PageServerLoad } from './$types';
 
 // /[leader]: the permanent leader record — bio, verified track record across
@@ -177,12 +175,9 @@ export const actions: Actions = {
 		const lead = await publicLead(event.params.leader);
 		if (!lead) return fail(404, { error: 'Leader not found.' });
 
-		// Tier gate first: AI chat is sold as a Mobilize-and-up feature
-		// (/pricing comparison table), whatever the wallet balance says.
-		const tier = await getPersonTier(lead.subjectId);
-		if (!tierAtLeast(tier, 'mobilize')) {
-			return fail(402, { error: 'AI chat is available on the Mobilize and Dominate packages. The team can upgrade to switch it on.' });
-		}
+		// AI chat is available on EVERY package — the wallet's credit balance is
+		// the only gate. Low tiers taste the feature and buy credits; that's the
+		// conversion path, so no tier check here.
 
 		// Same wallet gate as the campaign workspace's Ask block — checked up
 		// front so a citizen gets a clear reason instead of a silent failure.
