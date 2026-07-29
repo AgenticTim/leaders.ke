@@ -1,4 +1,4 @@
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
@@ -8,6 +8,8 @@ import { redirectWithFlash } from '$lib/server/flash';
 import { BILLING_CYCLES, SUBSCRIPTION_TIERS } from '$lib/server/packages';
 import { assertClaimable, createProfile, linkProfile, notifyAdminsOfNewProfile, notifyPayerOfPayment, validateOnboardInput } from '$lib/server/onboard';
 import { fullName } from '$lib/server/leader';
+import { initializeTransaction, paystackEnabled } from '$lib/server/paystack';
+import type { CheckoutMetadata } from '$lib/server/checkoutFulfill';
 import type { Actions, PageServerLoad } from './$types';
 
 // Resolves + authorizes the checkout selection (plan + the onboard step 3 fields
@@ -61,18 +63,18 @@ export const load: PageServerLoad = async (event) => {
 };
 
 export const actions: Actions = {
-	// Mock charge: creates/links the profile (slug minted here, not before — an
-	// abandoned wizard never leaves a phantom profile behind), then records an
-	// active subscription + a successful payment. Real Paystack (initialize +
-	// webhook verify) replaces the charge itself later.
+	// Real charge via Paystack when PAYSTACK_SECRET_KEY is set: profile creation
+	// waits for the verified payment (see checkoutFulfill.ts, driven by the
+	// callback page and the webhook). Without a key (local dev) it falls back to
+	// the mock instant-success charge below, so the wizard stays testable.
 	pay: async (event) => {
-		const { domainUser } = await requireDashboardUser(event);
+		const { authUser, domainUser } = await requireDashboardUser(event);
 		const form = await event.request.formData();
 		const sp = new URLSearchParams(String(form.get('passthrough') ?? ''));
 		const sel = await resolveSelection(sp);
 
 		// A claim target's existing subscription blocks a duplicate; a fresh create
-		// can't collide (the profile doesn't exist until the next line).
+		// can't collide (the profile doesn't exist until fulfillment).
 		if (sel.linkSubjectId) {
 			const [live] = await db
 				.select({ id: subscriptions.id })
@@ -84,6 +86,45 @@ export const actions: Actions = {
 			}
 		}
 
+		if (paystackEnabled()) {
+			// Everything fulfillment needs travels on the pending payment row, not
+			// the gateway, so the webhook can finish the job without a session.
+			const reference = `ps_${randomUUID()}`;
+			const metadata: CheckoutMetadata = {
+				tier: sel.tier,
+				cycle: sel.cycle,
+				amount: sel.amount,
+				input: sel.input,
+				linkSubjectId: sel.linkSubjectId
+			};
+			await db.insert(payments).values({
+				payerId: domainUser.id,
+				purpose: 'subscription',
+				amount: sel.amount,
+				status: 'pending',
+				method: 'paystack',
+				providerReference: reference,
+				metadata
+			});
+
+			let authorizationUrl: string;
+			try {
+				({ authorizationUrl } = await initializeTransaction({
+					email: authUser.email,
+					amountKes: sel.amount,
+					reference,
+					callbackUrl: `${event.url.origin}/onboard/checkout/callback`
+				}));
+			} catch (err) {
+				await db.update(payments).set({ status: 'failed' }).where(eq(payments.providerReference, reference));
+				return fail(502, { error: err instanceof Error ? err.message : 'Could not reach the payment provider.' });
+			}
+			redirect(303, authorizationUrl);
+		}
+
+		// Mock charge (dev fallback): creates/links the profile (slug minted here,
+		// not before — an abandoned wizard never leaves a phantom profile behind),
+		// then records an active subscription + a successful payment.
 		let result: { slug: string; subjectUserId: number };
 		try {
 			result = sel.linkSubjectId ? await linkProfile(domainUser.id, sel.input, sel.linkSubjectId) : await createProfile(domainUser.id, sel.input);
