@@ -16,68 +16,67 @@
 	// Campaign toolkit grid: what a subscription buys. `live` distinguishes
 	// shipped features from roadmap items (badged "Coming soon") — the badge
 	// doubles as a demand test for later phases.
+	// Ordered by what sells; one-clause descriptions keep the section scannable.
+	// Featured placement is pipeline (see FAQ), so it sits last and badged.
 	const toolkit = [
 		{
 			title: 'Verified profile',
-			description:
-				'A verified public page with your manifesto, photo and party at a clean URL citizens can trust.',
+			description: 'Citizens trust verified candidature and profiles with a track record.',
 			live: true,
 			icon: 'M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z'
 		},
 		{
-			title: 'Featured placement',
-			description:
-				'Put your profile in front of every voter browsing the vote.ke leader directory.',
-			live: true,
-			icon: 'M11.48 3.5a.562.562 0 0 1 1.04 0l2.12 5.11 5.52.44c.5.04.7.66.32.99l-4.2 3.6 1.28 5.38a.562.562 0 0 1-.84.61L12 16.72l-4.72 2.91a.562.562 0 0 1-.84-.61l1.28-5.38-4.2-3.6a.562.562 0 0 1 .32-.99l5.52-.44 2.12-5.11Z'
-		},
-		{
 			title: 'Followers & broadcasts',
-			description:
-				'Grow a follower base from your page, then reach them by ward — email today, SMS and WhatsApp on credits.',
+			description: 'Reach supporters by ward via email, SMS and WhatsApp.',
 			live: true,
 			icon: 'M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Z'
 		},
 		{
-			title: 'Reviews & fundraising',
-			description:
-				'Citizens review your leadership and pledge their votes, while you collect campaign donations.',
+			title: 'AI chat & competitor watch',
+			description: 'AI answers citizens from your manifesto and tracks your rivals.',
 			live: true,
-			icon: 'M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z'
+			icon: 'M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z'
 		},
 		{
-			title: 'PR desk',
-			description:
-				'Every news mention tagged to you, AI-drafted responses, and crisis alerts when coverage turns.',
+			title: 'AI PR desk',
+			description: 'Be notified when mentioned in news and get AI draft responses.',
 			live: true,
 			icon: 'M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 0 1-2.25 2.25M16.5 7.5V18a2.25 2.25 0 0 0 2.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 0 0 2.25 2.25h13.5'
 		},
 		{
-			title: 'AI chat & competitor watch',
-			description:
-				'An AI that answers constituent questions from your manifesto, plus a live view of your rivals.',
+			title: 'Pledges & Fundraising',
+			description: 'Let citizens pledge to vote for you and donate to your campaign!',
 			live: true,
-			icon: 'M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z'
+			icon: 'M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z'
+		},
+		{
+			title: 'Featured placement',
+			description: 'Your profile pinned for every voter browsing the directory.',
+			live: false,
+			icon: 'M11.48 3.5a.562.562 0 0 1 1.04 0l2.12 5.11 5.52.44c.5.04.7.66.32.99l-4.2 3.6 1.28 5.38a.562.562 0 0 1-.84.61L12 16.72l-4.72 2.91a.562.562 0 0 1-.84-.61l1.28-5.38-4.2-3.6a.562.562 0 0 1 .32-.99l5.52-.44 2.12-5.11Z'
 		}
 	];
 
-	// Claim → verify → pay → go public: the onboarding funnel in four steps.
+	// Mirrors the real /onboard wizard (profile -> plan -> checkout), then the
+	// post-payment verification that takes the page public.
 	const steps = [
 		{
 			title: 'Claim your profile',
-			description: 'Sign up and create or claim your leader profile for the seat you are vying for.'
+			description:
+				'If your page is already listed, claim it; otherwise create it fresh.'
 		},
 		{
-			title: 'Get verified',
-			description: 'Submit your ID and proof of candidature; our team verifies against IEBC records.'
+			title: 'Pick your plan',
+			description: 'Three packages, one flat rate for every office, MCA to President.'
 		},
 		{
-			title: 'Pick a package',
-			description: 'One flat rate for every office, MCA to President — pick a tier and pay via M-Pesa.'
+			title: 'Pay via M-Pesa or Bank',
+			description: 'Activate your subscription and unlock your campaign dashboard.'
 		},
 		{
-			title: 'Go public',
-			description: 'Your verified page goes live and starts converting visitors into followers.'
+			title: 'Get verified & go public',
+			description:
+				'Complete your profile for your page to get a verified badge.'
 		}
 	];
 
@@ -205,29 +204,26 @@
 
 		<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 			{#each toolkit as feature (feature.title)}
-				<div class="flex flex-col rounded-2xl border border-border bg-surface p-6">
-					<div class="flex items-center justify-between">
-						<span class="grid size-10 place-items-center rounded-xl bg-primary-soft text-on-primary">
-							<svg
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.5"
-								class="size-5"
-							>
-								<path stroke-linecap="round" stroke-linejoin="round" d={feature.icon} />
-							</svg>
-						</span>
-						{#if !feature.live}
-							<span
-								class="rounded-full border border-border bg-surface-2 px-2.5 py-0.5 text-xs font-semibold text-muted"
-							>
-								Coming soon
-							</span>
-						{/if}
+				<!-- Big icon alone on the left; title with description stacked beside it,
+				left-aligned to each other. -->
+				<div class="flex items-start gap-4 rounded-2xl border border-border bg-surface p-6">
+					<span class="grid size-20 shrink-0 place-items-center rounded-xl bg-primary-soft text-on-primary">
+						<svg
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.5"
+							class="size-12"
+						>
+							<path stroke-linecap="round" stroke-linejoin="round" d={feature.icon} />
+						</svg>
+					</span>
+					<div class="min-w-0 flex-1">
+						<div class="flex items-center gap-2">
+							<h3 class="text-lg font-semibold text-heading">{feature.title}</h3>
+						</div>
+						<p class="mt-1 text-sm leading-relaxed">{feature.description}</p>
 					</div>
-					<h3 class="mt-4 font-semibold text-heading">{feature.title}</h3>
-					<p class="mt-2 flex-1 text-sm leading-relaxed">{feature.description}</p>
 				</div>
 			{/each}
 		</div>
@@ -252,12 +248,14 @@
 	<ol class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 		{#each steps as step, i (step.title)}
 			<li class="rounded-2xl border border-border bg-surface p-6">
-				<span
-					class="grid size-8 place-items-center rounded-full bg-primary text-sm font-bold text-on-primary"
-				>
-					{i + 1}
-				</span>
-				<h3 class="mt-4 font-semibold text-heading">{step.title}</h3>
+				<div class="flex items-center gap-3">
+					<span
+						class="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-on-primary"
+					>
+						{i + 1}
+					</span>
+					<h3 class="font-semibold text-heading">{step.title}</h3>
+				</div>
 				<p class="mt-2 text-sm leading-relaxed">{step.description}</p>
 			</li>
 		{/each}
