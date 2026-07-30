@@ -115,8 +115,40 @@ export const actions: Actions = {
 					.where(and(eq(contacts.userId, domainUser.id), eq(contacts.channel, 'email'), isNull(contacts.deletedAt)));
 			}
 		} catch (error) {
-			if (error instanceof APIError)
+			if (error instanceof APIError) {
+				// "User already exists" can mean two different things: a genuinely
+				// taken (verified) email — keep the error — or the same person
+				// re-submitting after dismissing the verify modal without finishing
+				// it (possibly after logging out in between, so there's no session
+				// to resume with), whose account already exists but is still
+				// unverified. The second case isn't an error: resuming verification
+				// needs an authenticated session first (sendEmailCode/verifyCode
+				// both require one), so sign in with the password just typed — if
+				// it's the account's real password (the common case: same person,
+				// same credentials), this establishes that session exactly like a
+				// normal login would. A wrong password can't be distinguished from
+				// a stranger poking at someone else's email, so it falls through
+				// to the ordinary "already exists" error rather than resuming.
+				if (/already exists/i.test(error.message)) {
+					const [existing] = await db
+						.select({ emailVerified: authUsers.emailVerified })
+						.from(authUsers)
+						.where(eq(authUsers.email, email.trim().toLowerCase()));
+					if (existing && !existing.emailVerified) {
+						// redirect() throws — it must NOT be inside this try, or it would
+						// be swallowed by the catch meant only for a failed sign-in.
+						let signedIn = false;
+						try {
+							await auth.api.signInEmail({ body: { email, password }, headers: event.request.headers });
+							signedIn = true;
+						} catch {
+							// Wrong password — fall through to the standard error below.
+						}
+						if (signedIn) redirect(302, `/verify/email?email=${email}&next=${encodeURIComponent(next)}`);
+					}
+				}
 				return fail(400, { message: error.message || 'Registration failed' });
+			}
 			return fail(500, { message: 'Unexpected error' });
 		}
 
