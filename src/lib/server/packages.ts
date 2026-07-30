@@ -52,6 +52,19 @@ export async function setRate(tier: SubscriptionTier, billingCycle: BillingCycle
 export const PACKAGE_FEATURE_KEYS = ['managers', 'ambassadors', 'subscriptions', 'creditsPerMonth', 'knowledgeMb'] as const;
 export type PackageFeatureKey = (typeof PACKAGE_FEATURE_KEYS)[number];
 
+// On/off perks: the /pricing comparison table's ✓/— rows, plus whatever a
+// tier-gated feature checks in code (e.g. the News tab's PR AI Agent). One
+// list drives the admin toggle grid, the pricing table's rows, and the label
+// shown for each — adding a perk here is the only place to touch.
+export const PACKAGE_PERK_KEYS = ['analytics', 'prAiAgent', 'voterHeatmap', 'sentimentSuite'] as const;
+export type PackagePerkKey = (typeof PACKAGE_PERK_KEYS)[number];
+export const PERK_LABELS: Record<PackagePerkKey, string> = {
+	analytics: 'Analytics: page views, conversions, pledges',
+	prAiAgent: 'PR AI Agent: daily news research',
+	voterHeatmap: 'Voter heatmap per ward',
+	sentimentSuite: 'Sentiment Intelligence suite: campaign, competition'
+};
+
 export type PackageRow = { tier: string; features: PackageFeatures };
 
 /** Every package's caps, one row per tier — seeded from packages.json. */
@@ -69,6 +82,18 @@ export async function getPackageFeatures(tier: SubscriptionTier): Promise<Packag
 
 /** Updates one cap on one package; null = unlimited. */
 export async function setPackageFeature(tier: SubscriptionTier, key: PackageFeatureKey, value: number | null) {
+	const [row] = await db.select({ id: packages.id, features: packages.features }).from(packages).where(eq(packages.tier, tier));
+	if (!row) return { ok: false as const, error: 'Package not found — run the packages seed first.' };
+
+	await db
+		.update(packages)
+		.set({ features: { ...row.features, [key]: value }, updatedAt: new Date() })
+		.where(eq(packages.id, row.id));
+	return { ok: true as const };
+}
+
+/** Flips one on/off perk on one package. */
+export async function setPackagePerk(tier: SubscriptionTier, key: PackagePerkKey, value: boolean) {
 	const [row] = await db.select({ id: packages.id, features: packages.features }).from(packages).where(eq(packages.tier, tier));
 	if (!row) return { ok: false as const, error: 'Package not found — run the packages seed first.' };
 

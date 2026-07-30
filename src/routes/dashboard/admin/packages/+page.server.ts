@@ -9,10 +9,13 @@ import {
 	listCurrentPricing,
 	listPackages,
 	PACKAGE_FEATURE_KEYS,
+	PACKAGE_PERK_KEYS,
 	setPackageFeature,
+	setPackagePerk,
 	setRate,
 	SUBSCRIPTION_TIERS,
-	type PackageFeatureKey
+	type PackageFeatureKey,
+	type PackagePerkKey
 } from '$lib/server/packages';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -64,6 +67,26 @@ export const actions: Actions = {
 		}
 
 		const result = await setPackageFeature(tier as (typeof SUBSCRIPTION_TIERS)[number], key as PackageFeatureKey, value);
+		if (!result.ok) return fail(400, { error: result.error });
+		return { updated: true };
+	},
+
+	// One perk toggle. Checkboxes only submit when CHECKED, so a plain
+	// form.get('value') can't distinguish "off" from "not submitted" — the
+	// checkbox posts its own onchange (always present) instead, carrying the
+	// new state explicitly.
+	setPerk: async (event) => {
+		await requireAdmin(event);
+		const form = await event.request.formData();
+		const tier = String(form.get('tier') ?? '');
+		const key = String(form.get('key') ?? '');
+		const value = form.get('value') === 'true';
+
+		if (!SUBSCRIPTION_TIERS.includes(tier as (typeof SUBSCRIPTION_TIERS)[number]) || !PACKAGE_PERK_KEYS.includes(key as PackagePerkKey)) {
+			return fail(400, { error: 'Invalid tier or perk.' });
+		}
+
+		const result = await setPackagePerk(tier as (typeof SUBSCRIPTION_TIERS)[number], key as PackagePerkKey, value);
 		if (!result.ok) return fail(400, { error: result.error });
 		return { updated: true };
 	},

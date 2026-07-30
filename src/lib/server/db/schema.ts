@@ -809,6 +809,14 @@ export type PackageFeatures = {
   // Bounds the per-question Anthropic cost, since the whole total rides in every
   // AI Chat prompt. null = unlimited.
   knowledgeMb: number | null;
+  // On/off perks (the /pricing comparison table's ✓/— rows). Admin-toggled on
+  // /dashboard/admin/packages; code that gates a feature by tier (e.g. the News
+  // tab's PR AI Agent) reads these instead of hardcoding a tier name, so the
+  // toggle, the pricing page, and the actual gate are always the same fact.
+  analytics: boolean;
+  prAiAgent: boolean;
+  voterHeatmap: boolean;
+  sentimentSuite: boolean;
 };
 
 export const packages = pgTable('packages', {

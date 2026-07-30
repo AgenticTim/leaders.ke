@@ -1,45 +1,61 @@
 <script lang="ts">
 	import Countdown from "$lib/components/Countdown.svelte";
 	import WordCycler from '$lib/components/WordCycler.svelte';
-	
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+
+	// Mirrors $lib/server/packages.ts's PACKAGE_PERK_KEYS/PERK_LABELS — kept as a
+	// plain client-side list (that module is server-only) but the KEYS must
+	// match packages.features exactly, since data.packages comes from there.
+	const PACKAGE_PERK_KEYS = ['analytics', 'prAiAgent', 'voterHeatmap', 'sentimentSuite'] as const;
+	const PERK_LABELS: Record<(typeof PACKAGE_PERK_KEYS)[number], string> = {
+		analytics: 'Analytics: page views, conversions, pledges',
+		prAiAgent: 'PR AI Agent: daily news research',
+		voterHeatmap: 'Voter heatmap per ward',
+		sentimentSuite: 'Sentiment Intelligence suite: campaign, competition'
+	};
+
 	const leftSet = ['Level Up', 'Catapult', 'Propel', 'Amplify', 'Strengthen'];
 	const rightSet = ['Leadership', 'Campaign', 'Publicity', 'Advocacy', 'Supporters'];
 
 	// pricing-v2 (leaders.ke-pricing-v2.csv): one flat rate per tier — every
 	// office costs the same, no more per-band price matrix.
-
+	const TIER_KEYS = ['kickstart', 'mobilize', 'dominate'] as const;
 	const tiers = ['Kickstart', 'Mobilize', 'Dominate'] as const;
+	// Hand-written marketing copy per tier — the only part of this page NOT
+	// sourced from the DB, since it's a pitch line, not a fact an admin edits.
+	const taglines = ['Launch your bid', 'Grow your movement', 'Command the race'];
 
-	// One monthly KES price per tier, same for every office.
-	const prices = [2500, 12500, 50000];
+	const fmt = new Intl.NumberFormat('en-KE');
+	const fmtCap = (n: number | null) => (n === null ? 'Unlimited' : fmt.format(n));
 
-	// Card pitch: a short tagline + a few highlight perks per tier.
-	const packages = [
-		{
-			tagline: 'Launch your bid',
-			highlights: ['2 campaign managers', '10 ambassadors', '10,000 citizen subscriptions', '500 credits/mo']
-		},
-		{
-			tagline: 'Grow your movement',
-			highlights: [
-				'5 campaign managers',
-				'100 ambassadors',
-				'100,000 citizen subscriptions',
-				'Analytics: page views, conversions, pledges',
-				'3,000 credits/mo'
-			]
-		},
-		{
-			tagline: 'Command the race',
-			highlights: [
-				'Unlimited managers, ambassadors & subscriptions',
-				'PR AI Agent: daily news research',
-				'Voter heatmap per ward',
-				'Sentiment Intelligence suite',
-				'15,000 credits/mo'
-			]
+	// One monthly KES price per tier, same for every office — read from the
+	// `pricing` table (the same rows /dashboard/admin/packages edits).
+	const prices = TIER_KEYS.map((tier) => data.pricing.find((p) => p.tier === tier && p.billingCycle === 'monthly')?.amount ?? 0);
+	const packageFeatures = TIER_KEYS.map((tier) => data.packages.find((p) => p.tier === tier)?.features);
+
+	// Card highlight bullets, built from the same features every tier's caps
+	// come from: managers/ambassadors/subscriptions collapse into one "Unlimited
+	// ...” line when all three are unlimited (Dominate today), else list
+	// separately; perks that are ON get their pricing-table label; credits close
+	// the list. Nothing here is hand-typed, so a package edit shows up here too.
+	const packages = TIER_KEYS.map((_tier, t) => {
+		const f = packageFeatures[t];
+		const highlights: string[] = [];
+		if (f) {
+			if (f.managers === null && f.ambassadors === null && f.subscriptions === null) {
+				highlights.push('Unlimited managers, ambassadors & subscriptions');
+			} else {
+				highlights.push(`${fmtCap(f.managers)} campaign managers`);
+				highlights.push(`${fmtCap(f.ambassadors)} ambassadors`);
+				highlights.push(`${fmtCap(f.subscriptions)} citizen subscriptions`);
+			}
+			for (const key of PACKAGE_PERK_KEYS) if (f[key]) highlights.push(PERK_LABELS[key]);
+			highlights.push(`${fmtCap(f.creditsPerMonth)} credits/mo`);
 		}
-	];
+		return { tagline: taglines[t], highlights };
+	});
 
 	// Base features every package includes, regardless of tier.
 	const baseFeatures = [
@@ -54,16 +70,17 @@
 		'Free support and platform maintenance',
 	];
 
-	// Comparison rows: same metric across all three tiers ("—" means not included).
+	// Comparison rows: same metric across all three tiers ("—" means not
+	// included). Numeric caps and perk checks both come from packageFeatures.
 	const comparison = [
-		{ label: 'Campaign managers', values: ['2', '5', 'Unlimited'] },
-		{ label: 'Campaign ambassadors', values: ['10', '100', 'Unlimited'] },
-		{ label: 'Citizen subscriptions', values: ['10,000', '100,000', 'Unlimited'] },
-		{ label: 'Analytics: page views, conversions, pledges', values: ['—', '✓', '✓'] },
-		{ label: 'PR AI Agent: daily news research', values: ['—', '—', '✓'] },
-		{ label: 'Voter heatmap per ward', values: ['—', '—', '✓'] },
-		{ label: 'Sentiment Intelligence suite: campaign, competition', values: ['—', '—', '✓'] },
-		{ label: 'Credits included/mo', values: ['500', '3,000', '15,000'] }
+		{ label: 'Campaign managers', values: packageFeatures.map((f) => (f ? fmtCap(f.managers) : '—')) },
+		{ label: 'Campaign ambassadors', values: packageFeatures.map((f) => (f ? fmtCap(f.ambassadors) : '—')) },
+		{ label: 'Citizen subscriptions', values: packageFeatures.map((f) => (f ? fmtCap(f.subscriptions) : '—')) },
+		...PACKAGE_PERK_KEYS.map((key) => ({
+			label: PERK_LABELS[key],
+			values: packageFeatures.map((f) => (f?.[key] ? '✓' : '—'))
+		})),
+		{ label: 'Credits included/mo', values: packageFeatures.map((f) => (f ? fmtCap(f.creditsPerMonth) : '—')) }
 	];
 
 	// Network-effect features: only real value once other leaders are on the
@@ -173,8 +190,6 @@
 			description: '7 days featured on your seat hub and region page. Price scales with that seat\'s audience: lowest for an MCA ward hub, highest for the President/VP national hub.'
 		}
 	];
-
-	const fmt = new Intl.NumberFormat('en-KE');
 
 	// Annual billing bills 10 months (2 free). Toggle drives every price on the page.
 	let annual = $state(false);

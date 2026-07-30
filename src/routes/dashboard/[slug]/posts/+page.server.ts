@@ -8,7 +8,7 @@ import { extractMentionSlugs, generatePostSlug } from '$lib/server/posts';
 import { answerConstituentQuestion } from '$lib/server/ai';
 import { getPageSize } from '$lib/server/settings';
 import { getPersonTier } from '$lib/server/invites';
-import { tierAtLeast } from '$lib/server/packages';
+import { getPackageFeatures } from '$lib/server/packages';
 import type { Actions, PageServerLoad } from './$types';
 
 // The News tab: campaign posts, campaign events, and aggregated external mentions,
@@ -41,8 +41,11 @@ export const load: PageServerLoad = async (event) => {
 	const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 	const mentionFilter = and(eq(tags.subjectUserId, ctx.profileUser.id), isNull(tags.deletedAt), isNull(posts.deletedAt));
 
+	// Admin-toggled perk (packages.features.prAiAgent — /dashboard/admin/packages,
+	// same fact /pricing shows) rather than a hardcoded tier name: flipping the
+	// toggle changes both pages together.
 	const tier = await getPersonTier(ctx.profileUser.id);
-	const mentionsUnlocked = tierAtLeast(tier, 'dominate');
+	const mentionsUnlocked = !!(await getPackageFeatures(tier))?.prAiAgent;
 
 	const [ownPosts, mentionRows, dayRow, negative24h, eventRows, mentionsCount] = await Promise.all([
 		db.select().from(posts).where(ownPostFilter).orderBy(desc(posts.createdAt)).limit(300),

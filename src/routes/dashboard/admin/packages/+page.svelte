@@ -18,6 +18,14 @@
 		{ key: 'creditsPerMonth', label: 'Credits included/mo' },
 		{ key: 'knowledgeMb', label: 'Knowledge upload (MB)' }
 	] as const;
+	// On/off perks — same list PERK_LABELS/PACKAGE_PERK_KEYS in packages.ts
+	// drives; the /pricing comparison table reads the same features.
+	const PERKS = [
+		{ key: 'analytics', label: 'Analytics: page views, conversions, pledges' },
+		{ key: 'prAiAgent', label: 'PR AI Agent: daily news research' },
+		{ key: 'voterHeatmap', label: 'Voter heatmap per ward' },
+		{ key: 'sentimentSuite', label: 'Sentiment Intelligence suite: campaign, competition' }
+	] as const;
 
 	const rate = (tier: string, cycle: string) => data.pricing.find((p) => p.tier === tier && p.billingCycle === cycle);
 	const pkg = (tier: string) => data.packages.find((p) => p.tier === tier);
@@ -140,6 +148,60 @@
 										aria-label="{tier} {feature.label}"
 										class={inputClass}
 									/>
+								</form>
+							</td>
+						{/each}
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
+
+	<!-- On/off perks: same ✓/— rows the public /pricing page shows, sourced from
+	the same packages.features the toggle below writes — one fact, two views. -->
+	<h2 class="mt-8 text-lg font-semibold text-heading">Perks (on/off)</h2>
+	<p class="text-xs text-muted">Shown as ✓/— on the public Pricing page's comparison table.</p>
+	<div class="mt-3 overflow-x-auto rounded-2xl border border-border">
+		<table class="w-full min-w-160 table-fixed border-collapse text-left">
+			<thead>
+				<tr class="bg-surface-2">
+					<th class="w-2/5 px-4 py-3 text-sm font-semibold text-heading">Perk</th>
+					{#each TIERS as tier (tier)}
+						<th class="w-1/5 px-4 py-3 text-sm font-semibold text-heading capitalize">{tier}</th>
+					{/each}
+				</tr>
+			</thead>
+			<tbody>
+				{#each PERKS as perk (perk.key)}
+					<tr class="border-t border-border">
+						<th class="px-4 py-3 text-sm font-medium text-heading">{perk.label}</th>
+						{#each TIERS as tier (tier)}
+							{@const features = pkg(tier)?.features}
+							<td class="px-4 py-3">
+								<form
+									method="post"
+									action="?/setPerk"
+									use:enhance
+									onchange={(e) => (e.currentTarget as HTMLFormElement).requestSubmit()}
+								>
+									<input type="hidden" name="tier" value={tier} />
+									<input type="hidden" name="key" value={perk.key} />
+									<label class="inline-flex cursor-pointer items-center gap-2">
+										<!-- Unchecked checkboxes are omitted from FormData entirely, so a
+										same-name hidden fallback carries "false" — it must come AFTER
+										the checkbox in document order so form.get('value') (first match)
+										reads the checkbox's "true" when checked, the hidden "false" when not. -->
+										<input
+											type="checkbox"
+											name="value"
+											value="true"
+											checked={!!features?.[perk.key]}
+											aria-label="{tier} {perk.label}"
+											class="size-4 rounded border-border text-primary focus:ring-0 focus:ring-ring"
+										/>
+										<input type="hidden" name="value" value="false" />
+										<span class="text-sm text-muted">{features?.[perk.key] ? 'On' : 'Off'}</span>
+									</label>
 								</form>
 							</td>
 						{/each}
