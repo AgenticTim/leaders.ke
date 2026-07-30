@@ -11,6 +11,23 @@
 	const publicPath = $derived(page.data.leaderContext?.publicPath ?? '/presidents');
 	const county = $derived(page.data.leaderContext?.region ?? null);
 
+	// Bar length is relative to the county with the most pledges (a raw-count
+	// "where the volume is" read); color intensity is relative to pledge RATE
+	// against that county's real 2022 electorate (a "how deep does it run"
+	// read) — the two together are what "graphically show pledges/potential
+	// voters per region" actually needs, not just a bare number list.
+	const maxPledges = $derived(Math.max(1, ...data.heatmap.map((r) => r.pledges)));
+	const maxRate = $derived(Math.max(0.0001, ...data.heatmap.map((r) => (r.registeredVoters ? r.pledges / r.registeredVoters : 0))));
+	function barWidth(row: (typeof data.heatmap)[number]): number {
+		return Math.round((row.pledges / maxPledges) * 100);
+	}
+	function heatOpacity(row: (typeof data.heatmap)[number]): number {
+		const rate = row.registeredVoters ? row.pledges / row.registeredVoters : 0;
+		return 0.25 + 0.75 * (rate / maxRate);
+	}
+	const pctFmt = new Intl.NumberFormat('en-KE', { style: 'percent', maximumFractionDigits: 3 });
+	const numFmt = new Intl.NumberFormat('en-KE');
+
 	function onWardChange(event: Event) {
 		const ward = (event.target as HTMLSelectElement).value;
 		goto(ward ? `?ward=${encodeURIComponent(ward)}` : '?', { keepFocus: true });
@@ -81,36 +98,6 @@
 	{/if}
 </div>
 
-{#if data.pledgeCount > 0}
-	<div class="mt-6 rounded-2xl border border-border bg-surface p-5">
-		<div class="flex flex-wrap items-center justify-between gap-3">
-			<div>
-				<p class="font-semibold text-heading">
-					Voter heatmap <span class="text-sm font-normal text-muted">({data.pledgeCount} pledge{data.pledgeCount === 1 ? '' : 's'})</span>
-				</p>
-				<p class="mt-1 text-sm text-muted">Where your vote pledges concentrate, by county and ward.</p>
-			</div>
-			{#if !data.heatmapUnlocked}
-				<a href="/pricing" class="shrink-0 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95">
-					Upgrade to Dominate
-				</a>
-			{/if}
-		</div>
-		{#if data.heatmapUnlocked}
-			<!-- Grouped by (county, ward) from the pledging citizen's own account
-			geo — a null ward is a county-only pledger (no ward set on their account). -->
-			<ul class="mt-4 divide-y divide-border">
-				{#each data.heatmap as row (row.county + (row.ward ?? ''))}
-					<li class="flex items-center justify-between gap-3 py-2 text-sm">
-						<span class="text-heading">{row.county}{#if row.ward}<span class="text-muted">, {row.ward}</span>{/if}</span>
-						<span class="font-semibold text-heading">{row.n}</span>
-					</li>
-				{/each}
-			</ul>
-		{/if}
-	</div>
-{/if}
-
 {#if data.total === 0}
 	<!-- The add-a-citizen form below stays available: manual recruitment is how a
 	roster gets its first rows. -->
@@ -139,4 +126,51 @@
 		pagerHref={(p) => (data.ward ? `?ward=${encodeURIComponent(data.ward)}&page=${p}` : `?page=${p}`)}
 		{county}
 	/>
+</div>
+
+
+<!-- Voter Heatmap (Dominate perk): pledges by county against the real 2022
+electorate; a locked tier gets an upsell instead of the bars, same pattern as
+the Competitors tab's Sentiment Intelligence Suite banner. -->
+<div class="mt-6 rounded-2xl border border-border bg-surface p-5">
+	<p class="font-semibold text-heading">
+		Voter heatmap <span class="text-sm font-normal text-muted">({data.pledgeCount} pledge{data.pledgeCount === 1 ? '' : 's'})</span>
+	</p>
+	{#if data.heatmapUnlocked}
+		<p class="mt-1 text-sm text-muted">Where your vote pledges concentrate, against each county's 2022 electorate.</p>
+		<!-- One bar per county (all 47, real 2022 electorate — even at 0
+		pledges, so the map reads as "here's the ground, here's how much of it
+		you've reached" from day one). Bar LENGTH is this county's share of
+		pledges relative to your top county (where the raw volume is); bar
+		COLOR intensity is pledge rate against that county's registered voters
+		(how deep it runs there) — a county can be short-but-dark (few pledges,
+		high rate in a small electorate) or long-but-pale (many pledges, thin
+		against a big one). -->
+		<ul class="mt-4 max-h-100 space-y-2.5 overflow-y-auto pr-1">
+			{#each data.heatmap as row (row.county)}
+				<li>
+					<div class="flex items-baseline justify-between gap-3 text-sm">
+						<span class="font-medium text-heading">{row.county}</span>
+						<span class="shrink-0 text-xs text-muted">
+							{numFmt.format(row.pledges)} pledge{row.pledges === 1 ? '' : 's'}
+							{#if row.registeredVoters}
+								<span class="text-muted"> · {pctFmt.format(row.pledges / row.registeredVoters)} of {numFmt.format(row.registeredVoters)} voters</span>
+							{/if}
+						</span>
+					</div>
+					<div class="mt-1 h-3 w-full overflow-hidden rounded-full bg-surface-2">
+						<div
+							class="h-full rounded-full bg-primary"
+							style="width: {barWidth(row)}%; opacity: {heatOpacity(row)}"
+						></div>
+					</div>
+				</li>
+			{/each}
+		</ul>
+	{:else}
+		<div class="mt-4 rounded-2xl border border-dashed border-border bg-surface p-4 text-sm text-muted">
+			<a href="/pricing" class="font-semibold font-medium text-primary hover:underline">Upgrade to the Dominate Package</a> to see
+			where your vote pledges concentrate, county by county, against the real electorate.
+		</div>
+	{/if}
 </div>

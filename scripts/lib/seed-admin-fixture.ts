@@ -36,6 +36,7 @@ import {
 	leaders,
 	managers,
 	pillars,
+	pledges,
 	positions,
 	posts,
 	reviews,
@@ -318,6 +319,23 @@ export async function seedAdminFixture(db: AnyDb) {
 			status: 'confirmed',
 			reference: d.reference
 		});
+	}
+
+	// Pledges spread across a few counties (real names, matching $lib/data/geo.ts)
+	// so the Followers tab's Dominate-only voter heatmap has something to draw —
+	// otherwise that graphical feature is invisible on this fixture until a real
+	// citizen pledges, defeating the point of an "exercise every feature" demo.
+	const aminaId = await getOrCreateDummyUser(db, 'Amina Hassan', 'amina.citizen@leaders.ke');
+	const peterId = await getOrCreateDummyUser(db, 'Peter Kones', 'peter.citizen@leaders.ke');
+	const pledgerCounties: [number, string][] = [
+		[janeId, 'Nairobi'],
+		[johnId, 'Kiambu'],
+		[aminaId, 'Mombasa'],
+		[peterId, 'Kisumu']
+	];
+	for (const [userId, pledgeCounty] of pledgerCounties) {
+		await db.update(users).set({ county: pledgeCounty }).where(eq(users.id, userId));
+		await db.insert(pledges).values({ userId, campaignId: campaign.id }).onConflictDoNothing();
 	}
 
 	// Team: the ADMIN manages this profile (so it shows in the admin's role switcher as

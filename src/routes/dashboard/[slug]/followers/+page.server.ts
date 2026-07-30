@@ -7,25 +7,36 @@ import { createInvite, getPersonTier, listOpenInvites } from '$lib/server/invite
 import { getPackageFeatures } from '$lib/server/packages';
 import { addCitizenFollower } from '$lib/server/ambassador';
 import { getRunCampaign } from '$lib/server/leader';
+import { counties } from '$lib/data/geo';
 import { getPageSize } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
 
-/** Live pledges to this person's active-cycle run, grouped by the pledging
- * citizen's own account county/ward (set on their Account page) — the richer,
- * always-current geo signal now that pledging requires an account, rather than
- * the one-off contact-capture constituency/ward columns pledges itself carries
- * (dead weight since pledging stopped taking anonymous name/contact forms). */
-async function voterHeatmap(campaignId: number): Promise<{ county: string; ward: string | null; n: number }[]> {
-	const rows = await db
-		.select({ county: users.county, ward: users.ward, n: count() })
-		.from(pledges)
-		.innerJoin(users, eq(pledges.userId, users.id))
-		.where(and(eq(pledges.campaignId, campaignId), isNull(pledges.deletedAt)))
-		.groupBy(users.county, users.ward)
-		.orderBy(desc(count()));
-	return rows
-		.filter((r): r is { county: string; ward: string | null; n: number } => !!r.county)
-		.map((r) => ({ county: r.county, ward: r.ward, n: r.n }));
+export type HeatmapRow = { county: string; pledges: number; registeredVoters: number };
+
+/** Every county (geo.ts's real 2022 register), each against live pledges to
+ * this person's active-cycle run grouped by the pledging citizen's own account
+ * county (set on their Account page — the richer, always-current geo signal
+ * now that pledging requires an account, rather than the one-off
+ * contact-capture constituency/ward columns pledges itself carries, dead
+ * weight since pledging stopped taking anonymous name/contact forms). Every
+ * county is included even at 0 pledges — including when there's no campaign
+ * at all yet (campaignId null): the map still reads as "here's the ground
+ * you'll need to cover", not just a leaderboard of hits. Sorted by pledge
+ * count, most first, then by county name. */
+async function voterHeatmap(campaignId: number | null): Promise<HeatmapRow[]> {
+	const rows = campaignId
+		? await db
+				.select({ county: users.county, n: count() })
+				.from(pledges)
+				.innerJoin(users, eq(pledges.userId, users.id))
+				.where(and(eq(pledges.campaignId, campaignId), isNull(pledges.deletedAt)))
+				.groupBy(users.county)
+		: [];
+
+	const pledgesByCounty = new Map(rows.filter((r): r is { county: string; n: number } => !!r.county).map((r) => [r.county, r.n]));
+	return counties
+		.map((c) => ({ county: c.name, pledges: pledgesByCounty.get(c.name) ?? 0, registeredVoters: c.voters }))
+		.sort((a, b) => b.pledges - a.pledges || a.county.localeCompare(b.county));
 }
 
 // Follower roster with geo segments; geo values feed the broadcast targeting UI too.
@@ -68,7 +79,7 @@ export const load: PageServerLoad = async (event) => {
 		campaign
 			? db.select({ n: count() }).from(pledges).where(and(eq(pledges.campaignId, campaign.id), isNull(pledges.deletedAt)))
 			: Promise.resolve([{ n: 0 }]),
-		campaign && heatmapUnlocked ? voterHeatmap(campaign.id) : Promise.resolve([])
+		heatmapUnlocked ? voterHeatmap(campaign?.id ?? null) : Promise.resolve([])
 	]);
 
 	return {
