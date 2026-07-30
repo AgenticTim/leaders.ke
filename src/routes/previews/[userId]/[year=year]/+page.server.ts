@@ -30,6 +30,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			initials: name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase(),
 			photoUrl: row.users.photoUrl,
 			party: workspace.party,
+			partyPath: workspace.partyPath,
 			regionLabel: row.positions.region,
 			positionTitle: row.positions.title,
 			status: row.status,

@@ -218,6 +218,8 @@ export async function loadPublicProfileData(
 			initials: name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase(),
 			photoUrl: row.users.photoUrl,
 			party: leadPartyId ? (partyNameById.get(leadPartyId) ?? null) : null,
+			// /parties/[party] resolves by slugified name (see routes/parties/[party]).
+			partyPath: leadPartyId && partyNameById.has(leadPartyId) ? `/parties/${slugify(partyNameById.get(leadPartyId)!)}` : null,
 			regionLabel: leadPosition.region,
 			positionTitle: leadPosition.title,
 			positionId: leadPosition.id,

@@ -137,6 +137,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies }) => {
 				.toUpperCase(),
 			photoUrl: row.users.photoUrl,
 			party: workspace.party,
+			partyPath: workspace.partyPath,
 			regionLabel: row.positions.region,
 			positionTitle: row.positions.title,
 			status: row.status,

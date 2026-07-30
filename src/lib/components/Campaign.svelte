@@ -97,7 +97,9 @@
 								{leader.positionTitle}, {leader.regionLabel}
 							{/if}
 							for {data.year}
-							{#if leader.party}· {leader.party}{/if}
+							{#if leader.party}
+								· <a href={leader.partyPath ?? '/parties'} class="hover:text-primary hover:underline">{leader.party}</a>
+							{/if}
 						</p>
 						<div class="mt-2 flex flex-col sm:flex-row text-center justify-between text-sm">
 							<p class="font-medium text-heading">

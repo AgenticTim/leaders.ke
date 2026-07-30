@@ -5,7 +5,7 @@
 import { and, asc, count, desc, eq, isNull, sum } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { campaigns, donations, followers, parties, pillars, pledges, posts } from '$lib/server/db/schema';
-import { ACTIVE_CYCLE, resolveCurrentTerm, resolveCurrentTermByUserId } from '$lib/server/leader';
+import { ACTIVE_CYCLE, resolveCurrentTerm, resolveCurrentTermByUserId, slugify } from '$lib/server/leader';
 import { getFlaggedReviewCounts, getMyReview, listApprovedReviews, listReviewPillarOptions } from '$lib/server/reviews';
 import { isFollowingAsAccount } from '$lib/server/follow';
 
@@ -124,6 +124,8 @@ export async function loadCampaignWorkspaceData(row: CampaignRun, viewerId?: num
 		title: mainCampaign?.title ?? '',
 		description: mainCampaign?.description ?? '',
 		party: partyRow?.name ?? null,
+		// /parties/[party] resolves by slugified name (see routes/parties/[party]).
+		partyPath: partyRow ? `/parties/${slugify(partyRow.name)}` : null,
 		pillars: pillarRows,
 		posts: postRows.map((p) => ({ ...p, createdAt: p.createdAt.toISOString() })),
 		followers: followerRow.n,
