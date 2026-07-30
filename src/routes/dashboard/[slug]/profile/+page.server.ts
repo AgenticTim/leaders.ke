@@ -4,9 +4,23 @@ import { fail } from '@sveltejs/kit';
 import { redirectWithFlash } from '$lib/server/flash';
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { campaigns, experience, leaders, managers, parties, positions, users } from '$lib/server/db/schema';
+import {
+	campaigns,
+	experience,
+	leaders,
+	managers,
+	parties,
+	positions,
+	users
+} from '$lib/server/db/schema';
 import { getRouteLeaderContext, requireDashboardUser } from '$lib/server/dashboard';
-import { ACTIVE_CYCLE, createPhantomUser, getApplicationChecklist, isSlugAvailable, slugify } from '$lib/server/leader';
+import {
+	ACTIVE_CYCLE,
+	createPhantomUser,
+	getApplicationChecklist,
+	isSlugAvailable,
+	slugify
+} from '$lib/server/leader';
 import { saveLeaderDocument } from '$lib/server/storage';
 import { notifyAdminsOfVerificationRequest } from '$lib/server/profiles';
 import {
@@ -44,7 +58,15 @@ export const load: PageServerLoad = async (event) => {
 	const [existingExperience, otherLeadershipRows] = ctx
 		? await Promise.all([
 				db
-					.select({ id: experience.id, type: experience.type, title: experience.title, institution: experience.institution, description: experience.description, from: experience.startAt, to: experience.endAt })
+					.select({
+						id: experience.id,
+						type: experience.type,
+						title: experience.title,
+						institution: experience.institution,
+						description: experience.description,
+						from: experience.startAt,
+						to: experience.endAt
+					})
 					.from(experience)
 					.where(and(eq(experience.subjectUserId, subject.id), isNull(experience.deletedAt)))
 					.orderBy(experience.startAt),
@@ -117,15 +139,47 @@ export const load: PageServerLoad = async (event) => {
 			positionId: ctx?.position?.id ?? null,
 			slug: subject.slug ?? null,
 			hasLeader: !!ctx,
-			verified: (ctx?.verified ?? false)
+			verified: ctx?.verified ?? false
 		},
 		// The photo is edited on this tab (staged client-side, uploaded with ?/save).
 		photoUrl: ctx?.profileUser.photoUrl ?? null
 	};
 };
 
-type PendingExperience = { type: 'education' | 'professional'; title: string; institution: string; description?: string; from: string; to: string | null };
-type PendingLeadership = { positionId: number; partyId: number | null; description: string; from: string; to: string | null };
+type PendingExperience = {
+	type: 'education' | 'professional';
+	title: string;
+	institution: string;
+	description?: string;
+	from: string;
+	to: string | null;
+};
+type PendingLeadership = {
+	positionId: number;
+	partyId: number | null;
+	description: string;
+	from: string;
+	to: string | null;
+};
+// Edits to already-saved experience rows, applied in place (the id + anything
+// delivered under it survive, unlike remove-and-re-add). Type isn't editable.
+type EditedExperience = {
+	id: number;
+	title: string;
+	institution: string;
+	description?: string;
+	from: string;
+	to: string | null;
+};
+// Edits to already-saved leadership (elected term) rows, applied in place.
+type EditedLeadership = {
+	id: number;
+	positionId: number;
+	partyId: number | null;
+	description: string;
+	from: string;
+	to: string | null;
+};
 
 export const actions: Actions = {
 	save: async (event) => {
@@ -143,7 +197,8 @@ export const actions: Actions = {
 		const photoFile = form.get('photo');
 		const hasPhoto = photoFile instanceof File && photoFile.size > 0;
 		if (hasPhoto) {
-			if (photoFile.size > 10 * 1024 * 1024) return fail(400, { error: 'The photo is larger than 10 MB.' });
+			if (photoFile.size > 10 * 1024 * 1024)
+				return fail(400, { error: 'The photo is larger than 10 MB.' });
 			if (!['image/jpeg', 'image/png', 'image/webp'].includes(photoFile.type)) {
 				return fail(400, { error: 'The photo must be a JPEG, PNG, or WebP image.' });
 			}
@@ -151,11 +206,15 @@ export const actions: Actions = {
 
 		let pendingExperience: PendingExperience[] = [];
 		let pendingLeadership: PendingLeadership[] = [];
+		let editedExperience: EditedExperience[] = [];
+		let editedLeadership: EditedLeadership[] = [];
 		let removedExperienceIds: number[] = [];
 		let removedLeadershipIds: number[] = [];
 		try {
 			pendingExperience = JSON.parse(String(form.get('experienceEntries') ?? '[]'));
 			pendingLeadership = JSON.parse(String(form.get('leadershipEntries') ?? '[]'));
+			editedExperience = JSON.parse(String(form.get('editedExperienceEntries') ?? '[]'));
+			editedLeadership = JSON.parse(String(form.get('editedLeadershipEntries') ?? '[]'));
 			removedExperienceIds = JSON.parse(String(form.get('removedExperienceIds') ?? '[]'));
 			removedLeadershipIds = JSON.parse(String(form.get('removedLeadershipIds') ?? '[]'));
 		} catch {
@@ -163,9 +222,13 @@ export const actions: Actions = {
 		}
 
 		if (!firstName || /\s/.test(firstName)) {
-			return fail(400, { error: 'First name is required and must be a single word.', missingFields: ['firstName'] });
+			return fail(400, {
+				error: 'First name is required and must be a single word.',
+				missingFields: ['firstName']
+			});
 		}
-		if (!otherNames) return fail(400, { error: 'Other names are required.', missingFields: ['otherNames'] });
+		if (!otherNames)
+			return fail(400, { error: 'Other names are required.', missingFields: ['otherNames'] });
 		if (!bio) return fail(400, { error: 'Add a short bio.', missingFields: ['bio'] });
 		// The seat contested is no longer part of this form — the run (seat + cycle)
 		// is declared on the Campaign tab. Party isn't edited at the top level either —
@@ -181,7 +244,25 @@ export const actions: Actions = {
 			}
 			if (!e.from) return fail(400, { error: 'Every added experience entry needs a start date.' });
 			if (e.to && e.to < e.from) {
-				return fail(400, { error: '"To" can\'t be before "From" for one of the added experience entries.' });
+				return fail(400, {
+					error: '"To" can\'t be before "From" for one of the added experience entries.'
+				});
+			}
+			if (e.description && e.description.trim().length > 500) {
+				return fail(400, { error: 'Experience descriptions are limited to 500 characters.' });
+			}
+		}
+		for (const e of editedExperience) {
+			if (!Number.isInteger(e.id))
+				return fail(400, { error: 'One of the edited experience entries is invalid.' });
+			if (!e.title?.trim() || !e.institution?.trim()) {
+				return fail(400, { error: 'Every edited experience entry needs a title and institution.' });
+			}
+			if (!e.from) return fail(400, { error: 'Every edited experience entry needs a start date.' });
+			if (e.to && e.to < e.from) {
+				return fail(400, {
+					error: '"To" can\'t be before "From" for one of the edited experience entries.'
+				});
 			}
 			if (e.description && e.description.trim().length > 500) {
 				return fail(400, { error: 'Experience descriptions are limited to 500 characters.' });
@@ -189,17 +270,42 @@ export const actions: Actions = {
 		}
 		const leadershipPositions = new Map<number, typeof positions.$inferSelect>();
 		for (const l of pendingLeadership) {
-			if (!l.positionId) return fail(400, { error: 'Pick a position for every added leadership entry.' });
+			if (!l.positionId)
+				return fail(400, { error: 'Pick a position for every added leadership entry.' });
 			if (!l.from) return fail(400, { error: 'Every added leadership entry needs a start date.' });
 			if (l.to && l.to < l.from) {
-				return fail(400, { error: '"To" can\'t be before "From" for one of the added leadership entries.' });
+				return fail(400, {
+					error: '"To" can\'t be before "From" for one of the added leadership entries.'
+				});
 			}
 			if (!leadershipPositions.has(l.positionId)) {
 				const [p] = await db
 					.select()
 					.from(positions)
 					.where(and(eq(positions.id, l.positionId), isNull(positions.deletedAt)));
-				if (!p) return fail(400, { error: 'One of the added leadership positions does not exist.' });
+				if (!p)
+					return fail(400, { error: 'One of the added leadership positions does not exist.' });
+				leadershipPositions.set(l.positionId, p);
+			}
+		}
+		for (const l of editedLeadership) {
+			if (!Number.isInteger(l.id))
+				return fail(400, { error: 'One of the edited leadership entries is invalid.' });
+			if (!l.positionId)
+				return fail(400, { error: 'Pick a position for every edited leadership entry.' });
+			if (!l.from) return fail(400, { error: 'Every edited leadership entry needs a start date.' });
+			if (l.to && l.to < l.from) {
+				return fail(400, {
+					error: '"To" can\'t be before "From" for one of the edited leadership entries.'
+				});
+			}
+			if (!leadershipPositions.has(l.positionId)) {
+				const [p] = await db
+					.select()
+					.from(positions)
+					.where(and(eq(positions.id, l.positionId), isNull(positions.deletedAt)));
+				if (!p)
+					return fail(400, { error: 'One of the edited leadership positions does not exist.' });
 				leadershipPositions.set(l.positionId, p);
 			}
 		}
@@ -264,12 +370,50 @@ export const actions: Actions = {
 			});
 		}
 
+		// In-place edits to saved experience rows — scoped to this person so nobody
+		// can rewrite someone else's rows by id-guessing. Type is left untouched.
+		for (const e of editedExperience) {
+			await db
+				.update(experience)
+				.set({
+					title: e.title.trim(),
+					institution: e.institution.trim(),
+					description: e.description?.trim() || null,
+					startAt: new Date(`${e.from}T00:00:00+03:00`),
+					endAt: e.to ? new Date(`${e.to}T00:00:00+03:00`) : null
+				})
+				.where(
+					and(
+						eq(experience.id, e.id),
+						eq(experience.subjectUserId, subjectId),
+						isNull(experience.deletedAt)
+					)
+				);
+		}
+
+		// In-place edits to saved leadership (elected term) rows — scoped to this
+		// person (leaders.userId) so nobody can rewrite someone else's rows by id.
+		for (const l of editedLeadership) {
+			await db
+				.update(leaders)
+				.set({
+					positionId: l.positionId,
+					partyId: l.partyId,
+					description: l.description?.trim() || null,
+					startAt: new Date(`${l.from}T00:00:00+03:00`),
+					endAt: l.to ? new Date(`${l.to}T00:00:00+03:00`) : null
+				})
+				.where(and(eq(leaders.id, l.id), eq(leaders.userId, subjectId), isNull(leaders.deletedAt)));
+		}
+
 		// Scoped to this person so nobody can remove someone else's rows by id-guessing.
 		if (removedExperienceIds.length > 0) {
 			await db
 				.update(experience)
 				.set({ deletedAt: new Date() })
-				.where(and(inArray(experience.id, removedExperienceIds), eq(experience.subjectUserId, subjectId)));
+				.where(
+					and(inArray(experience.id, removedExperienceIds), eq(experience.subjectUserId, subjectId))
+				);
 		}
 		if (removedLeadershipIds.length > 0) {
 			await db
@@ -299,7 +443,12 @@ export const actions: Actions = {
 		const ctx = await getRouteLeaderContext(event, domainUser.id);
 		if (!ctx) return fail(400, { deliveryError: 'Save the profile first.' });
 		const form = await event.request.formData();
-		const result = await addDelivery(ctx.profileUser.id, String(form.get('target') ?? ''), String(form.get('title') ?? ''), String(form.get('description') ?? ''));
+		const result = await addDelivery(
+			ctx.profileUser.id,
+			String(form.get('target') ?? ''),
+			String(form.get('title') ?? ''),
+			String(form.get('description') ?? '')
+		);
 		if (!result.ok) return fail(400, { deliveryError: result.error });
 		return { deliverySaved: true };
 	},
@@ -342,11 +491,21 @@ export const actions: Actions = {
 			await db
 				.update(campaigns)
 				.set({ deletedAt: new Date() })
-				.where(and(eq(campaigns.subjectUserId, ctx.profileUser.id), eq(campaigns.cycleYear, ACTIVE_CYCLE), isNull(campaigns.parentCampaignId), isNull(campaigns.deletedAt)));
+				.where(
+					and(
+						eq(campaigns.subjectUserId, ctx.profileUser.id),
+						eq(campaigns.cycleYear, ACTIVE_CYCLE),
+						isNull(campaigns.parentCampaignId),
+						isNull(campaigns.deletedAt)
+					)
+				);
 		}
 		// The team's manager rows retire with the application (else the switcher and
 		// context fallbacks keep resolving a dead profile).
-		await db.update(managers).set({ deletedAt: new Date() }).where(eq(managers.subjectUserId, ctx.profileUser.id));
+		await db
+			.update(managers)
+			.set({ deletedAt: new Date() })
+			.where(eq(managers.subjectUserId, ctx.profileUser.id));
 		// The phantom identity goes with it — but never the citizen's own users row
 		// (legacy self-profiles point leaders.userId at the citizen).
 		if (ctx.profileUser.id !== domainUser.id) {
@@ -366,13 +525,19 @@ export const actions: Actions = {
 		const { domainUser } = await requireDashboardUser(event);
 		const ctx = await getRouteLeaderContext(event, domainUser.id);
 		if (!ctx) return fail(400, { verificationError: 'Nothing to submit yet.' });
-		if (ctx.profileUser.profileVerifiedAt) return fail(400, { verificationError: 'This profile is already verified.' });
+		if (ctx.profileUser.profileVerifiedAt)
+			return fail(400, { verificationError: 'This profile is already verified.' });
 
 		const { applicationComplete, verificationRequestedAt } = await getApplicationChecklist(ctx);
-		if (verificationRequestedAt) return fail(400, { verificationError: 'Already submitted — it\'s pending admin review.' });
-		if (!applicationComplete) return fail(400, { verificationError: 'Some required fields are still missing.' });
+		if (verificationRequestedAt)
+			return fail(400, { verificationError: "Already submitted — it's pending admin review." });
+		if (!applicationComplete)
+			return fail(400, { verificationError: 'Some required fields are still missing.' });
 
-		await db.update(users).set({ verificationRequestedAt: new Date() }).where(eq(users.id, ctx.profileUser.id));
+		await db
+			.update(users)
+			.set({ verificationRequestedAt: new Date() })
+			.where(eq(users.id, ctx.profileUser.id));
 		await notifyAdminsOfVerificationRequest(ctx.profileUser.id);
 		return { requested: true };
 	}
