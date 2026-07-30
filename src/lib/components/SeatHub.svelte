@@ -84,13 +84,24 @@
 			{/if}
 		</div>
 
-		<!-- SRC compensation: data pending -->
+		<!-- SRC compensation: gross monthly pay SRC gazettes for this seat. -->
 		<div class="flex flex-1 flex-col">
 			<h2 class="text-xl font-bold text-heading">Salary</h2>
-			<p class="mt-4 rounded-2xl border border-border bg-surface-2 p-5 text-sm leading-relaxed grow">
-				The Salaries and Remuneration Commission (SRC) monthly package for this seat is being
-				compiled and will appear here for transparency.
-			</p>
+			{#if data.pay}
+				<div class="mt-4 flex grow flex-col rounded-2xl border border-border bg-surface-2 p-5">
+					<p class="text-3xl font-extrabold tracking-tight text-heading">
+						KSh {fmt.format(data.pay.monthlyGross)}<span class="text-base font-medium text-muted">/mo</span>
+					</p>
+					<p class="mt-1 text-sm text-muted">KSh {fmt.format(data.pay.monthlyGross * 12)} a year, gross.</p>
+					<p class="mt-auto pt-3 text-xs leading-relaxed text-muted">
+						{data.pay.source} gross monthly pay for this seat. Excludes the perks SRC sets separately (mileage, car grant, house or car loans, sitting allowances).
+					</p>
+				</div>
+			{:else}
+				<p class="mt-4 grow rounded-2xl border border-border bg-surface-2 p-5 text-sm leading-relaxed">
+					The Salaries and Remuneration Commission (SRC) does not publish a monthly package for this seat.
+				</p>
+			{/if}
 		</div>
 		
 		<!-- Manifesto delivery score for the current holder -->

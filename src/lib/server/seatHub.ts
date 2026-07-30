@@ -13,6 +13,7 @@ import {
 } from '$lib/server/leader';
 import { counties, findCountyBySlug, findConstituencyBySlug, findWardBySlug, geoSlug } from '$lib/data/geo';
 import { pluralPositionTitle, SINGULAR_SLUG_BY_TITLE } from '$lib/utils/seat';
+import { SRC_PAY_BY_TITLE, SRC_EFFECTIVE } from '$lib/data/srcPay';
 
 export async function loadSeatHub(position: string, region: string, regimeYear?: number) {
 	const positionRow = await findPositionByPath(position, region);
@@ -212,6 +213,9 @@ export async function loadSeatHub(position: string, region: string, regimeYear?:
 		basePath: seatPath,
 		hubPath,
 		seatVoters,
+		// SRC gross monthly pay for this seat (with the source line to render), or
+		// null for a title SRC doesn't set a package for here.
+		pay: SRC_PAY_BY_TITLE[positionTitle] ? { ...SRC_PAY_BY_TITLE[positionTitle], source: SRC_EFFECTIVE } : null,
 		county: county
 			? {
 					code: county.code,
