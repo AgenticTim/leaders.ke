@@ -8,25 +8,40 @@ import {
 	REVIEW_FLAG_REASONS,
 	type ReviewFlagReason
 } from '$lib/server/reviews';
+import { listLeaderChats, replyToChat } from '$lib/server/chat';
 import { getPageSize } from '$lib/server/settings';
 import { getRunCampaign } from '$lib/server/leader';
 import type { Actions, PageServerLoad } from './$types';
 
-// Moderation queue for citizen reviews of this leader (the person, across every
-// seat they've held or vied for): flag/unflag, and respond in the review's thread.
+// "Respond" tab: the two places a leader/manager answers citizens — the AI chat
+// threads (left) and review moderation (right) — shown side by side, each with
+// its own page cursor (chatsPage / reviewsPage) so paging one never resets the
+// other.
 export const load: PageServerLoad = async (event) => {
 	const { ctx } = await requireLeader(event);
 	const pageSize = await getPageSize();
-	const page = Math.max(1, Number(event.url.searchParams.get('page') ?? 1));
+	const reviewsPage = Math.max(1, Number(event.url.searchParams.get('reviewsPage') ?? 1));
+	const chatsPage = Math.max(1, Number(event.url.searchParams.get('chatsPage') ?? 1));
 
-	// Pillar options come from the person's run this cycle (their 2027 campaign).
+	// Review pillar options come from the person's run this cycle (2027 campaign).
 	const run = await getRunCampaign(ctx.profileUser.id);
-	const [{ reviews, total }, pillarOptions] = await Promise.all([
-		listReviewsForModeration(ctx.profileUser.id, page, pageSize),
-		listReviewPillarOptions(run?.id ?? 0)
+	const [{ reviews, total: reviewTotal }, pillarOptions, { threads, total: chatTotal }] = await Promise.all([
+		listReviewsForModeration(ctx.profileUser.id, reviewsPage, pageSize),
+		listReviewPillarOptions(run?.id ?? 0),
+		listLeaderChats(ctx.profileUser.id, chatsPage, pageSize)
 	]);
 
-	return { reviews, total, page, pageSize, pillarOptions, flagReasons: REVIEW_FLAG_REASONS };
+	return {
+		reviews,
+		reviewTotal,
+		reviewsPage,
+		pillarOptions,
+		flagReasons: REVIEW_FLAG_REASONS,
+		threads,
+		chatTotal,
+		chatsPage,
+		pageSize
+	};
 };
 
 export const actions: Actions = {
@@ -59,15 +74,20 @@ export const actions: Actions = {
 		const body = String(form.get('body') ?? '').trim();
 		if (!reviewId || !body) return fail(400, { error: 'Write a response first.' });
 
-		const ok = await respondToReview(
-			ctx.profileUser.id,
-			(ctx.leader?.id ?? 0),
-			reviewId,
-			ctx.role,
-			domainUser.id,
-			body
-		);
+		const ok = await respondToReview(ctx.profileUser.id, ctx.leader?.id ?? 0, reviewId, ctx.role, domainUser.id, body);
 		if (!ok) return fail(400, { error: 'Review not found.' });
 		return { responded: true };
+	},
+
+	reply: async (event) => {
+		const { domainUser, ctx } = await requireLeader(event);
+		const form = await event.request.formData();
+		const conversationId = Number(form.get('conversationId'));
+		const body = String(form.get('body') ?? '').trim();
+		if (!conversationId || !body) return fail(400, { error: 'Write a reply first.' });
+
+		const ok = await replyToChat(ctx.profileUser.id, conversationId, ctx.role, domainUser.id, body);
+		if (!ok) return fail(400, { error: 'Conversation not found.' });
+		return { replied: true };
 	}
 };
