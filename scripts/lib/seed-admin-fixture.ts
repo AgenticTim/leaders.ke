@@ -45,15 +45,16 @@ import {
 	reviews,
 	subscriptions,
 	tags,
-	users
+	users,
+	wallets
 } from '../../src/lib/server/db/schema';
 import { user as authUsers, account } from '../../src/lib/server/db/auth.schema';
 import { slugify, splitName, type AnyDb } from './names';
 
 const LEADER_NAME = 'Example Leader';
 const LEADER_SLUG = 'example-leader';
-const LEADER_EMAIL = 'example-leader@leaders.ke';
-const DUMMY_PASSWORD = 'demo-password'; // dev-only login for the seeded leader/citizens/manager
+const LEADER_EMAIL = 'example@leaders.ke';
+const DUMMY_PASSWORD = 'example.27'; // dev-only login for the seeded leader/citizens/manager
 const BIO =
 	'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ' +
 	'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure ' +
@@ -303,6 +304,14 @@ export async function seedAdminFixture(db: AnyDb) {
 		});
 	}
 
+	// A funded wallet so the demo profile's AI Chat answers citizens immediately
+	// (the credit-gated path in the Ask box), rather than routing every question
+	// to the team as an uncredited profile would.
+	await db
+		.insert(wallets)
+		.values({ subjectUserId: leaderUserId, balance: 100 })
+		.onConflictDoNothing({ target: wallets.subjectUserId });
+
 	// Aggregated news coverage (the same shape newsIngest.ts produces — a null-
 	// creator post + a tags row per mentioned person) so the Competitors tab's
 	// Sentiment Intelligence Suite has a real positive/neutral/negative mix to
@@ -395,15 +404,17 @@ export async function seedAdminFixture(db: AnyDb) {
 	// citizen pledges, defeating the point of an "exercise every feature" demo.
 	const aminaId = await getOrCreateDummyUser(db, 'Amina Hassan', 'amina.citizen@leaders.ke');
 	const peterId = await getOrCreateDummyUser(db, 'Peter Kones', 'peter.citizen@leaders.ke');
-	const pledgerCounties: [number, string][] = [
-		[janeId, 'Nairobi'],
-		[johnId, 'Kiambu'],
-		[aminaId, 'Mombasa'],
-		[peterId, 'Kisumu']
+	// Jane and John are attributed to Amina (the ambassador, seeded below) so the
+	// mobilize Pledges tab has recruited rows to show; Amina and Peter self-pledge.
+	const pledgerCounties: [number, string, number | null][] = [
+		[janeId, 'Nairobi', aminaId],
+		[johnId, 'Kiambu', aminaId],
+		[aminaId, 'Mombasa', null],
+		[peterId, 'Kisumu', null]
 	];
-	for (const [userId, pledgeCounty] of pledgerCounties) {
+	for (const [userId, pledgeCounty, addedBy] of pledgerCounties) {
 		await db.update(users).set({ county: pledgeCounty }).where(eq(users.id, userId));
-		await db.insert(pledges).values({ userId, campaignId: campaign.id }).onConflictDoNothing();
+		await db.insert(pledges).values({ userId, campaignId: campaign.id, addedBy }).onConflictDoNothing();
 	}
 
 	// Team: the ADMIN manages this profile (so it shows in the admin's role switcher as

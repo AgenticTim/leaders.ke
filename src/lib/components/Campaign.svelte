@@ -230,7 +230,7 @@
 							</p>
 						{:else}
 							<p class="mt-2 text-sm leading-relaxed">
-								Thanks for your question — the team has received it and will get back to you soon.
+								Thanks for your question. The team has received it and will get back to you soon.
 							</p>
 						{/if}
 					</div>

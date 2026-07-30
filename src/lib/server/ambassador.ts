@@ -3,7 +3,7 @@
 // citizen recruitment (blueprint funnel A: ambassador adds citizen via dashboard).
 import { and, count, desc, eq, inArray, isNull, or } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { ambassadors, campaigns, followers, leaders, positions, users } from '$lib/server/db/schema';
+import { ambassadors, campaigns, followers, leaders, pledges, positions, users } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, leaderPath } from '$lib/server/leader';
 
 export type AmbassadorAssignment = {
@@ -193,6 +193,101 @@ export async function listRecruits(
 			email: f.emailAddress,
 			ward: f.ward,
 			joinedAt: f.createdAt.toISOString()
+		})),
+		total
+	};
+}
+
+/**
+ * Records a vote pledge an ambassador gathered in the field (blueprint funnel A) —
+ * a citizen who pledges but may not want to follow for news, so this is kept
+ * separate from addCitizenFollower. The pledge attaches to the campaign directly
+ * (never a leaders row) with contact capture and `addedBy` attribution; contact is
+ * optional (a pledge can be just a name), deduped per campaign only when a contact
+ * is given (a name alone can't be told apart from a namesake).
+ */
+export async function addCitizenPledge(
+	recruiterUserId: number,
+	campaignId: number,
+	input: { name: string; phone: string; email: string; county: string | null; ward: string | null }
+) {
+	const name = input.name.trim();
+	const email = input.email.trim().toLowerCase();
+	const phone = input.phone.replace(/[^\d+]/g, '');
+	if (!name) return { ok: false as const, error: 'Enter the citizen’s name.' };
+	if (phone && phone.length < 9) return { ok: false as const, error: 'Enter a valid phone number.' };
+	if (email && !email.includes('@')) return { ok: false as const, error: 'Enter a valid email address.' };
+	const emailAddress = email || null;
+	const phoneNumber = phone || null;
+
+	if (emailAddress || phoneNumber) {
+		const [duplicate] = await db
+			.select({ id: pledges.id })
+			.from(pledges)
+			.where(
+				and(
+					eq(pledges.campaignId, campaignId),
+					isNull(pledges.deletedAt),
+					or(
+						emailAddress ? eq(pledges.email, emailAddress) : undefined,
+						phoneNumber ? eq(pledges.sms, phoneNumber) : undefined
+					)
+				)
+			)
+			.limit(1);
+		if (duplicate) return { ok: false as const, error: 'That contact has already pledged to this campaign.' };
+	}
+
+	await db.insert(pledges).values({
+		campaignId,
+		name,
+		email: emailAddress,
+		sms: phoneNumber,
+		constituency: input.county, // pledges predate a county column; constituency holds the geo label
+		ward: input.ward || null,
+		addedBy: recruiterUserId
+	});
+	return { ok: true as const, name };
+}
+
+export type RecruitedPledge = {
+	id: number;
+	name: string;
+	phone: string | null;
+	email: string | null;
+	ward: string | null;
+	pledgedAt: string;
+};
+
+/** Pledges this ambassador recruited for this campaign, newest first. A recruited
+ * pledge may carry a linked account (name from users) or be contact-only (name
+ * from the pledge row). */
+export async function listRecruitedPledges(
+	recruiterUserId: number,
+	campaignId: number,
+	page: number,
+	pageSize: number
+): Promise<{ pledges: RecruitedPledge[]; total: number }> {
+	const filter = and(eq(pledges.campaignId, campaignId), eq(pledges.addedBy, recruiterUserId), isNull(pledges.deletedAt));
+	const [rows, [{ n: total }]] = await Promise.all([
+		db
+			.select({ p: pledges, u: users })
+			.from(pledges)
+			.leftJoin(users, eq(pledges.userId, users.id))
+			.where(filter)
+			.orderBy(desc(pledges.createdAt))
+			.limit(pageSize)
+			.offset((page - 1) * pageSize),
+		db.select({ n: count() }).from(pledges).where(filter)
+	]);
+	return {
+		pledges: rows.map(({ p, u }) => ({
+			id: p.id,
+			name: u ? fullName(u) : (p.name ?? 'Citizen'),
+			phone: p.sms,
+			email: p.email,
+			ward: p.ward,
+			pledgedAt: p.createdAt.toISOString()
 		})),
 		total
 	};

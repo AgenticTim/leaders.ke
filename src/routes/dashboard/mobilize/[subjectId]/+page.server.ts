@@ -7,8 +7,10 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { requireDashboardUser } from '$lib/server/dashboard';
 import {
 	addCitizenFollower,
+	addCitizenPledge,
 	leaveAmbassadorRole,
 	listAmbassadorAssignments,
+	listRecruitedPledges,
 	listRecruits
 } from '$lib/server/ambassador';
 import {
@@ -18,6 +20,7 @@ import {
 	listEventsForAmbassador,
 	listFeedbackForAmbassador
 } from '$lib/server/mobilization';
+import { getRunCampaign } from '$lib/server/leader';
 import { counties } from '$lib/data/geo';
 import { getPageSize } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
@@ -31,9 +34,21 @@ export const load: PageServerLoad = async (event) => {
 	if (!assignment) error(404, 'You are not an ambassador for this campaign.');
 
 	const pageSize = await getPageSize();
+	// Per-tab pagination without four separate params: `tab` names which list the
+	// `page` cursor drives; the others load their first page.
+	const tab = event.url.searchParams.get('tab') ?? 'followers';
 	const page = Math.max(1, Number(event.url.searchParams.get('page') ?? 1));
-	const [{ recruits, total }, events, feedback] = await Promise.all([
-		listRecruits(domainUser.id, subjectId, page, pageSize),
+	const followerPage = tab === 'followers' ? page : 1;
+	const pledgePage = tab === 'pledges' ? page : 1;
+
+	// Pledges attach to the person's active-cycle run; without one, the campaign
+	// can't take pledges yet (form disabled client-side).
+	const campaign = await getRunCampaign(subjectId);
+	const [{ recruits, total }, pledgeResult, events, feedback] = await Promise.all([
+		listRecruits(domainUser.id, subjectId, followerPage, pageSize),
+		campaign
+			? listRecruitedPledges(domainUser.id, campaign.id, pledgePage, pageSize)
+			: Promise.resolve({ pledges: [], total: 0 }),
 		listEventsForAmbassador(domainUser.id, subjectId),
 		listFeedbackForAmbassador(domainUser.id, subjectId)
 	]);
@@ -42,7 +57,11 @@ export const load: PageServerLoad = async (event) => {
 		assignment,
 		recruits,
 		total,
-		page,
+		followerPage,
+		pledges: pledgeResult.pledges,
+		pledgeTotal: pledgeResult.total,
+		pledgePage,
+		campaignAcceptsPledges: !!campaign,
 		pageSize,
 		events,
 		feedback,
@@ -77,6 +96,25 @@ export const actions: Actions = {
 		});
 		if (!result.ok) return fail(400, { error: result.error });
 		return { added: { name: result.name } };
+	},
+
+	logPledge: async (event) => {
+		const guard = await assertAmbassador(event);
+		if (!guard.ok) return fail(403, { error: 'You can only add pledges to campaigns you mobilize for.' });
+
+		const campaign = await getRunCampaign(guard.subjectId);
+		if (!campaign) return fail(400, { error: 'This campaign is not taking pledges yet.' });
+
+		const form = await event.request.formData();
+		const result = await addCitizenPledge(guard.domainUser.id, campaign.id, {
+			name: String(form.get('name') ?? ''),
+			phone: String(form.get('phone') ?? ''),
+			email: String(form.get('email') ?? ''),
+			county: String(form.get('county') ?? '').trim() || null,
+			ward: String(form.get('ward') ?? '').trim() || null
+		});
+		if (!result.ok) return fail(400, { error: result.error });
+		return { pledged: { name: result.name } };
 	},
 
 	logEvent: async (event) => {

@@ -1011,6 +1011,11 @@ export const pledges = pgTable('pledges', {
   email: varchar('email', { length: 100 }),
   constituency: varchar('constituency', { length: 100 }),
   ward: varchar('ward', { length: 100 }),
+  // The ambassador who recruited this pledge in the field, when it wasn't a
+  // citizen self-pledging (blueprint funnel A, same attribution as followers.addedBy).
+  // Null for organic/self pledges; a contact-only recruited pledge carries no
+  // userId, so this is the only link back to who signed it up.
+  addedBy: integer('added_by').references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => [
