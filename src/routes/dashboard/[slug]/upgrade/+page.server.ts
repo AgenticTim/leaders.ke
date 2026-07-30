@@ -15,6 +15,7 @@ import {
 } from '$lib/server/packages';
 import { getPersonTier } from '$lib/server/invites';
 import { getBalance } from '$lib/server/credits';
+import { getPlatformSettings } from '$lib/server/settings';
 import { initializeTransaction, paystackEnabled } from '$lib/server/paystack';
 import {
 	applyTierChange,
@@ -47,29 +48,36 @@ export const load: PageServerLoad = async (event) => {
 	const { domainUser, ctx } = await requireLeader(event);
 	const canManageBilling = await isCampaignAdmin(domainUser.id, ctx);
 
-	const [currentTier, [current], creditBalance, pricingRows, packages] = await Promise.all([
-		getPersonTier(ctx.profileUser.id),
-		db
-			.select({
-				amount: subscriptions.amount,
-				cycle: subscriptions.billingCycle,
-				startAt: subscriptions.startAt,
-				endsAt: subscriptions.endsAt
-			})
-			.from(subscriptions)
-			.where(
-				and(eq(subscriptions.subjectUserId, ctx.profileUser.id), eq(subscriptions.status, 'active'))
-			)
-			.orderBy(desc(subscriptions.startAt))
-			.limit(1),
-		getBalance(ctx.profileUser.id),
-		listCurrentPricing(),
-		listPackages()
-	]);
+	const [currentTier, [current], creditBalance, settings, pricingRows, packages] =
+		await Promise.all([
+			getPersonTier(ctx.profileUser.id),
+			db
+				.select({
+					amount: subscriptions.amount,
+					cycle: subscriptions.billingCycle,
+					startAt: subscriptions.startAt,
+					endsAt: subscriptions.endsAt
+				})
+				.from(subscriptions)
+				.where(
+					and(
+						eq(subscriptions.subjectUserId, ctx.profileUser.id),
+						eq(subscriptions.status, 'active')
+					)
+				)
+				.orderBy(desc(subscriptions.startAt))
+				.limit(1),
+			getBalance(ctx.profileUser.id),
+			getPlatformSettings(),
+			listCurrentPricing(),
+			listPackages()
+		]);
 
 	return {
 		currentTier,
 		credits: creditBalance,
+		// The downgrade fee (percent) the client mirrors in its proration preview.
+		downgradeFeePercent: settings.downgradeFeePercent,
 		currentCycle: current?.cycle ?? null,
 		// Fed to the client's proration preview (it recomputes the same numbers the
 		// upgrade action applies authoritatively on submit).
@@ -132,14 +140,20 @@ export const actions: Actions = {
 		if (listPrice === null) return fail(400, { error: 'No price is set for that plan yet.' });
 
 		// Credit the current plan's unused value against the new price; any excess
-		// becomes wallet credits. `chargeNow > 0` and `excessCredits > 0` are
-		// mutually exclusive, so a switch the remainder fully covers needs no charge.
-		const { chargeNow, excessCredits } = computeProration({
+		// becomes wallet credits. A downgrade (strictly lower tier) takes the
+		// admin-set fee (platformSettings.downgradeFeePercent) on those credits.
+		// `chargeNow > 0` and `walletCredits > 0` are mutually exclusive, so a
+		// switch the remainder fully covers needs no charge.
+		const isDowngrade =
+			SUBSCRIPTION_TIERS.indexOf(tier as 'kickstart') <
+			SUBSCRIPTION_TIERS.indexOf(currentTier as 'kickstart');
+		const { chargeNow, walletCredits } = computeProration({
 			currentAmount: currentSub?.amount ?? 0,
 			startAt: currentSub?.startAt ?? null,
 			endsAt: currentSub?.endsAt ?? null,
 			now: new Date(),
-			newListPrice: listPrice
+			newListPrice: listPrice,
+			downgradeFeeRate: isDowngrade ? (await getPlatformSettings()).downgradeFeePercent / 100 : 0
 		});
 
 		// A real gateway can only charge a positive amount; a fully-credit-covered
@@ -154,7 +168,7 @@ export const actions: Actions = {
 				tier,
 				cycle,
 				chargeNow,
-				excessCredits
+				walletCredits
 			};
 			await db.insert(payments).values({
 				payerId: domainUser.id,
@@ -203,7 +217,7 @@ export const actions: Actions = {
 			tier,
 			cycle,
 			chargeNow,
-			excessCredits,
+			walletCredits,
 			method: paystackEnabled() ? 'credit' : 'mock',
 			paidAt: new Date(),
 			reference
@@ -225,8 +239,8 @@ export const actions: Actions = {
 
 		const tierLabel = `${tier[0].toUpperCase()}${tier.slice(1)}`;
 		const creditNote =
-			excessCredits > 0
-				? ` KES ${excessCredits.toLocaleString('en-KE')} in unused value was added to your wallet as credits.`
+			walletCredits > 0
+				? ` ${walletCredits.toLocaleString('en-KE')} credits were added to your wallet (unused value less the downgrade fee).`
 				: '';
 		redirectWithFlash(
 			event.cookies,

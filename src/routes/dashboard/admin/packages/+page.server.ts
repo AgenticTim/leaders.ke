@@ -33,7 +33,8 @@ export const load: PageServerLoad = async (event) => {
 		creditRates: {
 			aiChat: settings.aiChatCostCredits,
 			sms: settings.smsCostCredits,
-			whatsapp: settings.whatsappCostCredits
+			whatsapp: settings.whatsappCostCredits,
+			downgradeFeePercent: settings.downgradeFeePercent
 		}
 	};
 };
@@ -52,9 +53,14 @@ export const actions: Actions = {
 		) {
 			return fail(400, { error: 'Invalid tier or billing cycle.' });
 		}
-		if (!Number.isFinite(amount) || amount <= 0) return fail(400, { error: 'Enter a valid amount in KES.' });
+		if (!Number.isFinite(amount) || amount <= 0)
+			return fail(400, { error: 'Enter a valid amount in KES.' });
 
-		await setRate(tier as (typeof SUBSCRIPTION_TIERS)[number], billingCycle as (typeof BILLING_CYCLES)[number], amount);
+		await setRate(
+			tier as (typeof SUBSCRIPTION_TIERS)[number],
+			billingCycle as (typeof BILLING_CYCLES)[number],
+			amount
+		);
 		return { updated: true };
 	},
 
@@ -66,7 +72,10 @@ export const actions: Actions = {
 		const key = String(form.get('key') ?? '');
 		const raw = String(form.get('value') ?? '').trim();
 
-		if (!SUBSCRIPTION_TIERS.includes(tier as (typeof SUBSCRIPTION_TIERS)[number]) || !PACKAGE_FEATURE_KEYS.includes(key as PackageFeatureKey)) {
+		if (
+			!SUBSCRIPTION_TIERS.includes(tier as (typeof SUBSCRIPTION_TIERS)[number]) ||
+			!PACKAGE_FEATURE_KEYS.includes(key as PackageFeatureKey)
+		) {
 			return fail(400, { error: 'Invalid tier or feature.' });
 		}
 		const value = raw === '' ? null : Number(raw);
@@ -74,7 +83,11 @@ export const actions: Actions = {
 			return fail(400, { error: 'Enter a whole number, or clear the field for unlimited.' });
 		}
 
-		const result = await setPackageFeature(tier as (typeof SUBSCRIPTION_TIERS)[number], key as PackageFeatureKey, value);
+		const result = await setPackageFeature(
+			tier as (typeof SUBSCRIPTION_TIERS)[number],
+			key as PackageFeatureKey,
+			value
+		);
 		if (!result.ok) return fail(400, { error: result.error });
 		return { updated: true };
 	},
@@ -90,11 +103,18 @@ export const actions: Actions = {
 		const key = String(form.get('key') ?? '');
 		const value = form.get('value') === 'true';
 
-		if (!SUBSCRIPTION_TIERS.includes(tier as (typeof SUBSCRIPTION_TIERS)[number]) || !PACKAGE_PERK_KEYS.includes(key as PackagePerkKey)) {
+		if (
+			!SUBSCRIPTION_TIERS.includes(tier as (typeof SUBSCRIPTION_TIERS)[number]) ||
+			!PACKAGE_PERK_KEYS.includes(key as PackagePerkKey)
+		) {
 			return fail(400, { error: 'Invalid tier or perk.' });
 		}
 
-		const result = await setPackagePerk(tier as (typeof SUBSCRIPTION_TIERS)[number], key as PackagePerkKey, value);
+		const result = await setPackagePerk(
+			tier as (typeof SUBSCRIPTION_TIERS)[number],
+			key as PackagePerkKey,
+			value
+		);
 		if (!result.ok) return fail(400, { error: result.error });
 		return { updated: true };
 	},
@@ -111,7 +131,8 @@ export const actions: Actions = {
 			['Mobilize limit', mobilize],
 			['Dominate limit', dominate]
 		] as const) {
-			if (!Number.isInteger(value) || value < 1) return fail(400, { error: `${label} must be a whole number of at least 1.` });
+			if (!Number.isInteger(value) || value < 1)
+				return fail(400, { error: `${label} must be a whole number of at least 1.` });
 		}
 
 		await db
@@ -128,18 +149,34 @@ export const actions: Actions = {
 		const aiChatCostCredits = Number(form.get('aiChatCostCredits'));
 		const smsCostCredits = Number(form.get('smsCostCredits'));
 		const whatsappCostCredits = Number(form.get('whatsappCostCredits'));
+		const downgradeFeePercent = Number(form.get('downgradeFeePercent'));
 
 		for (const [label, value] of [
 			['AI chat credits', aiChatCostCredits],
 			['SMS credits', smsCostCredits],
 			['WhatsApp credits', whatsappCostCredits]
 		] as const) {
-			if (!Number.isInteger(value) || value < 1) return fail(400, { error: `${label} must be a whole number of at least 1.` });
+			if (!Number.isInteger(value) || value < 1)
+				return fail(400, { error: `${label} must be a whole number of at least 1.` });
+		}
+		// The downgrade fee is a percent and may be 0 (fee disabled).
+		if (
+			!Number.isInteger(downgradeFeePercent) ||
+			downgradeFeePercent < 0 ||
+			downgradeFeePercent > 100
+		) {
+			return fail(400, { error: 'Downgrade fee must be a whole percent between 0 and 100.' });
 		}
 
 		await db
 			.update(platformSettings)
-			.set({ aiChatCostCredits, smsCostCredits, whatsappCostCredits, updatedAt: new Date() })
+			.set({
+				aiChatCostCredits,
+				smsCostCredits,
+				whatsappCostCredits,
+				downgradeFeePercent,
+				updatedAt: new Date()
+			})
 			.where(eq(platformSettings.id, 1));
 		return { updated: true };
 	}

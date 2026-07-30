@@ -15,24 +15,34 @@ import { creditTransactions, payments, subscriptions, users, wallets } from '$li
 import { SUBSCRIPTION_TIERS } from '$lib/server/packages';
 import { notifyPayerOfPayment } from '$lib/server/onboard';
 
+// A downgrade converts leftover plan value into wallet credits; a fee is taken
+// on that conversion (it's a cash-out of prepaid subscription value, not a
+// like-for-like swap). The rate is admin-set (platformSettings.downgradeFeePercent,
+// default 5%) and passed in as `downgradeFeeRate`. Upgrades never produce
+// leftover credits, so the fee only ever bites on downgrades.
+
 export type Proration = {
 	remainder: number; // unused KES value of the current plan
-	applied: number; // remainder used to discount the new plan
+	applied: number; // remainder used to discount the new plan's price
 	chargeNow: number; // KES still owed after the credit (new price - applied)
-	excessCredits: number; // remainder beyond the new price, granted as wallet credits
+	excessGross: number; // leftover remainder before the downgrade fee
+	fee: number; // downgrade fee withheld from the leftover
+	walletCredits: number; // net credited to the wallet (excessGross - fee)
 };
 
-/** Time-proration of the current plan's unused value, then split into a
- * discount on the new price vs. leftover credits. Pure (no DB) so the page can
- * preview the exact same numbers the server will apply. */
+/** Time-proration of the current plan's unused value, split into a discount on
+ * the new price vs. leftover credits (net of the downgrade fee). Pure (no DB)
+ * so the page previews the exact numbers the server will apply. Pass
+ * `downgradeFeeRate` > 0 only when the switch is a tier downgrade. */
 export function computeProration(input: {
 	currentAmount: number; // KES paid for the current active sub (0 if none)
 	startAt: Date | null;
 	endsAt: Date | null;
 	now: Date;
 	newListPrice: number; // KES list price of the target plan
+	downgradeFeeRate?: number; // 0 unless this is a downgrade
 }): Proration {
-	const { currentAmount, startAt, endsAt, now, newListPrice } = input;
+	const { currentAmount, startAt, endsAt, now, newListPrice, downgradeFeeRate = 0 } = input;
 	let remainder = 0;
 	if (startAt && endsAt && endsAt > now && endsAt > startAt && currentAmount > 0) {
 		const total = endsAt.getTime() - startAt.getTime();
@@ -40,11 +50,15 @@ export function computeProration(input: {
 		remainder = Math.max(0, Math.min(Math.round(currentAmount * (left / total)), currentAmount));
 	}
 	const applied = Math.min(remainder, newListPrice);
+	const excessGross = remainder - applied;
+	const fee = Math.round(excessGross * downgradeFeeRate);
 	return {
 		remainder,
 		applied,
 		chargeNow: newListPrice - applied,
-		excessCredits: remainder - applied
+		excessGross,
+		fee,
+		walletCredits: excessGross - fee
 	};
 }
 
@@ -54,7 +68,7 @@ export type UpgradeMetadata = {
 	tier: string;
 	cycle: string;
 	chargeNow: number; // what the gateway charges (recorded as the subscription amount)
-	excessCredits: number; // credited to the wallet on fulfillment (0 on a charged switch)
+	walletCredits: number; // net credited to the wallet on fulfillment (0 on a charged switch)
 	/** Set after fulfillment so a repeat callback can still redirect cleanly. */
 	slug?: string;
 };
@@ -70,14 +84,15 @@ function originFor(fromTier: string, toTier: string): 'upgrade' | 'downgrade' {
 
 /** Supersedes the person's current active subscription with a fresh one at the
  * chosen tier, recording `chargeNow` as the (proration-net) amount and granting
- * `excessCredits` to the wallet. All atomic. Returns the slug for the redirect. */
+ * `walletCredits` (already net of any downgrade fee) to the wallet. All atomic.
+ * Returns the slug for the redirect. */
 export async function applyTierChange(opts: {
 	subjectUserId: number;
 	payerId: number;
 	tier: string;
 	cycle: string;
 	chargeNow: number;
-	excessCredits: number;
+	walletCredits: number;
 	method: string;
 	paidAt: Date;
 	reference: string;
@@ -88,7 +103,7 @@ export async function applyTierChange(opts: {
 		tier,
 		cycle,
 		chargeNow,
-		excessCredits,
+		walletCredits,
 		method,
 		paidAt,
 		reference
@@ -134,26 +149,25 @@ export async function applyTierChange(opts: {
 			})
 			.returning({ id: subscriptions.id });
 
-		// Leftover value from the old plan becomes wallet credits (1 credit = KES 1).
-		if (excessCredits > 0) {
+		// Leftover value from the old plan becomes wallet credits (1 credit = KES 1),
+		// already net of the downgrade fee.
+		if (walletCredits > 0) {
 			const [w] = await tx
 				.insert(wallets)
-				.values({ subjectUserId, balance: excessCredits })
+				.values({ subjectUserId, balance: walletCredits })
 				.onConflictDoUpdate({
 					target: wallets.subjectUserId,
-					set: { balance: sql`${wallets.balance} + ${excessCredits}`, updatedAt: paidAt }
+					set: { balance: sql`${wallets.balance} + ${walletCredits}`, updatedAt: paidAt }
 				})
 				.returning({ id: wallets.id, balance: wallets.balance });
-			await tx
-				.insert(creditTransactions)
-				.values({
-					walletId: w.id,
-					kind: 'bonus',
-					amount: excessCredits,
-					channel: 'plan_change',
-					reference,
-					balanceAfter: w.balance
-				});
+			await tx.insert(creditTransactions).values({
+				walletId: w.id,
+				kind: 'bonus',
+				amount: walletCredits,
+				channel: 'plan_change',
+				reference,
+				balanceAfter: w.balance
+			});
 		}
 		return created.id;
 	});
@@ -213,7 +227,7 @@ export async function fulfillUpgradePayment(
 		tier: meta.tier,
 		cycle: meta.cycle,
 		chargeNow: meta.chargeNow,
-		excessCredits: meta.excessCredits,
+		walletCredits: meta.walletCredits,
 		method: verified.method,
 		paidAt,
 		reference

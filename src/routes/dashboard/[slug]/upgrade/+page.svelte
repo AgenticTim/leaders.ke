@@ -56,11 +56,15 @@
 
 	const dateFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' });
 
+	// A downgrade cashing unused value into credits takes the admin-set fee
+	// (data.downgradeFeePercent); upgrades never produce credits so never a fee.
+	const feeRate = $derived(data.downgradeFeePercent / 100);
+
 	// Mirror of the server's computeProration (subscriptionUpgrade.ts) so the
 	// confirm modal previews the exact numbers the action will apply. 1 credit =
-	// KES 1: the current plan's unused value discounts the new price, any excess
-	// spills into credits.
-	function proration(newListPrice: number) {
+	// KES 1: the current plan's unused value discounts the new price; on a
+	// downgrade any leftover spills into credits, less the fee.
+	function proration(newListPrice: number, isDowngrade: boolean) {
 		const start = data.currentStartAt ? new Date(data.currentStartAt).getTime() : null;
 		const end = data.currentEndsAt ? new Date(data.currentEndsAt).getTime() : null;
 		const now = Date.now();
@@ -72,11 +76,15 @@
 			);
 		}
 		const applied = Math.min(remainder, newListPrice);
+		const excessGross = remainder - applied;
+		const fee = Math.round(excessGross * (isDowngrade ? feeRate : 0));
 		return {
 			remainder,
 			applied,
 			chargeNow: newListPrice - applied,
-			excessCredits: remainder - applied
+			excessGross,
+			fee,
+			walletCredits: excessGross - fee
 		};
 	}
 
@@ -88,7 +96,12 @@
 
 	// The plan the confirm modal is about (null = closed).
 	let confirmTier = $state<string | null>(null);
-	const confirmPreview = $derived(confirmTier ? proration(rate(confirmTier, cycle)) : null);
+	const confirmIsDowngrade = $derived(
+		confirmTier ? rank(confirmTier) < rank(data.currentTier) : false
+	);
+	const confirmPreview = $derived(
+		confirmTier ? proration(rate(confirmTier, cycle), confirmIsDowngrade) : null
+	);
 </script>
 
 <svelte:head><title>Change plan — Dashboard</title></svelte:head>
@@ -96,11 +109,19 @@
 <div class="">
 	<div class="flex flex-col sm:flex-row justify-between text-xl font-bold text-heading">
 		<span>{tierLabels[data.currentTier]} Plan</span>
-		<span><span class="text-muted">Credit: KES</span> <span>{data.credits.toLocaleString()}</span></span>
+		<span
+			><span class="text-muted">Credit: KES</span>
+			<span>{data.credits.toLocaleString()}</span></span
+		>
 	</div>
 	<p class="mt-2 text-sm text-muted">
-		Subscribed on {dateFmt.format(new Date(data.currentStartAt))}. 
-		Active until {dateFmt.format(new Date(data.currentEndsAt))}. 
+		{#if data.currentStartAt && data.currentEndsAt}
+			Subscribed on {dateFmt.format(new Date(data.currentStartAt))}. Active until {dateFmt.format(
+				new Date(data.currentEndsAt)
+			)}.
+		{:else}
+			No active paid subscription yet.
+		{/if}
 		Switch tiers any time. The new plan takes effect immediately.
 	</p>
 
@@ -118,12 +139,19 @@
 			{form.error}
 		</div>
 	{/if}
-	
+
 	<h1 class="mt-6 text-xl font-bold text-heading">Change plan</h1>
-	
+
 	<p class="mt-2 text-sm text-muted">
-		Changing plans starts a fresh billing term. Any unused value from your current plan is credited
-		toward the new one, and anything left over is added to your wallet.
+		Changing plans starts a fresh billing term. Any unused value from your current plan is credited toward the new one. 
+	</p>
+	<p class="mt-2 text-sm text-muted">
+		{#if data.downgradeFeePercent > 0}
+		On a downgrade, whatever is left over is added to your wallet as credits, <b>less a {data.downgradeFeePercent}%
+		 fee.</b>
+		{:else}
+		On a downgrade, whatever is left over is added to your wallet as credits.
+		{/if}
 	</p>
 	<!-- Monthly / annual toggle: annual is 10x monthly (2 months free), same as /pricing. -->
 	<div class="flex justify-center">
@@ -249,11 +277,23 @@ it covers, what you pay now, and any credits granted. -->
 						KES {fmt.format(p.chargeNow)}
 					</dd>
 				</div>
-				{#if p.excessCredits > 0}
+				{#if p.excessGross > 0}
+					<div class="flex justify-between border-t border-border pt-2">
+						<dt class="text-muted">Leftover unused value</dt>
+						<dd class="font-semibold tabular-nums text-heading">KES {fmt.format(p.excessGross)}</dd>
+					</div>
+					{#if p.fee > 0}
+						<div class="flex justify-between">
+							<dt class="text-muted">Less {data.downgradeFeePercent}% downgrade fee</dt>
+							<dd class="font-semibold tabular-nums text-red-600 dark:text-red-400">
+								− KES {fmt.format(p.fee)}
+							</dd>
+						</div>
+					{/if}
 					<div class="flex justify-between">
-						<dt class="text-muted">Added to your wallet</dt>
+						<dt class="font-semibold text-heading">Added to your wallet</dt>
 						<dd class="font-semibold tabular-nums text-primary">
-							+ {fmt.format(p.excessCredits)} credits
+							+ {fmt.format(p.walletCredits)} credits
 						</dd>
 					</div>
 				{/if}
@@ -261,8 +301,9 @@ it covers, what you pay now, and any credits granted. -->
 
 			<p class="mt-3 text-xs text-muted">
 				{#if p.chargeNow === 0}
-					Your remaining balance fully covers this change — no payment needed{#if p.excessCredits > 0},
-						and the leftover becomes wallet credits{/if}.
+					Your unused value fully covers this change — no payment needed{#if p.excessGross > 0}. The
+						leftover becomes wallet credits{#if p.fee > 0}, after a {data.downgradeFeePercent}%
+							downgrade fee{/if}{/if}.
 				{:else if data.paystackLive}
 					You'll be taken to a secure payment page for the balance.
 				{:else}

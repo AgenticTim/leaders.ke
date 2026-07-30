@@ -1270,6 +1270,10 @@ export const platformSettings = pgTable('platform_settings', {
   // (see broadcast.ts). Email is always free (SMTP), so it has no setting.
   smsCostCredits: integer('sms_cost_credits').default(2).notNull(),
   whatsappCostCredits: integer('whatsapp_cost_credits').default(5).notNull(),
+  // Fee (percent) withheld when a plan DOWNGRADE cashes the current plan's unused
+  // value into wallet credits (see $lib/server/subscriptionUpgrade.ts). 0 disables
+  // it. Only downgrades produce credits, so this never touches an upgrade.
+  downgradeFeePercent: integer('downgrade_fee_percent').default(5).notNull(),
   // News ingestion sources (see $lib/server/newsIngest.ts): which reputable
   // Kenyan outlets' RSS feeds the daily crawl reads, admin-toggleable per
   // source on Settings. Google News is fetched per-leader (a targeted search);

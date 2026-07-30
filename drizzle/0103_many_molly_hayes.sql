@@ -1,0 +1,1 @@
+ALTER TABLE "platform_settings" ADD COLUMN "downgrade_fee_percent" integer DEFAULT 5 NOT NULL;

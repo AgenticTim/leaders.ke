@@ -22,10 +22,17 @@
 	// On/off perks — the key ORDER matches $lib/server/packages.ts's
 	// PACKAGE_PERK_KEYS; each label comes from packages.json's perkLabels (the
 	// same file /pricing and packages.ts read), so wording only changes once.
-	const PERK_KEYS = ['analytics', 'prAiAgent', 'newsSourceControl', 'sentimentSuite', 'voterHeatmap'] as const;
+	const PERK_KEYS = [
+		'analytics',
+		'prAiAgent',
+		'newsSourceControl',
+		'sentimentSuite',
+		'voterHeatmap'
+	] as const;
 	const PERKS = PERK_KEYS.map((key) => ({ key, label: packageData.perkLabels[key] }));
 
-	const rate = (tier: string, cycle: string) => data.pricing.find((p) => p.tier === tier && p.billingCycle === cycle);
+	const rate = (tier: string, cycle: string) =>
+		data.pricing.find((p) => p.tier === tier && p.billingCycle === cycle);
 	const pkg = (tier: string) => data.packages.find((p) => p.tier === tier);
 
 	// Autosave a cell when its value changes (blur/Enter) — no per-cell buttons.
@@ -40,38 +47,58 @@
 <div>
 	<h1 class="text-xl font-bold text-heading">Packages</h1>
 	<p class="mt-1 text-sm text-muted">
-		What each package costs and includes — one flat rate per tier, for every office. Edits save
-		when you leave a field; an empty cap means unlimited. Rate changes never touch existing
+		What each package costs and includes — one flat rate per tier, for every office. Edits save when
+		you leave a field; an empty cap means unlimited. Rate changes never touch existing
 		subscriptions, they only apply going forward.
 	</p>
 
 	{#if form?.error}
-		<div class="mt-4 rounded-2xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading">
+		<div
+			class="mt-4 rounded-2xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading"
+		>
 			{form.error}
 		</div>
 	{:else if form?.updated}
-		<div class="mt-4 rounded-2xl bg-primary-soft p-4 text-sm font-medium text-on-primary">Saved.</div>
+		<div class="mt-4 rounded-2xl bg-primary-soft p-4 text-sm font-medium text-on-primary">
+			Saved.
+		</div>
 	{/if}
 
 	<!-- PAYG credit rates: the /pricing Credits table, charged by broadcast.ts and
 	the AI ask. Inputs submit together via the #credit-rates form below. -->
 	<h2 class="mt-8 text-lg font-semibold text-heading">Credit rates</h2>
-	<p class="text-xs text-muted">Pay-as-you-go prices spent from a campaign's wallet. These drive the /pricing Credits table.</p>
-	<div class="mt-3 grid gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-3">
-		{#each [{ name: 'aiChatCostCredits', label: 'AI chat (per answer)', value: data.creditRates.aiChat }, { name: 'smsCostCredits', label: 'SMS (per message)', value: data.creditRates.sms }, { name: 'whatsappCostCredits', label: 'WhatsApp (per message)', value: data.creditRates.whatsapp }] as field (field.name)}
+	<p class="text-xs text-muted">
+		Pay-as-you-go prices spent from a campaign's wallet. These drive the /pricing Credits table.
+	</p>
+	<div class="mt-3 grid gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-4">
+		{#each [{ name: 'aiChatCostCredits', label: 'AI chat (per answer)', value: data.creditRates.aiChat, min: 1 }, { name: 'smsCostCredits', label: 'SMS (per message)', value: data.creditRates.sms, min: 1 }, { name: 'whatsappCostCredits', label: 'WhatsApp (per message)', value: data.creditRates.whatsapp, min: 1 }] as field (field.name)}
 			<label class="block">
 				<span class="text-xs font-medium text-muted">{field.label}</span>
 				<input
 					type="number"
 					form="credit-rates"
 					name={field.name}
-					min="1"
+					min={field.min}
 					value={field.value}
 					onchange={submitOnChange}
 					class="mt-1 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm tabular-nums text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
 				/>
 			</label>
 		{/each}
+		<label class="block">
+			<span class="text-xs font-medium text-muted">Downgrade fee (%)</span>
+			<input
+				type="number"
+				form="credit-rates"
+				name="downgradeFeePercent"
+				min="0"
+				max="100"
+				value={data.creditRates.downgradeFeePercent}
+				onchange={submitOnChange}
+				title="Withheld from the credits a downgrade returns to the wallet. 0 disables it."
+				class="mt-1 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm tabular-nums text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+			/>
+		</label>
 	</div>
 
 	<!-- Lifetime invites: a single jsonb setting — the inputs sit in their own
@@ -126,7 +153,9 @@
 			<tbody>
 				{#each CYCLES as cycle (cycle)}
 					<tr class="border-t border-border">
-						<th class="px-4 py-3 text-sm font-medium text-heading capitalize">{cycle} price (KES)</th>
+						<th class="px-4 py-3 text-sm font-medium text-heading capitalize"
+							>{cycle} price (KES)</th
+						>
 						{#each TIERS as tier (tier)}
 							{@const current = rate(tier, cycle)}
 							<td class="px-4 py-3">
