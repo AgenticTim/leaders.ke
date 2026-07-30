@@ -1,9 +1,10 @@
 import { fail } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
+import { and, desc, eq, isNull, or } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { creditTransactions, wallets } from '$lib/server/db/schema';
+import { creditTransactions, subscriptions, wallets } from '$lib/server/db/schema';
 import { requireAdmin } from '$lib/server/dashboard';
 import { listProfiles, type ProfileSort } from '$lib/server/profiles';
+import { SUBSCRIPTION_TIERS } from '$lib/server/packages';
 import { getPageSize } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -58,5 +59,59 @@ export const actions: Actions = {
 		});
 
 		return { granted: true, profileId, newBalance };
+	},
+
+	// Admin package override — the only way to change a profile's tier without a
+	// real Paystack charge (support/testing/goodwill comps). Cancels whatever
+	// subscription is currently live (audit trail preserved, same "supersede,
+	// never mutate" convention as packages.ts's rate history) and inserts a
+	// fresh one, amount 0 and paymentMethod flagged so it's obviously not a real
+	// payment in any ledger/report. A full year out keeps the renewal sweep from
+	// nagging the admin (the row's payer) to "renew" a comp any time soon.
+	setSubscription: async (event) => {
+		const admin = await requireAdmin(event);
+		const form = await event.request.formData();
+		const profileId = Number(form.get('profileId') ?? 0);
+		const tier = String(form.get('tier') ?? '');
+		if (!profileId) return fail(400, { error: 'Missing profile.' });
+		if (!SUBSCRIPTION_TIERS.includes(tier as (typeof SUBSCRIPTION_TIERS)[number])) {
+			return fail(400, { error: 'Invalid package.' });
+		}
+
+		const [current] = await db
+			.select({ id: subscriptions.id, tier: subscriptions.tier })
+			.from(subscriptions)
+			.where(and(eq(subscriptions.subjectUserId, profileId), or(eq(subscriptions.status, 'active'), eq(subscriptions.status, 'pending'))))
+			.orderBy(desc(subscriptions.endsAt))
+			.limit(1);
+
+		const tierRank = (t: string) => SUBSCRIPTION_TIERS.indexOf(t as (typeof SUBSCRIPTION_TIERS)[number]);
+		const origin = !current ? 'new' : tierRank(tier) > tierRank(current.tier) ? 'upgrade' : tierRank(tier) < tierRank(current.tier) ? 'downgrade' : 'renewal';
+
+		const now = new Date();
+		const endsAt = new Date(now);
+		endsAt.setFullYear(endsAt.getFullYear() + 1);
+
+		await db.transaction(async (tx) => {
+			if (current) {
+				await tx.update(subscriptions).set({ status: 'cancelled', cancelledAt: now, updatedAt: now }).where(eq(subscriptions.id, current.id));
+			}
+			await tx.insert(subscriptions).values({
+				subjectUserId: profileId,
+				payerId: admin.domainUser.id,
+				tier: tier as (typeof SUBSCRIPTION_TIERS)[number],
+				billingCycle: 'monthly',
+				amount: 0,
+				status: 'active',
+				origin,
+				startAt: now,
+				endsAt,
+				paidAt: now,
+				paymentMethod: 'admin_override',
+				previousSubscriptionId: current?.id
+			});
+		});
+
+		return { subscriptionSet: true, profileId, tier };
 	}
 };

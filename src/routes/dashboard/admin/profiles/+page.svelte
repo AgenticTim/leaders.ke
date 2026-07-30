@@ -16,6 +16,10 @@
 	let grantAmount = $state<number | ''>('');
 	let granting = $state(false);
 
+	// Inline package switcher: which profile's select is mid-submit (null = none).
+	const TIERS = ['kickstart', 'mobilize', 'dominate'] as const;
+	let switchingId = $state<number | null>(null);
+
 	// Click a row to expand its review history (claims on this profile + verification
 	// requests on its runs), fetched on demand and cached — so a full page of rows
 	// doesn't pay for all their histories up front.
@@ -108,7 +112,7 @@
 
 	{#if data.profiles.length > 0}
 		<div class="mt-4 overflow-x-auto rounded-2xl border border-border">
-			<table class="w-full min-w-240 border-collapse text-left">
+			<table class="w-full min-w-240 border-collapse text-left whitespace-nowrap">
 				<thead>
 					<tr class="bg-surface-2">
 						<th title="The account controlling the profile: the claimant or the applicant (blank for a seeded profile with neither)." class="cursor-help px-4 py-3 text-sm font-semibold text-heading">Manager</th>
@@ -167,13 +171,37 @@
 							<td class="px-4 py-3 text-sm">
 								<span title={VERIFIED_HELP} class="cursor-help rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize {verifiedClass(p.verified)}">{p.verified ?? '—'}</span>
 							</td>
-							<td class="px-4 py-3 text-sm text-muted">
-								{#if p.subscriptionTier}
-									<span class="font-medium capitalize text-heading">{p.subscriptionTier}</span>
-									<span class="block text-xs">until {dateOnlyFmt.format(new Date(p.subscriptionExpiresAt!))}</span>
-								{:else}
-									—
-								{/if}
+							<td class="px-4 py-3 text-sm text-muted" onclick={(e) => e.stopPropagation()}>
+								<div class="flex flex-col gap-2">
+									<form
+										method="post"
+										action="?/setSubscription"
+										use:enhance={() => {
+											switchingId = p.profileId;
+											return async ({ update }) => {
+												switchingId = null;
+												await update();
+											};
+										}}
+									>
+										<input type="hidden" name="profileId" value={p.profileId} />
+										<select
+											name="tier"
+											value={p.subscriptionTier ?? 'kickstart'}
+											disabled={switchingId === p.profileId}
+											onchange={(e) => e.currentTarget.form?.requestSubmit()}
+											aria-label="Switch {p.profileName}'s package"
+											class="rounded-full border border-border bg-surface px-2.5 py-0.5 text-xs font-semibold text-heading capitalize focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none disabled:opacity-60"
+										>
+											{#each TIERS as t (t)}
+												<option value={t}>{t}</option>
+											{/each}
+										</select>
+									</form>
+									{#if p.subscriptionTier}
+										<span class="text-xs">Exp: {dateOnlyFmt.format(new Date(p.subscriptionExpiresAt!))}</span>
+									{/if}
+								</div>
 							</td>
 							<td class="px-4 py-3 text-sm text-muted" onclick={(e) => e.stopPropagation()}>
 								<div class="flex items-center gap-2">
