@@ -81,12 +81,12 @@
 
 <!-- One tight row at every size, no labels (the placeholder option names each
 field; aria-label keeps it accessible) — minimal vertical footprint. -->
-<div class="grid grid-cols-3 gap-1.5 sm:gap-3">
+<div class="grid grid-cols-3">
 	<select
 		value={county}
 		onchange={(e) => pickCounty(e.currentTarget.value)}
 		aria-label="County"
-		class="w-full min-w-0 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none sm:px-3 sm:py-2"
+		class="w-full min-w-0 rounded-l-lg border border-border bg-surface px-2 py-1.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none sm:px-3 sm:py-2"
 	>
 		<option value="">County</option>
 		{#each counties as c (c.code)}
@@ -99,7 +99,7 @@ field; aria-label keeps it accessible) — minimal vertical footprint. -->
 		onchange={(e) => pickConstituency(e.currentTarget.value)}
 		disabled={!selectedCounty}
 		aria-label="Constituency"
-		class="w-full min-w-0 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none disabled:opacity-50 sm:px-3 sm:py-2"
+		class="w-full min-w-0 border-l-0 border-r-0 border-border bg-surface px-2 py-1.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none disabled:opacity-50 sm:px-3 sm:py-2"
 	>
 		<option value="">Constituency</option>
 		{#each constituencies as c (c.code)}
@@ -112,7 +112,7 @@ field; aria-label keeps it accessible) — minimal vertical footprint. -->
 		onchange={(e) => pickWard(e.currentTarget.value)}
 		disabled={!selectedConstituency}
 		aria-label="Ward"
-		class="w-full min-w-0 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none disabled:opacity-50 sm:px-3 sm:py-2"
+		class="w-full min-w-0 rounded-r-lg border border-border bg-surface px-2 py-1.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none disabled:opacity-50 sm:px-3 sm:py-2"
 	>
 		<option value="">Ward</option>
 		{#each wards as w (w.seatName)}

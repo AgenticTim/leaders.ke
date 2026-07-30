@@ -9,7 +9,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.title} — vote.ke News</title>
+	<title>{data.title} — Vote.ke News</title>
 </svelte:head>
 
 <article class="mx-auto max-w-5xl px-4 py-14 sm:px-6">

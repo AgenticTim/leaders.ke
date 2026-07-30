@@ -59,14 +59,14 @@
 	<div class="mx-auto max-w-7xl px-4 py-14 sm:px-6">
 		<h1 class="text-4xl font-bold tracking-tight text-heading">News</h1>
 		<p class="mt-3 text-lg leading-relaxed text-muted">
-			Updates, announcements, and campaign news, straight from leaders and candidates themselves — plus mentions in the wider press.
+			Updates, announcements, and campaign news, straight from leaders and candidates, plus mentions in the wider press.
 		</p>
 	</div>
 </div>
 
 <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-	<div class="grid gap-10 lg:grid-cols-4">
-		<div class="lg:col-span-3">
+	<div class="grid gap-10 lg:grid-cols-10">
+		<div class="lg:col-span-7">
 			{#if data.activeTag || data.activeMention || data.activeAuthor}
 				<div class="mb-6 flex flex-wrap items-center gap-2 text-sm text-muted">
 					<span>Filtering by</span>
@@ -171,7 +171,7 @@
 		</div>
 
 		<!-- rhs: filter by who you follow, location, topic tag, or a mentioned leader -->
-		<div class="space-y-6 lg:col-span-1">
+		<div class="space-y-6 lg:col-span-3">
 			{#if data.followedAuthors.length > 0}
 				<div>
 					<p class="text-xs font-semibold tracking-wide text-muted uppercase">Leaders you follow</p>
