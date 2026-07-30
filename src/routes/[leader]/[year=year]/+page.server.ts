@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
+import { chargeMobileMoney, normalizeMpesaPhone, paystackEnabled } from '$lib/server/paystack';
 import { creditTransactions, donations, managers, pillars, pledges, posts, wallets } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, getDomainUser, getOrCreateMainCampaign, leaderPath } from '$lib/server/leader';
 import { resolveCampaignRun, loadCampaignWorkspaceData } from '$lib/server/campaign';
@@ -189,14 +191,47 @@ export const actions: Actions = {
 			campaignId = (await getOrCreateMainCampaign(row.leaderId, row.users.id, fullName(row.users))).id;
 		}
 		if (!campaignId) return fail(400, { error: 'Campaign not found.' });
+
+		// With Paystack live and a valid M-Pesa number: fire a real STK push and
+		// let the webhook confirm the pending row (donationFulfill.ts). Otherwise
+		// (no key, or no/invalid phone) the row stays a manual pledge that the
+		// campaign confirms against their till statement — the pre-STK behavior.
+		const mpesaPhone = phone ? normalizeMpesaPhone(phone) : null;
+		if (paystackEnabled() && mpesaPhone) {
+			const reference = `don_${randomUUID()}`;
+			await db.insert(donations).values({
+				campaignId,
+				donorName,
+				phoneNumber: mpesaPhone,
+				amount: Math.round(amount),
+				reference
+			});
+			try {
+				// Paystack requires an email per charge; donors don't give one, so a
+				// synthetic per-phone address keeps their charges under one customer.
+				await chargeMobileMoney({
+					email: `donor-${mpesaPhone.replace('+', '')}@vote.ke`,
+					amountKes: Math.round(amount),
+					phone: mpesaPhone,
+					reference
+				});
+			} catch (err) {
+				// The prompt never reached the phone — no money moved, so the row
+				// must not linger as a pending pledge the team might chase.
+				await db.update(donations).set({ status: 'failed', updatedAt: new Date() }).where(eq(donations.reference, reference));
+				console.error(`[donate] STK charge failed for ${reference}:`, err instanceof Error ? err.message : err);
+				return fail(502, { error: 'Could not reach M-Pesa right now. Try again in a moment.' });
+			}
+			return { donated: true, stk: true, amount: Math.round(amount) };
+		}
+
 		await db.insert(donations).values({
 			campaignId,
 			donorName,
 			phoneNumber: phone || null,
 			amount: Math.round(amount)
 		});
-		// The campaign confirms receipt against their M-Pesa statement (STK push automates this later).
-		return { donated: true, amount: Math.round(amount) };
+		return { donated: true, stk: false, amount: Math.round(amount) };
 	},
 
 	ask: async (event) => {

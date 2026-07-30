@@ -1068,7 +1068,7 @@ export const donations = pgTable('donations', {
   phoneNumber: varchar('phone_number', { length: 20 }),
   amount: integer('amount').notNull(), // KES
   status: donationStatusEnum('status').default('pending').notNull(),
-  reference: varchar('reference', { length: 100 }), // M-Pesa receipt once integrated
+  reference: varchar('reference', { length: 100 }), // `don_` Paystack STK charge ref, or the team's manual note
   isPublic: boolean('is_public').default(true).notNull(), // donor consented to appear on the donor wall
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

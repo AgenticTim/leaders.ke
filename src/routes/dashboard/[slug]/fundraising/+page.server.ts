@@ -8,8 +8,10 @@ import { fullName, getOrCreateRunCampaign } from '$lib/server/leader';
 import type { Actions, PageServerLoad } from './$types';
 
 // Fundraising desk: goal + donation ledger. Donations arrive from the public
-// campaign page as 'pending' (donor sends via M-Pesa manually) and the team
-// confirms against their statement; the Daraja STK-push flow automates this later.
+// campaign page as 'pending' two ways: an STK-push charge (donor gave an M-Pesa
+// number, Paystack live) auto-confirms via the webhook (donationFulfill.ts),
+// while a phone-less pledge waits for the team to confirm it here against
+// their till statement.
 export const load: PageServerLoad = async (event) => {
 	const { ctx } = await requireLeader(event);
 	// A brand-new profile with neither a held term nor a run yet has no position —

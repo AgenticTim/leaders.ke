@@ -58,6 +58,38 @@ export async function initializeTransaction(input: InitializeInput): Promise<{ a
 	return { authorizationUrl: String(data.authorization_url) };
 }
 
+/** Direct mobile-money charge: fires a real M-Pesa STK push to the phone — no
+ * hosted page, no redirect. Paystack answers 'pay_offline' (prompt sent, the
+ * donor approves on their handset) or 'success' (rare instant settle); either
+ * way the signed webhook's charge.success is what confirms the money. */
+export async function chargeMobileMoney(input: {
+	email: string;
+	amountKes: number;
+	phone: string;
+	reference: string;
+}): Promise<{ status: string }> {
+	const data = await api('/charge', {
+		method: 'POST',
+		body: JSON.stringify({
+			email: input.email,
+			amount: Math.round(input.amountKes * 100),
+			currency: 'KES',
+			reference: input.reference,
+			mobile_money: { phone: input.phone, provider: 'mpesa' }
+		})
+	});
+	return { status: String(data.status ?? '') };
+}
+
+/** M-Pesa numbers must be international format: 07XX/01XX locals become +254. */
+export function normalizeMpesaPhone(raw: string): string | null {
+	const digits = raw.replace(/[^\d+]/g, '');
+	if (/^\+254[17]\d{8}$/.test(digits)) return digits;
+	if (/^254[17]\d{8}$/.test(digits)) return `+${digits}`;
+	if (/^0[17]\d{8}$/.test(digits)) return `+254${digits.slice(1)}`;
+	return null;
+}
+
 /** Server-side truth about a charge — never trust the callback query alone. */
 export async function verifyTransaction(reference: string): Promise<PaystackVerification> {
 	const data = await api(`/transaction/verify/${encodeURIComponent(reference)}`);

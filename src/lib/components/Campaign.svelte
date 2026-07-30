@@ -292,8 +292,13 @@
 
 				{#if form?.donated}
 					<div class="mt-3 rounded-2xl bg-primary-soft p-4 text-sm font-medium text-on-primary">
-						Asante! Send KES {fmt.format(form.amount)} via M-Pesa to the campaign's till and the team
-						will confirm it.
+						{#if form.stk}
+							Asante! Check your phone and enter your M-Pesa PIN to complete the KES
+							{fmt.format(form.amount)} donation.
+						{:else}
+							Asante! Send KES {fmt.format(form.amount)} via M-Pesa to the campaign's till and the
+							team will confirm it.
+						{/if}
 					</div>
 				{:else}
 					<form method="post" action="?/donate" class="mt-3 space-y-2" use:enhance>
@@ -328,8 +333,8 @@
 							Donate
 						</button>
 						<p class="text-xs leading-relaxed text-muted">
-							Pledged donations are confirmed by the campaign team once received. M-Pesa STK push
-							coming soon. A 5% platform fee applies — see the
+							With your M-Pesa phone, you get a payment prompt on your handset; without it, the
+							campaign team confirms your pledge once received. A 5% platform fee applies — see the
 							<a href="/fundraising" class="underline hover:text-heading">fundraising rules</a>.
 						</p>
 					</form>
