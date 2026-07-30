@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Avatar from '$lib/components/Avatar.svelte';
+	import VerifiedIcon from '$lib/components/svgs/VerifiedIcon.svelte';
 	import BallotDisclaimer from '$lib/components/BallotDisclaimer.svelte';
 	import { goto } from '$app/navigation';
 	import { enhance } from '$app/forms';
@@ -333,14 +334,7 @@ row pushes the booth down transiently, which is fine. -->
 											<span class="flex items-center gap-1 font-semibold text-heading justify-center">
 												{candidate.name}
 												{#if candidate.verified}
-													<svg viewBox="0 0 24 24" fill="currentColor" class="size-4 text-primary" aria-label="Verified">
-														<title>An admin has manually confirmed this candidacy's IEBC certificate.</title>
-														<path
-															fill-rule="evenodd"
-															d="M8.6 3.8a4.5 4.5 0 0 0-1.4 1 4.5 4.5 0 0 0-3.8 3.7 4.5 4.5 0 0 0 0 5 4.5 4.5 0 0 0 3.7 3.8 4.5 4.5 0 0 0 5 0 4.5 4.5 0 0 0 3.8-3.7 4.5 4.5 0 0 0 0-5 4.5 4.5 0 0 0-3.7-3.8 4.5 4.5 0 0 0-3.6-1Zm7 6.7a.75.75 0 1 0-1.2-.9l-3.2 4.3-1.7-1.7a.75.75 0 1 0-1 1l2.3 2.4a.75.75 0 0 0 1.1-.1l3.7-5Z"
-															clip-rule="evenodd"
-														/>
-													</svg>
+													<VerifiedIcon title="An admin has manually confirmed this candidacy's IEBC certificate." />
 												{/if}
 											</span>
 											{#if candidate.party}<span class="block text-xs text-muted">{candidate.party}</span

@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import VerifiedIcon from '$lib/components/svgs/VerifiedIcon.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -231,6 +232,11 @@
 			{#if mode === 'campaign' && data.leaderContext}
 				<h1 class="text-2xl font-bold text-heading">
 					{data.leaderContext.leaderName}
+					{#if data.leaderContext.profileVerified}
+						<!-- Profile-review badge (profileVerifiedAt) — the pill this replaces
+						lived beside the checklist row below. -->
+						<VerifiedIcon class="ml-0.5 inline size-5 align-middle text-primary" title="✓ Profile Verified" label="Profile Verified" />
+					{/if}
 					{#if data.leaderContext.role === 'manager'}
 						<span
 							class="ml-1 align-middle rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-semibold text-muted"
@@ -288,8 +294,12 @@
 						<span class="capitalize">{data.leaderContext.status}</span>
 					{/if}
 				</p>
-				{#if data.leaderContext.verified}
-					<span class="shrink-0 rounded-full bg-primary-soft px-4 py-1.5 text-xs font-semibold text-on-primary">✓ Profile Verified</span>
+				<!-- Keyed on the PROFILE review flag (profileVerifiedAt), not on having a
+				publicly-live verified term/run — an admin-verified profile with no
+				campaign yet must not be asked to submit again. A verified profile
+				shows the blue check beside the name above instead of a pill here. -->
+				{#if data.leaderContext.profileVerified}
+					<!-- nothing — the name carries the badge -->
 				{:else if data.verificationRequestedAt}
 					<span
 						title="Submitted {new Date(data.verificationRequestedAt).toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' })} — an admin has been notified."

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Avatar from '$lib/components/Avatar.svelte';
+	import VerifiedIcon from './svgs/VerifiedIcon.svelte';
 	import { enhance } from '$app/forms';
 	import Reviews from '$lib/components/Reviews.svelte';
 	import FollowButton from '$lib/components/FollowButton.svelte';
@@ -64,13 +65,7 @@
 									title="An admin has manually confirmed this candidacy's IEBC certificate (see docs/URLDiscovery.md)."
 									class="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-xs font-semibold text-on-primary"
 								>
-									<svg viewBox="0 0 24 24" fill="currentColor" class="size-4 text-primary">
-										<path
-											fill-rule="evenodd"
-											d="M8.6 3.8a4.5 4.5 0 0 0-1.4 1 4.5 4.5 0 0 0-3.8 3.7 4.5 4.5 0 0 0 0 5 4.5 4.5 0 0 0 3.7 3.8 4.5 4.5 0 0 0 5 0 4.5 4.5 0 0 0 3.8-3.7 4.5 4.5 0 0 0 0-5 4.5 4.5 0 0 0-3.7-3.8 4.5 4.5 0 0 0-3.6-1Zm7 6.7a.75.75 0 1 0-1.2-.9l-3.2 4.3-1.7-1.7a.75.75 0 1 0-1 1l2.3 2.4a.75.75 0 0 0 1.1-.1l3.7-5Z"
-											clip-rule="evenodd"
-										/>
-									</svg>
+									<VerifiedIcon />
 									Verified
 								</span>
 							{:else}

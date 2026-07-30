@@ -90,6 +90,10 @@ export const load: LayoutServerLoad = async (event) => {
 					region: ctx.position?.region ?? '',
 					status: (ctx.leader?.status ?? 'aspirant'),
 					verified: !!ctx.verified,
+					// The PROFILE review flag (users.profileVerifiedAt) — what the Submit
+					// for Verification button and its badge key on. Distinct from
+					// `verified` above (a held term/campaign being publicly live).
+					profileVerified: !!ctx.profileUser.profileVerifiedAt,
 					publicPath: leaderPath(ctx.profileUser),
 					// Where "Preview" points: the public URL once verified (it has a slug),
 					// else the slugless /previews/[userId] route for an in-progress application.
