@@ -6,7 +6,7 @@
 // visitor actually taps "Use my location".
 import { counties, geoSlug } from '$lib/data/geo';
 
-type Ring = [number, number][];
+export type Ring = [number, number][];
 type Feature = {
 	properties: { name: string };
 	geometry:
@@ -23,8 +23,8 @@ function normalize(name: string): string {
 	return name.toLowerCase().replace(/[^a-z0-9]+/g, '');
 }
 
-/** Ray casting: is [lng, lat] inside the ring? */
-function inRing(lng: number, lat: number, ring: Ring): boolean {
+/** Ray casting: is [lng, lat] inside the ring? Shared with locateSeat.ts. */
+export function inRing(lng: number, lat: number, ring: Ring): boolean {
 	let inside = false;
 	for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
 		const [xi, yi] = ring[i];
@@ -34,8 +34,8 @@ function inRing(lng: number, lat: number, ring: Ring): boolean {
 	return inside;
 }
 
-/** First ring is the outer boundary; the rest are holes. */
-function inPolygon(lng: number, lat: number, rings: Ring[]): boolean {
+/** First ring is the outer boundary; the rest are holes. Shared with locateSeat.ts. */
+export function inPolygon(lng: number, lat: number, rings: Ring[]): boolean {
 	if (!rings.length || !inRing(lng, lat, rings[0])) return false;
 	for (let i = 1; i < rings.length; i++) if (inRing(lng, lat, rings[i])) return false;
 	return true;

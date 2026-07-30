@@ -224,27 +224,56 @@
 
 	const seatNumber = $derived(step.kind === 'seat' ? SEAT_ORDER.indexOf(step.level) + 1 : 0);
 
-	// "Use my location" on the county step: browser geolocation (explicit tap,
-	// so the permission prompt is user-initiated) resolved to a county fully
-	// offline via detectCountySlug — see locateCounty.ts for the privacy notes.
+	// "Use my location" on every region step: browser geolocation (explicit tap,
+	// so the permission prompt is user-initiated) resolved to county AND
+	// constituency/ward fully offline via detectSeat — see locateSeat.ts /
+	// locateCounty.ts for the privacy notes. Levels that detection resolves are
+	// filled at once, so goNext skips their region steps; only what actually
+	// changed is reset (same cascade as pickRegion).
 	let locating = $state(false);
 	let locateError = $state<string | null>(null);
 	function useMyLocation() {
 		locateError = null;
 		if (!navigator.geolocation) {
-			locateError = 'Location is not supported by this browser — pick your county below.';
+			locateError = 'Location is not supported by this browser — pick your region below.';
 			return;
 		}
 		locating = true;
 		navigator.geolocation.getCurrentPosition(
 			async (pos) => {
 				try {
-					const { detectCountySlug } = await import('$lib/utils/locateCounty');
-					const slug = await detectCountySlug(pos.coords.latitude, pos.coords.longitude);
-					if (slug) await pickRegion('county', slug);
-					else locateError = "Couldn't place you in a county — pick it below.";
+					const { detectSeat } = await import('$lib/utils/locateSeat');
+					const detected = await detectSeat(pos.coords.latitude, pos.coords.longitude);
+					if (!detected.county) {
+						locateError = "Couldn't place you in a county — pick your region below.";
+						return;
+					}
+					if (detected.county !== county) {
+						county = detected.county;
+						constituency = '';
+						ward = '';
+						resetLevels(['governor', 'senator', 'womanRep', 'mp', 'mca']);
+					}
+					if (detected.constituency && detected.constituency !== constituency) {
+						constituency = detected.constituency;
+						ward = '';
+						resetLevels(['mp', 'mca']);
+					}
+					if (detected.ward && detected.ward !== ward) {
+						ward = detected.ward;
+						resetLevels(['mca']);
+					}
+					await syncGeoToUrl();
+					// Only advance when THIS step's region resolved — e.g. a ward
+					// coverage gap on the ward step keeps the picker open instead of
+					// stranding the MCA step without its geography.
+					if (step.kind === 'region' && !regionValue(step.region)) {
+						locateError = `Couldn't pin your ${step.region} — pick it below.`;
+					} else {
+						goNext();
+					}
 				} catch {
-					locateError = 'Something went wrong — pick your county below.';
+					locateError = 'Something went wrong — pick your region below.';
 				} finally {
 					locating = false;
 				}
@@ -253,8 +282,8 @@
 				locating = false;
 				locateError =
 					err.code === err.PERMISSION_DENIED
-						? 'Location permission denied — pick your county below.'
-						: "Couldn't get your location — pick your county below.";
+						? 'Location permission denied — pick your region below.'
+						: "Couldn't get your location — pick your region below.";
 			},
 			{ maximumAge: 300000, timeout: 10000 }
 		);
@@ -353,23 +382,23 @@ row pushes the booth down transiently, which is fine. -->
 						<p class="shrink-0 pt-1 text-center text-sm text-muted">
 							in {step.region === 'constituency' ? data.countyName : data.constituencyName}
 						</p>
-					{:else}
-						<!-- Offline county detection: coordinates are point-in-polygon
-						tested against bundled boundaries, never sent or stored. -->
-						<div class="shrink-0 pt-2 text-center">
-							<button
-								type="button"
-								onclick={useMyLocation}
-								disabled={locating}
-								class="rounded-full border border-primary px-4 py-1.5 text-sm font-semibold text-primary transition hover:bg-primary hover:text-on-primary disabled:cursor-wait disabled:opacity-60"
-							>
-								{locating ? 'Locating…' : '📍 Use my location'}
-							</button>
-							{#if locateError}
-								<p class="pt-1 text-xs text-muted">{locateError}</p>
-							{/if}
-						</div>
 					{/if}
+					<!-- Offline detection down to the ward: coordinates are
+					point-in-polygon tested against bundled boundaries (lazy-loaded
+					per county), never sent or stored. -->
+					<div class="shrink-0 pt-2 text-center">
+						<button
+							type="button"
+							onclick={useMyLocation}
+							disabled={locating}
+							class="rounded-full border border-primary px-4 py-1.5 text-sm font-semibold text-primary transition hover:bg-primary hover:text-on-primary disabled:cursor-wait disabled:opacity-60"
+						>
+							{locating ? 'Locating…' : '📍 Use my location'}
+						</button>
+						{#if locateError}
+							<p class="pt-1 text-xs text-muted">{locateError}</p>
+						{/if}
+					</div>
 
 					<!-- Centered wrapping rows across max-w-7xl: more options per row the
 					wider the screen, and partial rows stay centered. my-auto centers
