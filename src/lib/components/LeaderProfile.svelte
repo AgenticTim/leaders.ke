@@ -20,7 +20,7 @@
 	let {
 		data,
 		form = undefined,
-		preview = false,
+		preview = false
 	}: {
 		data: any;
 		form?: any;
@@ -28,13 +28,15 @@
 	} = $props();
 
 	const leader = $derived(data.leader);
-	const firstName = leader.name.split(' ')[0]
+	const firstName = leader.name.split(' ')[0];
 
 	// A pure aspirant doesn't currently hold ANY electoral seat, so there's no
 	// accurate "Current X" to state — the whole card (heading + contestants link)
 	// is dropped rather than showing a misleading title (e.g. their own candidacy).
 	const currentRole = $derived(
-		leader.status === 'aspirant' ? null : { title: data.breadcrumb.positionTitle, institution: data.breadcrumb.regionLabel }
+		leader.status === 'aspirant'
+			? null
+			: { title: data.breadcrumb.positionTitle, institution: data.breadcrumb.regionLabel }
 	);
 
 	const fmt = new Intl.NumberFormat('en-KE');
@@ -42,8 +44,13 @@
 
 	// ContactLinks wants a bare phone number (for the wa.me link) and a plain email
 	// address; data.contacts carries them as verifiable channel rows instead.
-	const contactPhone = $derived(data.contacts.find((c: { channel: string }) => c.channel === 'sms' || c.channel === 'whatsapp')?.value ?? null);
-	const contactEmail = $derived(data.contacts.find((c: { channel: string }) => c.channel === 'email')?.value ?? null);
+	const contactPhone = $derived(
+		data.contacts.find((c: { channel: string }) => c.channel === 'sms' || c.channel === 'whatsapp')
+			?.value ?? null
+	);
+	const contactEmail = $derived(
+		data.contacts.find((c: { channel: string }) => c.channel === 'email')?.value ?? null
+	);
 
 	// Ask the leader (AI): same feature as the campaign workspace's Ask block,
 	// grounded in the same manifesto/posts via this page's own ?/ask action.
@@ -81,17 +88,27 @@
 			<!-- Identity card -->
 			<div class="rounded-3xl border border-border bg-surface p-6 sm:p-8">
 				<div class="flex flex-col gap-5 sm:flex-row sm:items-center">
-					<Avatar name={leader.name} initials={leader.initials} photoUrl={leader.photoUrl} sizeClass="size-30" textClass="text-4xl" />
+					<Avatar
+						name={leader.name}
+						initials={leader.initials}
+						photoUrl={leader.photoUrl}
+						sizeClass="size-30"
+						textClass="text-4xl"
+					/>
 					<div class="w-full">
-						<h1 class="flex flex-wrap items-center gap-2 text-2xl font-extrabold text-heading sm:text-3xl">
+						<h1
+							class="flex flex-wrap items-center gap-2 text-2xl font-extrabold text-heading sm:text-3xl"
+						>
 							{leader.name}
 							<!-- A badge only: every profile is public regardless (see docs/URLDiscovery.md). -->
 							<span
 								title="An admin has manually confirmed the facts on this seat/candidacy (see docs/URLDiscovery.md)."
-								class="inline-flex items-center gap-1 rounded-full {leader.verified? 'bg-primary-soft text-on-primary' : 'bg-surface-3 text-on-mute'} px-2.5 py-1 text-xs font-semibold "
+								class="inline-flex items-center gap-1 rounded-full {leader.verified
+									? 'bg-primary-soft text-on-primary'
+									: 'bg-surface-3 text-on-mute'} px-2.5 py-1 text-xs font-semibold"
 							>
-								<span>{leader.verified? '✓' : '✗'}</span>
-								<span>{leader.verified? 'Verified' : 'Unverified'}</span>
+								<span>{leader.verified ? '✓' : '✗'}</span>
+								<span>{leader.verified ? 'Verified' : 'Unverified'}</span>
 							</span>
 						</h1>
 						<p class="mt-1 text-sm text-muted">
@@ -114,14 +131,20 @@
 				{#if leader.bio}
 					<!-- Bio is stored as markdown-lite (RichTextEditor); renderRichText
 					escapes it before formatting, so {@html} is safe here. -->
-					<div class="mt-6 space-y-2 leading-normal text-lg">{@html renderRichText(leader.bio)}</div>
+					<div class="mt-6 space-y-2 leading-normal text-lg">
+						{@html renderRichText(leader.bio)}
+					</div>
 				{/if}
 			</div>
 
 			<!-- Delivery score: public rollup of the manifesto tracker -->
 			{#if data.delivery.total > 0}
 				<div class="mt-6 rounded-3xl border border-border bg-surface p-6 sm:p-8">
-					<DeliveryScore delivered={data.delivery.delivered} total={data.delivery.total} inProgress={data.delivery.inProgress} />
+					<DeliveryScore
+						delivered={data.delivery.delivered}
+						total={data.delivery.total}
+						inProgress={data.delivery.inProgress}
+					/>
 				</div>
 			{/if}
 
@@ -130,7 +153,9 @@
 				<div class="mt-6 rounded-3xl border border-border bg-surface p-6 sm:p-8">
 					<h2 class="text-xl font-bold text-heading">Experience</h2>
 					{#if data.experience.professional.length > 0}
-						<h3 class="mt-5 text-xs font-semibold tracking-wide text-muted uppercase">Professional</h3>
+						<h3 class="mt-5 text-xs font-semibold tracking-wide text-muted uppercase">
+							Professional
+						</h3>
 						<ul class="mt-4 space-y-3">
 							{#each data.experience.professional as item, i (i)}
 								<ExperienceBlock
@@ -146,7 +171,9 @@
 												: `${item.from}${item.to ? `–${item.to}` : ' – present'}`
 											: ''}
 									badge={item.badge}
-									badgeClass={item.badge === 'current' ? 'bg-primary-soft text-on-primary' : 'bg-surface text-muted'}
+									badgeClass={item.badge === 'current'
+										? 'bg-primary-soft text-on-primary'
+										: 'bg-surface text-muted'}
 								/>
 							{/each}
 						</ul>
@@ -172,13 +199,17 @@
 				{#if data.news.length > 0}
 					<div class="mt-6 rounded-3xl border border-border bg-surface p-6 sm:p-8">
 						<h2 class="text-xl font-bold text-heading">In the news</h2>
-						<p class="mt-1 text-sm text-muted">Coverage from verified media, tagged automatically.</p>
+						<p class="mt-1 text-sm text-muted">
+							Coverage from verified media, tagged automatically.
+						</p>
 						<div class="mt-5 space-y-4">
 							{#each data.news as item (item.id)}
 								<article class="border-b border-border pb-4 last:border-b-0 last:pb-0">
 									<div class="flex flex-wrap items-baseline justify-between gap-2">
 										<h3 class="text-sm font-semibold text-heading">{item.title}</h3>
-										<span class="text-xs text-muted">{dateFmt.format(new Date(item.createdAt))}</span>
+										<span class="text-xs text-muted"
+											>{dateFmt.format(new Date(item.createdAt))}</span
+										>
 									</div>
 									<p class="mt-1 text-sm leading-relaxed text-muted">{item.summary}</p>
 								</article>
@@ -202,24 +233,32 @@
 
 		<!-- Sidebar: Ask, contact, claim status, seat links -->
 		<div class="space-y-6">
-			
 			{#if data.isVying}
-			<div class="rounded-3xl border border-border bg-surface p-6 flex flex-col gap-3">
-				<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">{data.campaign?.year ?? 2027} Campaign</h2>
-				{#if data.campaign?.positionTitle}
-					<a href={data.campaign.path} class="block w-full border border-primary rounded-full px-4 py-2 text-lg text-primary text-center font-semibold transition hover:brightness-95 disabled:opacity-60">
-						🚀 Running for {data.campaign.positionTitle}{data.campaign.regionLabel && data.campaign.regionLabel !== 'Kenya' ? `, ${data.campaign.regionLabel}` : ''}
-					</a>
-				{:else}
-				<p class="block w-full border border-border rounded-full px-4 py-2 text-lg text-muted text-center font-semibold ">
-					No Campaign Listed
-				</p>
-				{/if}
-			</div>
+				<div class="rounded-3xl border border-border bg-surface p-6 flex flex-col gap-3">
+					<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">
+						{data.campaign?.year ?? 2027} Campaign
+					</h2>
+					{#if data.campaign?.positionTitle}
+						<a
+							href={data.campaign.path}
+							class="block w-full border border-primary rounded-full px-4 py-2 text-lg text-primary text-center font-semibold transition hover:brightness-95 disabled:opacity-60"
+						>
+							🚀 Running for {data.campaign.positionTitle}{data.campaign.regionLabel &&
+							data.campaign.regionLabel !== 'Kenya'
+								? `, ${data.campaign.regionLabel}`
+								: ''}
+						</a>
+					{:else}
+						<p
+							class="block w-full border border-border rounded-full px-4 py-2 text-lg text-muted text-center font-semibold"
+						>
+							No Campaign Listed
+						</p>
+					{/if}
+				</div>
 			{/if}
 
 			{#if !preview}
-
 				<!-- Ask the leader (AI) -->
 				<div class="rounded-3xl border border-border bg-surface p-6">
 					<h2 class="text-lg font-bold text-heading">Ask {firstName}</h2>
@@ -229,13 +268,23 @@
 					{#if form?.asked}
 						<div class="mt-3 rounded-2xl bg-surface-2 p-4">
 							<p class="text-xs font-semibold text-muted">You: {form.question}</p>
-							<p class="mt-2 text-sm leading-relaxed whitespace-pre-line">{form.answer}</p>
-							<p class="mt-2 text-xs text-muted">
-								{form.answerSource === 'ai' ? 'AI answer, grounded in campaign material.' : 'Matched from campaign material.'}
-							</p>
+							{#if form.answered}
+								<p class="mt-2 text-sm leading-relaxed whitespace-pre-line">{form.answer}</p>
+								<p class="mt-2 text-xs text-muted">
+									{form.answerSource === 'ai'
+										? 'AI answer, grounded in campaign material.'
+										: 'Matched from campaign material.'}
+								</p>
+							{:else}
+								<p class="mt-2 text-sm leading-relaxed">
+									Thanks for your question — the team has received it and will get back to you soon.
+								</p>
+							{/if}
 						</div>
 					{:else if form?.error}
-						<div class="mt-3 rounded-2xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading">
+						<div
+							class="mt-3 rounded-2xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading"
+						>
 							{form.error}
 							{#if form.requiresLogin}
 								<a href="/login" class="ml-1 font-semibold text-primary hover:underline">Log in</a>
@@ -286,7 +335,10 @@
 					{#if data.numContestants > 0}
 						<ul class="mt-3 space-y-2 text-sm">
 							<li>
-								<a href="{data.breadcrumb.seatCyclePath}/2027" class="font-medium text-heading hover:text-primary">
+								<a
+									href="{data.breadcrumb.seatCyclePath}/2027"
+									class="font-medium text-heading hover:text-primary"
+								>
 									🗳️ {data.numContestants} contestants for 2027 →
 								</a>
 							</li>
@@ -314,13 +366,23 @@
 				</div>
 			{/if}
 
-			<FollowButton candidateName={leader.name} signedIn={data.signedIn} isFollowing={data.isFollowing} />
+			<FollowButton
+				candidateName={leader.name}
+				signedIn={data.signedIn}
+				isFollowing={data.isFollowing}
+			/>
 
 			{#if data.contacts.length > 0 || leader.address || Object.keys(leader.socials).length > 0}
 				<div class="rounded-3xl border border-border bg-surface p-6">
 					<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">Contact</h2>
 					<div class="mt-4">
-						<ContactLinks phone={contactPhone} email={contactEmail} socials={leader.socials} share={!preview} shareTitle={leader.name} />
+						<ContactLinks
+							phone={contactPhone}
+							email={contactEmail}
+							socials={leader.socials}
+							share={!preview}
+							shareTitle={leader.name}
+						/>
 					</div>
 					{#if leader.address}
 						<p class="mt-3 space-y-2 text-sm">
@@ -336,14 +398,19 @@
 					<div class="mt-3 space-y-4">
 						{#each data.deliveryGroups as group (group.label)}
 							<div>
-								<p class="text-xs font-semibold text-heading">{group.label} <span class="font-normal text-muted">({group.from}–{group.to ?? 'present'})</span></p>
+								<p class="text-xs font-semibold text-heading">
+									{group.label}
+									<span class="font-normal text-muted">({group.from}–{group.to ?? 'present'})</span>
+								</p>
 								<ol class="mt-1.5 space-y-2 text-sm">
 									{#each group.items as item, i (i)}
 										<li class="flex gap-2 text-muted">
 											<span class="shrink-0 font-semibold text-heading">{i + 1}.</span>
 											<span>
 												<span class="text-heading">{item.title}</span>
-												{#if item.description}<span class="block text-muted">{item.description}</span>{/if}
+												{#if item.description}<span class="block text-muted"
+														>{item.description}</span
+													>{/if}
 											</span>
 										</li>
 									{/each}
@@ -357,9 +424,7 @@
 			{#if !preview && data.canClaim}
 				<div class="rounded-3xl bg-primary p-6 text-on-primary">
 					<h2 class="text-lg font-bold text-on-primary">Managing {firstName}?</h2>
-					<p class="mt-2 text-sm text-on-primary/80">
-						Get access to modify this page.
-					</p>
+					<p class="mt-2 text-sm text-on-primary/80">Get access to modify this page.</p>
 					<a
 						href="/onboard/profile?profile={leader.slug}"
 						class="mt-4 inline-block rounded-full bg-surface px-5 py-2.5 text-sm font-semibold text-heading transition hover:bg-surface-2"
@@ -371,12 +436,11 @@
 				<div class="rounded-3xl border border-border bg-surface-2 p-6">
 					<h2 class="text-lg font-bold text-heading">Claimed &amp; Managed</h2>
 					<p class="mt-2 text-sm text-muted">
-						<a href="/contact-us" class="font-medium text-primary hover:underline">Contact us</a> if this is a mistake.
+						<a href="/contact-us" class="font-medium text-primary hover:underline">Contact us</a> if this
+						is a mistake.
 					</p>
 				</div>
 			{/if}
-
-
 		</div>
 	</div>
 </section>

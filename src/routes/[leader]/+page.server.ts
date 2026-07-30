@@ -1,7 +1,14 @@
 import { error, fail } from '@sveltejs/kit';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { campaigns, creditTransactions, pillars, pledges, posts, wallets } from '$lib/server/db/schema';
+import {
+	campaigns,
+	creditTransactions,
+	pillars,
+	pledges,
+	posts,
+	wallets
+} from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, getDomainUser, resolveCurrentTerm } from '$lib/server/leader';
 import { loadPublicProfileData } from '$lib/server/publicProfile';
 import { followAsAccount, unfollowAsAccount } from '$lib/server/follow';
@@ -9,6 +16,12 @@ import { handleDeleteReviewAction, handleReviewAction } from '$lib/server/review
 import { answerConstituentQuestion, PlatformOutOfCreditsError } from '$lib/server/ai';
 import { enforceAskRateLimit } from '$lib/server/aiRateLimit';
 import { getGroundingExtras } from '$lib/server/knowledge';
+import {
+	getOrCreateWebConversation,
+	recordAiAnswer,
+	recordQuestion,
+	routeQuestionToTeam
+} from '$lib/server/chat';
 import { getPlatformSettings } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -20,7 +33,10 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ params, locals, cookies }) => {
 	const viewer = locals.user ? await getDomainUser(locals.user.id) : null;
 
-	const data = await loadPublicProfileData(params.leader, { viewerId: viewer?.id, isAdmin: !!viewer?.adminAt });
+	const data = await loadPublicProfileData(params.leader, {
+		viewerId: viewer?.id,
+		isAdmin: !!viewer?.adminAt
+	});
 	if (!data) error(404, 'Leader not found');
 
 	// The viewer's existing pledge to this person's active run (by account, or
@@ -73,7 +89,14 @@ async function publicLead(slug: string): Promise<{
 		const [c] = await db
 			.select({ id: campaigns.id })
 			.from(campaigns)
-			.where(and(eq(campaigns.subjectUserId, row.users.id), eq(campaigns.cycleYear, ACTIVE_CYCLE), isNull(campaigns.parentCampaignId), isNull(campaigns.deletedAt)));
+			.where(
+				and(
+					eq(campaigns.subjectUserId, row.users.id),
+					eq(campaigns.cycleYear, ACTIVE_CYCLE),
+					isNull(campaigns.parentCampaignId),
+					isNull(campaigns.deletedAt)
+				)
+			);
 		leadCampaignId = c?.id ?? 0;
 	}
 	const position = leadsWithRun ? activeRun!.positions : currentTerm!.positions;
@@ -126,7 +149,8 @@ export const actions: Actions = {
 		if (!domainUser) return fail(401, { pledgeError: 'Log in to pledge.' });
 
 		const lead = await publicLead(event.params.leader);
-		if (!lead?.leadCampaignId) return fail(400, { pledgeError: 'This campaign is not taking pledges yet.' });
+		if (!lead?.leadCampaignId)
+			return fail(400, { pledgeError: 'This campaign is not taking pledges yet.' });
 
 		let ip: string | null = null;
 		try {
@@ -170,7 +194,8 @@ export const actions: Actions = {
 
 		const viewer = event.locals.user ? await getDomainUser(event.locals.user.id) : null;
 		const rateLimit = await enforceAskRateLimit(event, viewer?.id ?? null);
-		if (!rateLimit.ok) return fail(429, { error: rateLimit.error, requiresLogin: rateLimit.requiresLogin });
+		if (!rateLimit.ok)
+			return fail(429, { error: rateLimit.error, requiresLogin: rateLimit.requiresLogin });
 
 		const lead = await publicLead(event.params.leader);
 		if (!lead) return fail(404, { error: 'Leader not found.' });
@@ -179,27 +204,55 @@ export const actions: Actions = {
 		// the only gate. Low tiers taste the feature and buy credits; that's the
 		// conversion path, so no tier check here.
 
-		// Same wallet gate as the campaign workspace's Ask block — checked up
-		// front so a citizen gets a clear reason instead of a silent failure.
-		// Profile-scoped (subjectId), not campaignId: the knowledgebase a wallet
-		// pays to query is one per person, not per run.
+		// Every question is captured as a durable thread regardless of credit (the
+		// team answers the uncredited ones from the dashboard Chats tab), so nothing
+		// a citizen asks is ever lost.
+		const conversationId = await getOrCreateWebConversation(lead.subjectId, viewer?.id ?? null);
+
+		// Profile-scoped wallet gate (subjectId), not campaignId: the knowledgebase
+		// a wallet pays to query is one per person, not per run. With no credit the
+		// question is still recorded and routed to the team — a human replies later
+		// rather than the citizen hitting a dead end.
 		const settings = await getPlatformSettings();
-		const [wallet] = await db.select().from(wallets).where(eq(wallets.subjectUserId, lead.subjectId));
+		const [wallet] = await db
+			.select()
+			.from(wallets)
+			.where(eq(wallets.subjectUserId, lead.subjectId));
 		if (!wallet || wallet.balance < settings.aiChatCostCredits) {
-			return fail(402, { error: 'This profile has insufficient credit balance for AI chats. The team needs to top up before more questions can be answered.' });
+			await recordQuestion(conversationId, viewer?.id ?? null, question, true);
+			return { asked: true, answered: false, question };
 		}
+
+		const questionMessageId = await recordQuestion(
+			conversationId,
+			viewer?.id ?? null,
+			question,
+			false
+		);
 
 		const [pillarRows, postRows, extras] = await Promise.all([
 			lead.leadCampaignId
 				? db
-						.select({ title: pillars.title, summary: pillars.summary, deliveryStatus: pillars.deliveryStatus, evidence: pillars.evidence })
+						.select({
+							title: pillars.title,
+							summary: pillars.summary,
+							deliveryStatus: pillars.deliveryStatus,
+							evidence: pillars.evidence
+						})
 						.from(pillars)
 						.where(and(eq(pillars.campaignId, lead.leadCampaignId), isNull(pillars.deletedAt)))
 				: Promise.resolve([]),
 			db
 				.select({ title: posts.title, body: posts.body })
 				.from(posts)
-				.where(and(eq(posts.subjectUserId, lead.subjectId), eq(posts.medium, 'web'), eq(posts.public, true), isNull(posts.deletedAt)))
+				.where(
+					and(
+						eq(posts.subjectUserId, lead.subjectId),
+						eq(posts.medium, 'web'),
+						eq(posts.public, true),
+						isNull(posts.deletedAt)
+					)
+				)
 				.orderBy(desc(posts.createdAt))
 				.limit(10),
 			getGroundingExtras(lead.subjectId)
@@ -221,16 +274,24 @@ export const actions: Actions = {
 			({ answer, source } = await answerConstituentQuestion(grounding, question));
 		} catch (err) {
 			if (err instanceof PlatformOutOfCreditsError) {
-				return fail(503, { error: 'AI Chat is temporarily unavailable (the platform is out of AI credits). Please try again later.' });
+				// Platform-wide outage: the question is already captured, so hand it
+				// to the team rather than showing a hard error to the citizen.
+				await routeQuestionToTeam(questionMessageId);
+				return { asked: true, answered: false, question };
 			}
 			throw err;
 		}
+
+		await recordAiAnswer(conversationId, answer);
 
 		// Heuristic answers never call Anthropic, so nothing to charge for.
 		if (source === 'ai') {
 			const newBalance = wallet.balance - settings.aiChatCostCredits;
 			await db.transaction(async (tx) => {
-				await tx.update(wallets).set({ balance: newBalance, updatedAt: new Date() }).where(eq(wallets.id, wallet.id));
+				await tx
+					.update(wallets)
+					.set({ balance: newBalance, updatedAt: new Date() })
+					.where(eq(wallets.id, wallet.id));
 				await tx.insert(creditTransactions).values({
 					walletId: wallet.id,
 					kind: 'spend',
@@ -242,6 +303,6 @@ export const actions: Actions = {
 			});
 		}
 
-		return { asked: true, question, answer, answerSource: source };
+		return { asked: true, answered: true, question, answer, answerSource: source };
 	}
 };

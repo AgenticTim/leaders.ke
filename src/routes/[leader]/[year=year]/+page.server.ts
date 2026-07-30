@@ -3,14 +3,34 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { chargeMobileMoney, normalizeMpesaPhone, paystackEnabled } from '$lib/server/paystack';
-import { creditTransactions, donations, managers, pillars, pledges, posts, wallets } from '$lib/server/db/schema';
-import { ACTIVE_CYCLE, fullName, getDomainUser, getOrCreateMainCampaign, leaderPath } from '$lib/server/leader';
+import {
+	creditTransactions,
+	donations,
+	managers,
+	pillars,
+	pledges,
+	posts,
+	wallets
+} from '$lib/server/db/schema';
+import {
+	ACTIVE_CYCLE,
+	fullName,
+	getDomainUser,
+	getOrCreateMainCampaign,
+	leaderPath
+} from '$lib/server/leader';
 import { resolveCampaignRun, loadCampaignWorkspaceData } from '$lib/server/campaign';
 import { followAsAccount, unfollowAsAccount } from '$lib/server/follow';
 import { handleDeleteReviewAction, handleReviewAction } from '$lib/server/reviews';
 import { answerConstituentQuestion, PlatformOutOfCreditsError } from '$lib/server/ai';
 import { enforceAskRateLimit } from '$lib/server/aiRateLimit';
 import { getGroundingExtras } from '$lib/server/knowledge';
+import {
+	getOrCreateWebConversation,
+	recordAiAnswer,
+	recordQuestion,
+	routeQuestionToTeam
+} from '$lib/server/chat';
 import { getPlatformSettings } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -59,7 +79,14 @@ export const load: PageServerLoad = async ({ params, locals, cookies }) => {
 				await db
 					.select({ id: managers.id })
 					.from(managers)
-					.where(and(eq(managers.userId, viewer.id), eq(managers.subjectUserId, row.users.id), eq(managers.isActive, true), isNull(managers.deletedAt)))
+					.where(
+						and(
+							eq(managers.userId, viewer.id),
+							eq(managers.subjectUserId, row.users.id),
+							eq(managers.isActive, true),
+							isNull(managers.deletedAt)
+						)
+					)
 			)[0]
 		: false;
 	const canEdit = !!viewer?.adminAt || viewerIsManager;
@@ -72,7 +99,12 @@ export const load: PageServerLoad = async ({ params, locals, cookies }) => {
 		leaderSlug: params.leader,
 		leader: {
 			name,
-			initials: name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase(),
+			initials: name
+				.split(/\s+/)
+				.map((w) => w[0])
+				.join('')
+				.slice(0, 2)
+				.toUpperCase(),
 			photoUrl: row.users.photoUrl,
 			party: workspace.party,
 			regionLabel: row.positions.region,
@@ -140,7 +172,8 @@ export const actions: Actions = {
 		if (!domainUser) return fail(401, { pledgeError: 'Log in to pledge.' });
 
 		const row = await resolveCampaignRun(event.params.leader);
-		if (!row?.campaignId) return fail(400, { pledgeError: 'This campaign is not taking pledges yet.' });
+		if (!row?.campaignId)
+			return fail(400, { pledgeError: 'This campaign is not taking pledges yet.' });
 
 		let ip: string | null = null;
 		try {
@@ -188,7 +221,8 @@ export const actions: Actions = {
 		// a held officeholder's is created on first donation.
 		let campaignId = row.campaignId;
 		if (!campaignId && row.leaderId) {
-			campaignId = (await getOrCreateMainCampaign(row.leaderId, row.users.id, fullName(row.users))).id;
+			campaignId = (await getOrCreateMainCampaign(row.leaderId, row.users.id, fullName(row.users)))
+				.id;
 		}
 		if (!campaignId) return fail(400, { error: 'Campaign not found.' });
 
@@ -218,8 +252,14 @@ export const actions: Actions = {
 			} catch (err) {
 				// The prompt never reached the phone — no money moved, so the row
 				// must not linger as a pending pledge the team might chase.
-				await db.update(donations).set({ status: 'failed', updatedAt: new Date() }).where(eq(donations.reference, reference));
-				console.error(`[donate] STK charge failed for ${reference}:`, err instanceof Error ? err.message : err);
+				await db
+					.update(donations)
+					.set({ status: 'failed', updatedAt: new Date() })
+					.where(eq(donations.reference, reference));
+				console.error(
+					`[donate] STK charge failed for ${reference}:`,
+					err instanceof Error ? err.message : err
+				);
 				return fail(502, { error: 'Could not reach M-Pesa right now. Try again in a moment.' });
 			}
 			return { donated: true, stk: true, amount: Math.round(amount) };
@@ -243,33 +283,58 @@ export const actions: Actions = {
 
 		const viewer = event.locals.user ? await getDomainUser(event.locals.user.id) : null;
 		const rateLimit = await enforceAskRateLimit(event, viewer?.id ?? null);
-		if (!rateLimit.ok) return fail(429, { error: rateLimit.error, requiresLogin: rateLimit.requiresLogin });
+		if (!rateLimit.ok)
+			return fail(429, { error: rateLimit.error, requiresLogin: rateLimit.requiresLogin });
 
 		const row = await resolveCampaignRun(event.params.leader);
 		if (!row) return fail(404, { error: 'Campaign not found.' });
 
+		// Every question is captured as a durable thread regardless of credit (the
+		// team answers the uncredited ones from the dashboard Chats tab), so nothing
+		// a citizen asks is ever lost.
+		const conversationId = await getOrCreateWebConversation(row.users.id, viewer?.id ?? null);
+
 		// Charged against the person's own wallet (docs/ai-chat-costs.md's PAYG
 		// price, admin-editable as platformSettings.aiChatCostCredits), checked up
-		// front so a citizen gets a clear reason instead of a silent failure — the
-		// heuristic fallback never runs here on empty credits, since answering
-		// for free would just mask the gate entirely. Profile-scoped (users.id),
-		// not campaignId: the knowledgebase a wallet pays to query is one per
-		// person, not per run.
+		// front. Profile-scoped (users.id), not campaignId: the knowledgebase a
+		// wallet pays to query is one per person, not per run. With no credit the
+		// question is still recorded and routed to the team — a human replies later
+		// rather than the citizen hitting a dead end.
 		const settings = await getPlatformSettings();
 		const [wallet] = await db.select().from(wallets).where(eq(wallets.subjectUserId, row.users.id));
 		if (!wallet || wallet.balance < settings.aiChatCostCredits) {
-			return fail(402, { error: 'This profile has no AI Chat credits left. The team needs to top up before more questions can be answered.' });
+			await recordQuestion(conversationId, viewer?.id ?? null, question, true);
+			return { asked: true, answered: false, question };
 		}
+
+		const questionMessageId = await recordQuestion(
+			conversationId,
+			viewer?.id ?? null,
+			question,
+			false
+		);
 
 		const [pillarRows, postRows, extras] = await Promise.all([
 			db
-				.select({ title: pillars.title, summary: pillars.summary, deliveryStatus: pillars.deliveryStatus, evidence: pillars.evidence })
+				.select({
+					title: pillars.title,
+					summary: pillars.summary,
+					deliveryStatus: pillars.deliveryStatus,
+					evidence: pillars.evidence
+				})
 				.from(pillars)
 				.where(and(eq(pillars.campaignId, row.campaignId), isNull(pillars.deletedAt))),
 			db
 				.select({ title: posts.title, body: posts.body })
 				.from(posts)
-				.where(and(eq(posts.subjectUserId, row.users.id), eq(posts.medium, 'web'), eq(posts.public, true), isNull(posts.deletedAt)))
+				.where(
+					and(
+						eq(posts.subjectUserId, row.users.id),
+						eq(posts.medium, 'web'),
+						eq(posts.public, true),
+						isNull(posts.deletedAt)
+					)
+				)
 				.orderBy(desc(posts.createdAt))
 				.limit(10),
 			getGroundingExtras(row.users.id)
@@ -291,16 +356,24 @@ export const actions: Actions = {
 			({ answer, source } = await answerConstituentQuestion(grounding, question));
 		} catch (err) {
 			if (err instanceof PlatformOutOfCreditsError) {
-				return fail(503, { error: 'AI Chat is temporarily unavailable (the platform is out of AI credits). Please try again later.' });
+				// Platform-wide outage: the question is already captured, so hand it
+				// to the team rather than showing a hard error to the citizen.
+				await routeQuestionToTeam(questionMessageId);
+				return { asked: true, answered: false, question };
 			}
 			throw err;
 		}
+
+		await recordAiAnswer(conversationId, answer);
 
 		// Heuristic answers never call Anthropic, so nothing to charge for.
 		if (source === 'ai') {
 			const newBalance = wallet.balance - settings.aiChatCostCredits;
 			await db.transaction(async (tx) => {
-				await tx.update(wallets).set({ balance: newBalance, updatedAt: new Date() }).where(eq(wallets.id, wallet.id));
+				await tx
+					.update(wallets)
+					.set({ balance: newBalance, updatedAt: new Date() })
+					.where(eq(wallets.id, wallet.id));
 				await tx.insert(creditTransactions).values({
 					walletId: wallet.id,
 					kind: 'spend',
@@ -312,6 +385,6 @@ export const actions: Actions = {
 			});
 		}
 
-		return { asked: true, question, answer, answerSource: source };
+		return { asked: true, answered: true, question, answer, answerSource: source };
 	}
 };

@@ -58,9 +58,17 @@
 			<!-- Candidate card -->
 			<div class="rounded-3xl border border-border bg-surface p-6 sm:p-8">
 				<div class="flex flex-col gap-5 sm:flex-row sm:items-center">
-					<Avatar name={leader.name} initials={leader.initials} photoUrl={leader.photoUrl} sizeClass="size-30" textClass="text-4xl" />
+					<Avatar
+						name={leader.name}
+						initials={leader.initials}
+						photoUrl={leader.photoUrl}
+						sizeClass="size-30"
+						textClass="text-4xl"
+					/>
 					<div class="w-full">
-						<h1 class="flex flex-wrap items-center gap-2 text-2xl font-extrabold text-heading sm:text-3xl">
+						<h1
+							class="flex flex-wrap items-center gap-2 text-2xl font-extrabold text-heading sm:text-3xl"
+						>
 							{leader.campaignTitle || leader.name}
 							{#if leader.verified}
 								<span
@@ -82,7 +90,9 @@
 						<p class="mt-1 text-base text-muted">
 							Vying for
 							{#if seat}
-								<a href={seat} class="text-primary hover:text-heading hover:underline">{leader.positionTitle}, {leader.regionLabel}</a>
+								<a href={seat} class="text-primary hover:text-heading hover:underline"
+									>{leader.positionTitle}, {leader.regionLabel}</a
+								>
 							{:else}
 								{leader.positionTitle}, {leader.regionLabel}
 							{/if}
@@ -100,7 +110,9 @@
 				{#if leader.campaignDescription}
 					<!-- Stored as markdown-lite (RichTextEditor); renderRichText escapes it
 					before formatting, so {@html} is safe here. -->
-					<div class="mt-6 space-y-2 leading-relaxed text-lg">{@html renderRichText(leader.campaignDescription)}</div>
+					<div class="mt-6 space-y-2 leading-relaxed text-lg">
+						{@html renderRichText(leader.campaignDescription)}
+					</div>
 				{/if}
 			</div>
 
@@ -109,8 +121,8 @@
 				<h2 class="text-xl font-bold text-heading">Manifesto</h2>
 				{#if leader.pillars.length > 0}
 					<p class="mt-1 text-sm text-muted">
-						{leader.pillars.length} pillar{leader.pillars.length === 1 ? '' : 's'}, each with a public
-						delivery status
+						{leader.pillars.length} pillar{leader.pillars.length === 1 ? '' : 's'}, each with a
+						public delivery status
 					</p>
 					<ol class="mt-5 space-y-4">
 						{#each leader.pillars as pillar, i (pillar.title)}
@@ -137,7 +149,9 @@
 										</h3>
 										<p class="mt-1 text-sm leading-relaxed">{pillar.summary}</p>
 										{#if pillar.evidence}
-											<p class="mt-1 text-xs font-medium text-primary">Evidence: {pillar.evidence}</p>
+											<p class="mt-1 text-xs font-medium text-primary">
+												Evidence: {pillar.evidence}
+											</p>
 										{/if}
 									</div>
 								</div>
@@ -186,11 +200,15 @@
 
 		<!-- Sidebar -->
 		<div class="space-y-6">
-			
 			<div class="rounded-3xl border border-border bg-surface p-6 flex flex-col gap-3">
-				<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">{data.currentPosition ? "Current Position": "Full Profile"}</h2>
-				<a href={data.recordPath} class="block w-full border border-primary rounded-full px-4 py-2 text-lg text-primary text-center font-semibold transition hover:brightness-95 disabled:opacity-60">
-					{data.currentPosition ? data.currentPosition: leader.name}
+				<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">
+					{data.currentPosition ? 'Current Position' : 'Full Profile'}
+				</h2>
+				<a
+					href={data.recordPath}
+					class="block w-full border border-primary rounded-full px-4 py-2 text-lg text-primary text-center font-semibold transition hover:brightness-95 disabled:opacity-60"
+				>
+					{data.currentPosition ? data.currentPosition : leader.name}
 				</a>
 			</div>
 
@@ -203,13 +221,23 @@
 				{#if form?.asked}
 					<div class="mt-3 rounded-2xl bg-surface-2 p-4">
 						<p class="text-xs font-semibold text-muted">You: {form.question}</p>
-						<p class="mt-2 text-sm leading-relaxed whitespace-pre-line">{form.answer}</p>
-						<p class="mt-2 text-xs text-muted">
-							{form.answerSource === 'ai' ? 'AI answer, grounded in campaign material.' : 'Matched from campaign material.'}
-						</p>
+						{#if form.answered}
+							<p class="mt-2 text-sm leading-relaxed whitespace-pre-line">{form.answer}</p>
+							<p class="mt-2 text-xs text-muted">
+								{form.answerSource === 'ai'
+									? 'AI answer, grounded in campaign material.'
+									: 'Matched from campaign material.'}
+							</p>
+						{:else}
+							<p class="mt-2 text-sm leading-relaxed">
+								Thanks for your question — the team has received it and will get back to you soon.
+							</p>
+						{/if}
 					</div>
 				{:else if form?.error}
-					<div class="mt-3 rounded-2xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading">
+					<div
+						class="mt-3 rounded-2xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading"
+					>
 						{form.error}
 						{#if form.requiresLogin}
 							<a href="/login" class="ml-1 font-semibold text-primary hover:underline">Log in</a>
@@ -271,7 +299,11 @@
 			{/if}
 
 			<!-- Follow -->
-			<FollowButton candidateName={leader.name} signedIn={data.signedIn} isFollowing={data.isFollowing} />
+			<FollowButton
+				candidateName={leader.name}
+				signedIn={data.signedIn}
+				isFollowing={data.isFollowing}
+			/>
 
 			<!-- Fundraising -->
 			<div class="rounded-3xl border border-border bg-surface p-6">
@@ -279,7 +311,9 @@
 				{#if data.fundraising.goal > 0}
 					<p class="mt-2 text-sm">
 						<span class="font-bold text-heading">KES {fmt.format(data.fundraising.raised)}</span>
-						<span class="text-muted"> of KES {fmt.format(data.fundraising.goal)} ({progress}%)</span>
+						<span class="text-muted">
+							of KES {fmt.format(data.fundraising.goal)} ({progress}%)</span
+						>
 					</p>
 					<div class="mt-2 h-3 overflow-hidden rounded-full bg-surface-2">
 						<div class="h-full rounded-full bg-primary" style="width: {progress}%"></div>
@@ -296,8 +330,8 @@
 							Asante! Check your phone and enter your M-Pesa PIN to complete the KES
 							{fmt.format(form.amount)} donation.
 						{:else}
-							Asante! Send KES {fmt.format(form.amount)} via M-Pesa to the campaign's till and the
-							team will confirm it.
+							Asante! Send KES {fmt.format(form.amount)} via M-Pesa to the campaign's till and the team
+							will confirm it.
 						{/if}
 					</div>
 				{:else}
