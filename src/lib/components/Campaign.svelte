@@ -6,6 +6,7 @@
 	import FollowButton from '$lib/components/FollowButton.svelte';
 	import PledgeButton from '$lib/components/PledgeButton.svelte';
 	import { renderRichText } from '$lib/utils/richtext';
+	import { seatPath } from '$lib/utils/seat';
 	import PencilIcon from './svgs/PencilIcon.svelte';
 
 	// The /[leader]/[year] campaign page body, also used slugless at
@@ -17,6 +18,7 @@
 
 	const fmt = new Intl.NumberFormat('en-KE');
 	const dateFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' });
+	const seat = $derived(seatPath(leader.positionTitle, leader.regionLabel));
 
 	let asking = $state(false);
 
@@ -77,8 +79,14 @@
 								</span>
 							{/if}
 						</h1>
-						<p class="mt-1 text-sm text-muted">
-							{#if leader.campaignTitle}{leader.name} · {/if}Vying for {leader.positionTitle}, {leader.regionLabel}
+						<p class="mt-1 text-base text-muted">
+							Vying for
+							{#if seat}
+								<a href={seat} class="text-primary hover:text-heading hover:underline">{leader.positionTitle}, {leader.regionLabel}</a>
+							{:else}
+								{leader.positionTitle}, {leader.regionLabel}
+							{/if}
+							for {data.year}
 							{#if leader.party}· {leader.party}{/if}
 						</p>
 						<div class="mt-2 flex flex-col sm:flex-row text-center justify-between text-sm">
@@ -180,9 +188,9 @@
 		<div class="space-y-6">
 			
 			<div class="rounded-3xl border border-border bg-surface p-6 flex flex-col gap-3">
-				<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">Current Position</h2>
+				<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">{data.currentPosition ? "Current Position": "Full Profile"}</h2>
 				<a href={data.recordPath} class="block w-full border border-primary rounded-full px-4 py-2 text-lg text-primary text-center font-semibold transition hover:brightness-95 disabled:opacity-60">
-					{data.currentPosition ? data.currentPosition: "Visit Full Profile →"}
+					{data.currentPosition ? data.currentPosition: leader.name}
 				</a>
 			</div>
 
