@@ -11,13 +11,25 @@
 	// their own manager entry while the campaign is still an application — once
 	// verified there's nothing left to attest, so it drops away.
 	const showSignoff = $derived(!data.verified);
+
+	// A seat/invite cap error ("...allows up to N... Upgrade the package...")
+	// gets a real link to the Change-plan page, so "Upgrade" is clickable rather
+	// than dead text. `../upgrade` resolves from /dashboard/[slug]/team.
+	const isCapError = $derived(/upgrade the package|invite limit/i.test(form?.error ?? ''));
 </script>
 
 <svelte:head><title>Team — vote.ke</title></svelte:head>
 
 {#if form?.error}
-	<div class="mb-6 rounded-xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading">
+	<div
+		class="mb-6 rounded-xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading"
+	>
 		{form.error}
+		{#if isCapError}
+			<a href="../upgrade" class="ml-1 font-semibold text-primary underline hover:no-underline"
+				>Change your plan →</a
+			>
+		{/if}
 	</div>
 {/if}
 {#if form?.granted}
@@ -45,8 +57,8 @@
 			Campaign managers <span class="text-sm font-normal text-muted">({data.managers.length})</span>
 		</h2>
 		<p class="mt-1 text-sm text-muted">
-			Managers run this dashboard with you: profile, manifesto, posts and broadcasts. Only an
-			admin manager can invite or remove other managers.
+			Managers run this dashboard with you: profile, manifesto, posts and broadcasts. Only an admin
+			manager can invite or remove other managers.
 		</p>
 
 		{#if data.isAdmin}
@@ -67,26 +79,29 @@
 			</form>
 		{/if}
 
-
 		{#if data.invites.length > 0}
 			<ul class="mt-4 space-y-2">
 				{#each data.invites as invite (invite.id)}
-					<li class="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-4 py-2.5 text-sm">
+					<li
+						class="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-4 py-2.5 text-sm"
+					>
 						<span class="truncate text-muted">Invited: {invite.email}</span>
 						<form method="post" action="?/revokeInvite" use:enhance>
 							<input type="hidden" name="inviteId" value={invite.id} />
 							<input type="hidden" name="role" value="manager" />
 							{#if data.isAdmin}
-							<button type="submit" class="shrink-0 text-xs font-medium text-muted transition hover:text-heading">
-								Revoke
-							</button>
+								<button
+									type="submit"
+									class="shrink-0 text-xs font-medium text-muted transition hover:text-heading"
+								>
+									Revoke
+								</button>
 							{/if}
 						</form>
 					</li>
 				{/each}
 			</ul>
 		{/if}
-		
 
 		<ul class="mt-4 space-y-3">
 			{#each data.managers as member (member.id)}
@@ -96,7 +111,9 @@
 							<p class="truncate font-medium text-heading">
 								{member.name}
 								{#if member.admin}
-									<span class="ml-1 rounded-full bg-primary-soft px-2 py-0.5 text-xs font-semibold text-on-primary">
+									<span
+										class="ml-1 rounded-full bg-primary-soft px-2 py-0.5 text-xs font-semibold text-on-primary"
+									>
 										Admin
 									</span>
 								{/if}
@@ -127,7 +144,9 @@
 					{/if}
 				</li>
 			{:else}
-				<li class="rounded-2xl border border-dashed border-border p-5 text-center text-sm text-muted">
+				<li
+					class="rounded-2xl border border-dashed border-border p-5 text-center text-sm text-muted"
+				>
 					No managers yet.
 				</li>
 			{/each}
@@ -162,12 +181,17 @@
 		{#if data.ambassadorInvites.length > 0}
 			<ul class="mt-4 space-y-2">
 				{#each data.ambassadorInvites as invite (invite.id)}
-					<li class="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-4 py-2.5 text-sm">
+					<li
+						class="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-4 py-2.5 text-sm"
+					>
 						<span class="truncate text-muted">Invited: {invite.email}</span>
 						<form method="post" action="?/revokeInvite" use:enhance>
 							<input type="hidden" name="inviteId" value={invite.id} />
 							<input type="hidden" name="role" value="ambassador" />
-							<button type="submit" class="shrink-0 text-xs font-medium text-muted transition hover:text-heading">
+							<button
+								type="submit"
+								class="shrink-0 text-xs font-medium text-muted transition hover:text-heading"
+							>
 								Revoke
 							</button>
 						</form>
@@ -178,7 +202,9 @@
 
 		<ul class="mt-4 space-y-3">
 			{#each data.ambassadors as member (member.id)}
-				<li class="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-4">
+				<li
+					class="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-4"
+				>
 					<div class="min-w-0">
 						<p class="truncate font-medium text-heading">{member.name}</p>
 						<p class="truncate text-xs text-muted">{member.email}</p>
@@ -198,7 +224,9 @@
 					{/if}
 				</li>
 			{:else}
-				<li class="rounded-2xl border border-dashed border-border p-5 text-center text-sm text-muted">
+				<li
+					class="rounded-2xl border border-dashed border-border p-5 text-center text-sm text-muted"
+				>
 					No ambassadors yet.
 				</li>
 			{/each}

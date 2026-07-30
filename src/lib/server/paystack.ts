@@ -9,8 +9,12 @@ import { env } from '$env/dynamic/private';
 
 const API_BASE = 'https://api.paystack.co';
 
+// Only a real SECRET key (sk_...) can authorize server-side charges. A blank
+// value or a public key (pk_...) pasted into the slot would sail past a bare
+// truthy check and then fail every charge with Paystack's abstract "Invalid
+// key" — so require the sk_ prefix and otherwise fall back to the mock path.
 export function paystackEnabled(): boolean {
-	return !!env.PAYSTACK_SECRET_KEY;
+	return !!env.PAYSTACK_SECRET_KEY?.startsWith('sk_');
 }
 
 type InitializeInput = {
@@ -36,7 +40,11 @@ async function api(path: string, init?: RequestInit): Promise<Record<string, unk
 			...init?.headers
 		}
 	});
-	const body = (await res.json()) as { status: boolean; message?: string; data?: Record<string, unknown> };
+	const body = (await res.json()) as {
+		status: boolean;
+		message?: string;
+		data?: Record<string, unknown>;
+	};
 	if (!res.ok || !body.status) {
 		throw new Error(body.message || `Paystack request failed (${res.status})`);
 	}
@@ -44,7 +52,9 @@ async function api(path: string, init?: RequestInit): Promise<Record<string, unk
 }
 
 /** Starts a hosted-page charge; the customer pays at the returned URL. */
-export async function initializeTransaction(input: InitializeInput): Promise<{ authorizationUrl: string }> {
+export async function initializeTransaction(
+	input: InitializeInput
+): Promise<{ authorizationUrl: string }> {
 	const data = await api('/transaction/initialize', {
 		method: 'POST',
 		body: JSON.stringify({
