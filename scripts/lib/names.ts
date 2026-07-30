@@ -46,6 +46,21 @@ export function decodeNameEntities(input: string): string {
 	return decodeEntities(input).replace(/[’‘]/g, "'");
 }
 
+// Known scrape-table typos that would otherwise split one person into two
+// records: the 9th-parliament Wikipedia table spells Kiraitu Murungi's first
+// name "Kiraiti", one letter off from every later source (mzalendo 11th,
+// wikipedia gov-past) and from the man's own name — too small a token
+// difference for any cluster/token-overlap match to catch on its own. Shared
+// by build-dossiers.ts and seed-former-mps.ts so both pipelines see one person.
+const SCRAPED_NAME_CORRECTIONS: Record<string, string> = {
+	'Kiraiti Murungi': 'Kiraitu Murungi'
+};
+
+/** Corrects a known scrape-table name typo, verbatim match only. */
+export function correctScrapedName(name: string): string {
+	return SCRAPED_NAME_CORRECTIONS[name] ?? name;
+}
+
 /** Split a full display name into a single-word firstName + the remainder as otherNames. */
 export function splitName(fullName: string): { firstName: string; otherNames: string } {
 	const [firstName, ...rest] = fullName.trim().split(/\s+/);

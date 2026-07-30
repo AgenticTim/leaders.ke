@@ -21,7 +21,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { leaders, positions, users } from '../src/lib/server/db/schema';
-import { decodeNameEntities, slugify } from './lib/names';
+import { correctScrapedName, decodeNameEntities, slugify } from './lib/names';
 
 const OUT_DIR = join(import.meta.dir, 'out');
 
@@ -124,14 +124,16 @@ type Cluster = {
 // the markup FIRST, then decode entities via the shared helper, so a real "<" in
 // the source can't reappear after decoding and swallow the rest of the name.
 function cleanName(name: string): string {
-	return decodeNameEntities(
-		name
-			.replace(/\{\{[\s\S]*$/, '') // cite templates and everything after
-			.replace(/&lt;[\s\S]*$/, '')
-			.replace(/<[\s\S]*$/, '')
-	)
-		.replace(/\s+/g, ' ')
-		.trim();
+	return correctScrapedName(
+		decodeNameEntities(
+			name
+				.replace(/\{\{[\s\S]*$/, '') // cite templates and everything after
+				.replace(/&lt;[\s\S]*$/, '')
+				.replace(/<[\s\S]*$/, '')
+		)
+			.replace(/\s+/g, ' ')
+			.trim()
+	);
 }
 
 // Honorifics never identify a person and would inflate token overlap.

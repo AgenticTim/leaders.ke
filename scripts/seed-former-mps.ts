@@ -22,7 +22,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { leaders, parties, positions, users } from '../src/lib/server/db/schema';
 import { user as authUsers } from '../src/lib/server/db/auth.schema';
-import { generateLeaderSlug, slugify, splitName } from './lib/names';
+import { correctScrapedName, generateLeaderSlug, slugify, splitName } from './lib/names';
 
 const OUT_DIR = join(import.meta.dir, 'out');
 
@@ -190,7 +190,7 @@ for (const parliament of PARLIAMENTS) {
 		entries = wiki.map((w) => ({
 			slug: '', // no mzalendo person page — match rule 1 simply never fires
 			url: w.articleUrl ?? '',
-			name: w.name,
+			name: correctScrapedName(w.name),
 			constituency: w.seat === 'MP' ? w.region : null,
 			county: w.seat === 'Woman Rep' ? w.region : null,
 			party: w.party || null,
