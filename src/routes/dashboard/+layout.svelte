@@ -117,11 +117,13 @@
 					{ href: `${base}/contacts`, label: 'Contacts' },
 					{ href: `${base}/team`, label: 'Team' },
 					{ href: `${base}/followers`, label: 'Followers' },
+					{ href: `${base}/mobilization`, label: 'Mobilization' },
 					{ href: `${base}/delivery`, label: 'Delivered' },
 					{ href: `${base}/campaign`, label: 'Campaign' },
 					{ href: `${base}/posts`, label: 'News' },
 					{ href: `${base}/broadcasts`, label: 'Broadcasts' },
 					{ href: `${base}/reviews`, label: 'Reviews' },
+					{ href: `${base}/chats`, label: 'Chats' },
 					{ href: `${base}/fundraising`, label: 'Fundraising' },
 					{ href: `${base}/competitors`, label: 'Competition' },
 					// Exception to "every listed tab is always reachable": the AI Chat

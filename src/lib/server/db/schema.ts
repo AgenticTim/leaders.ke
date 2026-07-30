@@ -1285,5 +1285,62 @@ export const passwordResetRequests = pgTable('password_reset_requests', {
   index('password_reset_requests_destination_idx').on(t.destination),
 ]);
 
+// 26. MOBILIZATION (blueprint funnel A field work: an ambassador logs the events
+// they run for a campaign and the citizen feedback they gather in the field. Both
+// scope to the PERSON mobilized for (subjectUserId — the same key ambassadors and
+// managers use), so they survive an ambassador moving between a person's held term
+// and their run. A manager confirms an event actually happened: the
+// "physical-appearance confirmation" that keeps a field claim honest before it
+// counts toward anyone's mobilization tally.)
+export const mobilizationEventStatusEnum = pgEnum('mobilization_event_status', ['planned', 'held', 'cancelled']);
+
+export const mobilizationEvents = pgTable('mobilization_events', {
+  id: serial('id').primaryKey(),
+  subjectUserId: integer('subject_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  // The ambassador who logged/ran it (a users row — an ambassador is a citizen
+  // with duties, never a separate account).
+  ambassadorUserId: integer('ambassador_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  title: varchar('title', { length: 160 }).notNull(),
+  description: text('description'),
+  county: varchar('county', { length: 100 }),
+  ward: varchar('ward', { length: 100 }),
+  // When it happens/happened — field work is logged both ahead (planned) and after.
+  scheduledFor: timestamp('scheduled_for', { withTimezone: true }).notNull(),
+  status: mobilizationEventStatusEnum('status').default('planned').notNull(),
+  turnout: integer('turnout'), // citizens who showed, filled after the fact
+  // Physical-appearance confirmation: a manager vouches the event actually ran.
+  // Null = unconfirmed; only a manager (never the logging ambassador) sets it.
+  confirmedBy: integer('confirmed_by').references(() => users.id),
+  confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+}, (t) => [
+  index('mobilization_events_subject_idx').on(t.subjectUserId),
+  index('mobilization_events_ambassador_idx').on(t.ambassadorUserId),
+]);
+
+export const citizenFeedbackSentimentEnum = pgEnum('citizen_feedback_sentiment', ['positive', 'neutral', 'negative']);
+
+export const citizenFeedback = pgTable('citizen_feedback', {
+  id: serial('id').primaryKey(),
+  subjectUserId: integer('subject_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  // The ambassador who gathered it.
+  collectedByUserId: integer('collected_by_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  // Where it was gathered, when tied to a logged event; cleared (not deleted) if
+  // that event is later removed.
+  eventId: integer('event_id').references(() => mobilizationEvents.id, { onDelete: 'set null' }),
+  citizenName: varchar('citizen_name', { length: 120 }), // optional; feedback can stay anonymous
+  county: varchar('county', { length: 100 }),
+  ward: varchar('ward', { length: 100 }),
+  sentiment: citizenFeedbackSentimentEnum('sentiment').default('neutral').notNull(),
+  message: text('message').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+}, (t) => [
+  index('citizen_feedback_subject_idx').on(t.subjectUserId),
+  index('citizen_feedback_collected_by_idx').on(t.collectedByUserId),
+]);
+
 // Better-auth generated tables (run: bun run auth:schema)
 export * from './auth.schema';

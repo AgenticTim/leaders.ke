@@ -44,6 +44,8 @@ const SEED_MANAGED_TABLES = [
 	'reviews',
 	'pledges',
 	'donations',
+	'mobilization_events',
+	'citizen_feedback',
 	'ballot_simulations',
 	'users',
 	'user',

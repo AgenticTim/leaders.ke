@@ -28,13 +28,16 @@ import { join } from 'node:path';
 import { and, eq, isNull } from 'drizzle-orm';
 import { hashPassword } from 'better-auth/crypto';
 import {
+	ambassadors,
 	campaigns,
+	citizenFeedback,
 	contacts,
 	donations,
 	experience,
 	followers,
 	leaders,
 	managers,
+	mobilizationEvents,
 	pillars,
 	pledges,
 	positions,
@@ -420,6 +423,77 @@ export async function seedAdminFixture(db: AnyDb) {
 			subjectUserId: leaderUserId,
 			roles: { admin: true, title: m.title },
 			isActive: true
+		});
+	}
+
+	// Mobilization (TODO #17): Amina is also an ambassador, so the demo exercises
+	// the field-work flow end to end — events (one manager-confirmed, one still
+	// awaiting, one upcoming) and citizen feedback across sentiments. Idempotent by
+	// title/message so a re-run doesn't stack duplicates.
+	const [existingAmb] = await db
+		.select({ id: ambassadors.id })
+		.from(ambassadors)
+		.where(and(eq(ambassadors.userId, aminaId), eq(ambassadors.subjectUserId, leaderUserId), isNull(ambassadors.deletedAt)));
+	if (!existingAmb) {
+		await db.insert(ambassadors).values({ userId: aminaId, subjectUserId: leaderUserId, campaignId: campaign.id, roles: {}, isActive: true });
+	}
+
+	const now = Date.now();
+	const day = 24 * 60 * 60 * 1000;
+	const demoEvents = [
+		{ title: 'Wajir town hall meeting', description: 'Met elders on water access and bursaries.', county: 'Wajir', ward: null, scheduledFor: new Date(now - 7 * day), turnout: 85, status: 'held' as const, confirmed: true },
+		{ title: 'Eldas ward door-to-door', description: 'Household visits across three villages.', county: 'Wajir', ward: 'Eldas', scheduledFor: new Date(now - 2 * day), turnout: 40, status: 'held' as const, confirmed: false },
+		{ title: 'Youth mobilization rally', description: 'Voter-registration drive for first-time voters.', county: 'Wajir', ward: null, scheduledFor: new Date(now + 10 * day), turnout: null, status: 'planned' as const, confirmed: false }
+	];
+	const eventIdByTitle = new Map<string, number>();
+	for (const e of demoEvents) {
+		const [ex] = await db
+			.select({ id: mobilizationEvents.id })
+			.from(mobilizationEvents)
+			.where(and(eq(mobilizationEvents.subjectUserId, leaderUserId), eq(mobilizationEvents.title, e.title), isNull(mobilizationEvents.deletedAt)));
+		if (ex) {
+			eventIdByTitle.set(e.title, ex.id);
+			continue;
+		}
+		const [row] = await db
+			.insert(mobilizationEvents)
+			.values({
+				subjectUserId: leaderUserId,
+				ambassadorUserId: aminaId,
+				title: e.title,
+				description: e.description,
+				county: e.county,
+				ward: e.ward,
+				scheduledFor: e.scheduledFor,
+				status: e.status,
+				turnout: e.turnout,
+				confirmedBy: e.confirmed ? admin.id : null,
+				confirmedAt: e.confirmed ? new Date(now - 6 * day) : null
+			})
+			.returning({ id: mobilizationEvents.id });
+		eventIdByTitle.set(e.title, row.id);
+	}
+
+	const demoFeedback = [
+		{ citizenName: 'Halima Abdi', county: 'Wajir', ward: 'Eldas', sentiment: 'positive' as const, message: 'Happy with the new borehole promise, wants a timeline.', event: 'Wajir town hall meeting' },
+		{ citizenName: 'Ibrahim Noor', county: 'Wajir', ward: null, sentiment: 'negative' as const, message: 'Frustrated that the last bursary list left out his ward.', event: 'Eldas ward door-to-door' },
+		{ citizenName: null, county: 'Wajir', ward: null, sentiment: 'neutral' as const, message: 'Undecided, waiting to compare all candidates.', event: null }
+	];
+	for (const f of demoFeedback) {
+		const [ex] = await db
+			.select({ id: citizenFeedback.id })
+			.from(citizenFeedback)
+			.where(and(eq(citizenFeedback.subjectUserId, leaderUserId), eq(citizenFeedback.message, f.message), isNull(citizenFeedback.deletedAt)));
+		if (ex) continue;
+		await db.insert(citizenFeedback).values({
+			subjectUserId: leaderUserId,
+			collectedByUserId: aminaId,
+			eventId: f.event ? (eventIdByTitle.get(f.event) ?? null) : null,
+			citizenName: f.citizenName,
+			county: f.county,
+			ward: f.ward,
+			sentiment: f.sentiment,
+			message: f.message
 		});
 	}
 

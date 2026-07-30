@@ -694,6 +694,13 @@
       "when": 1785417696157,
       "tag": "0098_majestic_gargoyle",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1785423663233,
+      "tag": "0099_foamy_meteorite",
+      "breakpoints": true
     }
   ]
 }
