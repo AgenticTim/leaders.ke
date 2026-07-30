@@ -53,6 +53,27 @@
 		<div class="mt-4 rounded-2xl bg-primary-soft p-4 text-sm font-medium text-on-primary">Saved.</div>
 	{/if}
 
+	<!-- PAYG credit rates: the /pricing Credits table, charged by broadcast.ts and
+	the AI ask. Inputs submit together via the #credit-rates form below. -->
+	<h2 class="mt-8 text-lg font-semibold text-heading">Credit rates</h2>
+	<p class="text-xs text-muted">Pay-as-you-go prices spent from a campaign's wallet. These drive the /pricing Credits table.</p>
+	<div class="mt-3 grid gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-3">
+		{#each [{ name: 'aiChatCostCredits', label: 'AI chat (per answer)', value: data.creditRates.aiChat }, { name: 'smsCostCredits', label: 'SMS (per message)', value: data.creditRates.sms }, { name: 'whatsappCostCredits', label: 'WhatsApp (per message)', value: data.creditRates.whatsapp }] as field (field.name)}
+			<label class="block">
+				<span class="text-xs font-medium text-muted">{field.label}</span>
+				<input
+					type="number"
+					form="credit-rates"
+					name={field.name}
+					min="1"
+					value={field.value}
+					onchange={submitOnChange}
+					class="mt-1 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm tabular-nums text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+				/>
+			</label>
+		{/each}
+	</div>
+
 	<!-- Lifetime invites: a single jsonb setting — the inputs sit in their own
 	cells but submit together via the #invite-limits form below. -->
 	<h2 class="mt-8 text-lg font-semibold text-heading">Lifetime invites</h2>
@@ -212,4 +233,6 @@
 	<!-- Owns the invite-limit inputs above (via form="invite-limits") so the three
 	tier caps submit together as the single jsonb setting they are. -->
 	<form id="invite-limits" method="post" action="?/saveInviteLimits" use:enhance></form>
+	<!-- Owns the credit-rate inputs above (via form="credit-rates"). -->
+	<form id="credit-rates" method="post" action="?/saveCreditRates" use:enhance></form>
 </div>

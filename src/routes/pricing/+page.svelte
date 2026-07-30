@@ -161,21 +161,17 @@
 	];
 
 	// PAYG (pay-as-you-go) credits, KES 1 each. SMS/WhatsApp costs mirror the
-	// broadcast footnote. AI chat's 5 credits is the Sonnet 5 per-question cost
-	// (docs/ai-chat-costs.md) rounded up to the nearest KES. Boost isn't a flat
-	// credit price: it scales with the seat hub's own audience size (see the
-	// pricing remodel plan's PAYG catalogue), from a ward MCA hub up to the
-	// national President/VP hub.
-	const paygCredits = [
-		{ item: 'AI chat', price: '5 credits', description: 'Per citizen question answered on your profile, campaign or channels.' },
-		{ item: 'SMS', price: '1 credit', description: 'Per SMS broadcast sent to a follower.' },
-		{ item: 'WhatsApp', price: '5 credits', description: 'Per WhatsApp broadcast sent to a follower.' },
-		{
-			item: 'Boost',
-			price: '1,000 to 10,000 credits',
-			description: '7 days featured on your seat hub and region page. Price scales with that seat\'s audience: lowest for an MCA ward hub, highest for the President/VP national hub.'
-		}
-	];
+	// broadcast footnote; AI chat's cost is the Sonnet 5 per-question figure
+	// (docs/ai-chat-costs.md). Prices come from platformSettings (admin Packages
+	// → Credit rates), not hardcoded — same single-source-of-truth rule as the
+	// package/pricing tables above. Paid on-page placement ("Boost") is
+	// deliberately not offered: money never reorders a neutral civic surface.
+	const creditLabel = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
+	const paygCredits = $derived([
+		{ item: 'AI chat', price: creditLabel(data.credits.aiChat), description: 'Per citizen question answered on your profile, campaign or channels.' },
+		{ item: 'SMS', price: creditLabel(data.credits.sms), description: 'Per SMS broadcast sent to a follower.' },
+		{ item: 'WhatsApp', price: creditLabel(data.credits.whatsapp), description: 'Per WhatsApp broadcast sent to a follower.' }
+	]);
 
 	// Annual billing bills 10 months (2 free). Toggle drives every price on the page.
 	let annual = $state(false);
@@ -364,7 +360,7 @@
 
 	<!-- PAYG credits: what a credit buys, once the plan's included allowance runs out. -->
 	<h2 class="mt-14 text-2xl font-bold text-heading">PAYG Credits</h2>
-	<p class="mt-2 max-w-3xl text-sm text-muted">KES 1 per credit. Top up anytime once your plan's monthly allowance runs out.</p>
+	<p class="mt-2 text-sm text-muted">The cost of sending a message on various channels. Top up whenever you run out (pay-as-you-go).</p>
 	<div class="mt-6 overflow-x-auto rounded-2xl border border-border">
 		<table class="w-full min-w-160 table-fixed border-collapse text-left">
 			<thead>

@@ -715,6 +715,13 @@
       "when": 1785435716241,
       "tag": "0101_marvelous_zaladane",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1785439163220,
+      "tag": "0102_tough_crystal",
+      "breakpoints": true
     }
   ]
 }

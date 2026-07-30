@@ -30,9 +30,8 @@ export const actions: Actions = {
 		const maxGroundingChars = Number(form.get('maxGroundingChars'));
 		const guestAskLifetimeLimit = Number(form.get('guestAskLifetimeLimit'));
 		const userAskDailyLimit = Number(form.get('userAskDailyLimit'));
-		const aiChatCostCredits = Number(form.get('aiChatCostCredits'));
-
-		// Lifetime invite limits live on the Packages page (part of what a package buys).
+		// Lifetime invite limits and PAYG credit rates live on the Packages page
+		// (part of what a package buys / the priced product).
 		for (const [label, value] of [
 			['Cooldown', otpCooldownSeconds],
 			['Daily cap', otpDailyCap],
@@ -41,8 +40,7 @@ export const actions: Actions = {
 			['Sign-offs required', requiredSignoffs],
 			['Max grounding characters', maxGroundingChars],
 			['Guest AI Chat lifetime limit', guestAskLifetimeLimit],
-			['Signed-in AI Chat daily limit', userAskDailyLimit],
-			['AI Chat credits per answer', aiChatCostCredits]
+			['Signed-in AI Chat daily limit', userAskDailyLimit]
 		] as const) {
 			if (!Number.isInteger(value) || value < 1) return fail(400, { error: `${label} must be a whole number of at least 1.` });
 		}
@@ -77,7 +75,6 @@ export const actions: Actions = {
 				maxGroundingChars,
 				guestAskLifetimeLimit,
 				userAskDailyLimit,
-				aiChatCostCredits,
 				updatedAt: new Date()
 			})
 			.where(eq(platformSettings.id, 1));

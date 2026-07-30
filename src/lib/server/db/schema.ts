@@ -1265,6 +1265,11 @@ export const platformSettings = pgTable('platform_settings', {
   // on [leader]/+page.server.ts and [leader]/[year=year]/+page.server.ts); a
   // heuristic-fallback answer never calls Anthropic, so it's never charged.
   aiChatCostCredits: integer('ai_chat_cost_credits').default(5).notNull(),
+  // PAYG broadcast credit prices on /pricing's Credits table — spent per
+  // recipient from the campaign wallet when a broadcast goes out on that channel
+  // (see broadcast.ts). Email is always free (SMTP), so it has no setting.
+  smsCostCredits: integer('sms_cost_credits').default(2).notNull(),
+  whatsappCostCredits: integer('whatsapp_cost_credits').default(5).notNull(),
   // News ingestion sources (see $lib/server/newsIngest.ts): which reputable
   // Kenyan outlets' RSS feeds the daily crawl reads, admin-toggleable per
   // source on Settings. Google News is fetched per-leader (a targeted search);

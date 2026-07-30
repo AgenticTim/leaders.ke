@@ -21,12 +21,20 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
 	await requireAdmin(event);
+	const settings = await getPlatformSettings();
 	return {
 		pricing: await listCurrentPricing(),
 		packages: await listPackages(),
 		// Lifetime invite caps are part of what each package buys, so they're
 		// managed here on the package matrix, not under Settings.
-		inviteLimits: (await getPlatformSettings()).inviteLimits
+		inviteLimits: settings.inviteLimits,
+		// PAYG credit rates (the /pricing Credits table) — priced product, so they
+		// live here at the top of Packages rather than under Settings.
+		creditRates: {
+			aiChat: settings.aiChatCostCredits,
+			sms: settings.smsCostCredits,
+			whatsapp: settings.whatsappCostCredits
+		}
 	};
 };
 
@@ -109,6 +117,29 @@ export const actions: Actions = {
 		await db
 			.update(platformSettings)
 			.set({ inviteLimits: { kickstart, mobilize, dominate }, updatedAt: new Date() })
+			.where(eq(platformSettings.id, 1));
+		return { updated: true };
+	},
+
+	// PAYG credit rates shown on /pricing and charged by broadcast.ts / the AI ask.
+	saveCreditRates: async (event) => {
+		await requireAdmin(event);
+		const form = await event.request.formData();
+		const aiChatCostCredits = Number(form.get('aiChatCostCredits'));
+		const smsCostCredits = Number(form.get('smsCostCredits'));
+		const whatsappCostCredits = Number(form.get('whatsappCostCredits'));
+
+		for (const [label, value] of [
+			['AI chat credits', aiChatCostCredits],
+			['SMS credits', smsCostCredits],
+			['WhatsApp credits', whatsappCostCredits]
+		] as const) {
+			if (!Number.isInteger(value) || value < 1) return fail(400, { error: `${label} must be a whole number of at least 1.` });
+		}
+
+		await db
+			.update(platformSettings)
+			.set({ aiChatCostCredits, smsCostCredits, whatsappCostCredits, updatedAt: new Date() })
 			.where(eq(platformSettings.id, 1));
 		return { updated: true };
 	}

@@ -1,0 +1,2 @@
+ALTER TABLE "platform_settings" ADD COLUMN "sms_cost_credits" integer DEFAULT 2 NOT NULL;--> statement-breakpoint
+ALTER TABLE "platform_settings" ADD COLUMN "whatsapp_cost_credits" integer DEFAULT 5 NOT NULL;

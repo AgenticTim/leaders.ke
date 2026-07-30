@@ -15,12 +15,18 @@ import { sendEmail } from '$lib/server/email';
 import { sendSms } from '$lib/server/sms';
 import { sendWhatsApp } from '$lib/server/whatsapp';
 import { getBalance, refundCredits, spendCredits } from '$lib/server/credits';
+import { getPlatformSettings } from '$lib/server/settings';
 
 export type BroadcastChannel = 'email' | 'sms' | 'whatsapp';
 
-/** Credits charged per recipient, per channel. Email is free (SMTP); SMS/WhatsApp
- * cost one credit each. A campaign tops the wallet up to send on paid channels. */
-export const CHANNEL_COST: Record<BroadcastChannel, number> = { email: 0, sms: 1, whatsapp: 1 };
+/** Credits charged per recipient for a channel, read from admin-editable platform
+ * settings (the same figures /pricing shows). Email is always free (SMTP), so it
+ * has no setting. */
+export async function channelCost(channel: BroadcastChannel): Promise<number> {
+	if (channel === 'email') return 0;
+	const s = await getPlatformSettings();
+	return channel === 'sms' ? s.smsCostCredits : s.whatsappCostCredits;
+}
 
 type ResolvedRecipient = { followerId: number; destination: string; unsubscribeToken: string | null };
 
@@ -86,7 +92,7 @@ export async function enqueueBroadcast(params: {
 	const recipients = await resolveRecipients(params.subjectUserId, params.channel, params.audience);
 	if (recipients.length === 0) return { ok: false, error: 'No reachable followers in that segment yet.' };
 
-	const cost = CHANNEL_COST[params.channel] * recipients.length;
+	const cost = (await channelCost(params.channel)) * recipients.length;
 	if (cost > 0) {
 		const balance = await getBalance(params.subjectUserId);
 		if (balance < cost) {
@@ -147,7 +153,7 @@ export async function dispatchBroadcast(broadcastId: number): Promise<void> {
 	const [subject] = await db.select().from(users).where(eq(users.id, b.subjectUserId));
 	const senderName = subject ? fullName(subject) : 'vote.ke';
 	const channel = b.channel as BroadcastChannel;
-	const cost = CHANNEL_COST[channel];
+	const cost = await channelCost(channel);
 	const reference = `broadcast:${broadcastId}`;
 	const base = publicEnv.PUBLIC_BASE_URL ?? '';
 

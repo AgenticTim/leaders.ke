@@ -324,16 +324,6 @@ Applies everywhere a code/link is sent
 						class="mt-1 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
 					/>
 				</label>
-				<label class="block">
-					<span class="text-xs font-medium text-muted">Credits per AI-sourced answer</span>
-					<input
-						type="number"
-						name="aiChatCostCredits"
-						min="1"
-						value={data.settings.aiChatCostCredits}
-						class="mt-1 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-					/>
-				</label>
 			</div>
 		</div>
 

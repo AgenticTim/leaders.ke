@@ -3,9 +3,9 @@ import { and, count, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { broadcasts, followers } from '$lib/server/db/schema';
 import { requireLeader } from '$lib/server/dashboard';
-import { CHANNEL_COST, dispatchBroadcast, enqueueBroadcast, type BroadcastChannel } from '$lib/server/broadcast';
+import { dispatchBroadcast, enqueueBroadcast, type BroadcastChannel } from '$lib/server/broadcast';
 import { getBalance } from '$lib/server/credits';
-import { getPageSize } from '$lib/server/settings';
+import { getPageSize, getPlatformSettings } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
 
 const CHANNELS: BroadcastChannel[] = ['email', 'sms', 'whatsapp'];
@@ -21,11 +21,12 @@ export const load: PageServerLoad = async (event) => {
 	const target = and(eq(followers.digest, 'leader'), eq(followers.digestId, ctx.profileUser.id), isNull(followers.deletedAt));
 	const historyFilter = and(eq(broadcasts.subjectUserId, ctx.profileUser.id), isNull(broadcasts.deletedAt));
 
-	const [history, [{ n: total }], followerRows, balance] = await Promise.all([
+	const [history, [{ n: total }], followerRows, balance, settings] = await Promise.all([
 		db.select().from(broadcasts).where(historyFilter).orderBy(desc(broadcasts.createdAt)).limit(pageSize).offset((page - 1) * pageSize),
 		db.select({ n: count() }).from(broadcasts).where(historyFilter),
 		db.select().from(followers).where(target),
-		getBalance(ctx.profileUser.id)
+		getBalance(ctx.profileUser.id),
+		getPlatformSettings()
 	]);
 
 	// A row is reachable on a channel when it's confirmed, not opted out, opted in
@@ -54,7 +55,7 @@ export const load: PageServerLoad = async (event) => {
 		page,
 		pageSize,
 		balance,
-		channelCost: CHANNEL_COST,
+		channelCost: { email: 0, sms: settings.smsCostCredits, whatsapp: settings.whatsappCostCredits } as Record<BroadcastChannel, number>,
 		audience: { total: followerRows.length, reach, wards, counties }
 	};
 };
