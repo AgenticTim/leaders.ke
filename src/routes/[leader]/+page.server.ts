@@ -15,6 +15,7 @@ import { followAsAccount, unfollowAsAccount } from '$lib/server/follow';
 import { handleDeleteReviewAction, handleReviewAction } from '$lib/server/reviews';
 import { answerConstituentQuestion, PlatformOutOfCreditsError } from '$lib/server/ai';
 import { enforceAskRateLimit } from '$lib/server/aiRateLimit';
+import { enforceRateLimit, ipBucket } from '$lib/server/rateLimit';
 import { getGroundingExtras } from '$lib/server/knowledge';
 import {
 	getOrCreateWebConversation,
@@ -147,6 +148,10 @@ export const actions: Actions = {
 		if (!event.locals.user) return fail(401, { pledgeError: 'Log in to pledge.' });
 		const domainUser = await getDomainUser(event.locals.user.id);
 		if (!domainUser) return fail(401, { pledgeError: 'Log in to pledge.' });
+
+		// Spam guard: cap per account and per IP even though pledging needs login.
+		const limit = await enforceRateLimit('pledge', [ipBucket(event), `user:${domainUser.id}`]);
+		if (!limit.ok) return fail(429, { pledgeError: 'Too many attempts. Please wait a minute and try again.' });
 
 		const lead = await publicLead(event.params.leader);
 		if (!lead?.leadCampaignId)

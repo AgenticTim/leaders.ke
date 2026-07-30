@@ -663,6 +663,12 @@ export const followers = pgTable('followers', {
   // Who recruited this follower (ambassador/manager adding a citizen via the
   // dashboard, blueprint funnel A); null for self-service follows.
   addedBy: integer('added_by').references(() => users.id),
+  // One-click opt-out (5.3): a stable random token embedded in every broadcast's
+  // opt-out link. Following the link stamps optedOutAt, which the broadcast
+  // recipient query excludes — replacing the manual "Reply STOP". The row stays
+  // (audit + dedupe), it just stops receiving.
+  unsubscribeToken: varchar('unsubscribe_token', { length: 64 }),
+  optedOutAt: timestamp('opted_out_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
@@ -1345,6 +1351,67 @@ export const citizenFeedback = pgTable('citizen_feedback', {
 }, (t) => [
   index('citizen_feedback_subject_idx').on(t.subjectUserId),
   index('citizen_feedback_collected_by_idx').on(t.collectedByUserId),
+]);
+
+// 27. BROADCASTS (TODO #5: a compose-once send to a follower segment, moved off
+// the inline email loop into a queue with per-recipient delivery logging so SMS
+// and WhatsApp sends — billed against the campaign credit wallet — can retry and
+// be audited. A `broadcasts` row is the compose + audience + running tally; each
+// intended recipient is a `broadcast_recipients` row the dispatcher walks,
+// marking sent/failed and recording the credits a paid channel spent.)
+export const broadcastChannelEnum = pgEnum('broadcast_channel', ['email', 'sms', 'whatsapp']);
+export const broadcastStatusEnum = pgEnum('broadcast_status', ['queued', 'sending', 'sent', 'partial', 'failed']);
+export const broadcastRecipientStatusEnum = pgEnum('broadcast_recipient_status', ['queued', 'sent', 'failed']);
+
+export const broadcasts = pgTable('broadcasts', {
+  id: serial('id').primaryKey(),
+  subjectUserId: integer('subject_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  creatorId: integer('creator_id').references(() => users.id).notNull(),
+  channel: broadcastChannelEnum('channel').notNull(),
+  subject: varchar('subject', { length: 200 }), // email only; SMS/WhatsApp carry no subject line
+  body: text('body').notNull(),
+  audienceLabel: varchar('audience_label', { length: 120 }).notNull(), // e.g. "ward: Kiharu" / "all followers"
+  status: broadcastStatusEnum('status').default('queued').notNull(),
+  totalRecipients: integer('total_recipients').default(0).notNull(),
+  sentCount: integer('sent_count').default(0).notNull(),
+  failedCount: integer('failed_count').default(0).notNull(),
+  creditsSpent: integer('credits_spent').default(0).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+}, (t) => [
+  index('broadcasts_subject_idx').on(t.subjectUserId),
+]);
+
+export const broadcastRecipients = pgTable('broadcast_recipients', {
+  id: serial('id').primaryKey(),
+  broadcastId: integer('broadcast_id').references(() => broadcasts.id, { onDelete: 'cascade' }).notNull(),
+  followerId: integer('follower_id').references(() => followers.id, { onDelete: 'set null' }),
+  channel: broadcastChannelEnum('channel').notNull(),
+  destination: varchar('destination', { length: 120 }).notNull(), // resolved email/phone at send time
+  status: broadcastRecipientStatusEnum('status').default('queued').notNull(),
+  error: varchar('error', { length: 300 }),
+  creditsSpent: integer('credits_spent').default(0).notNull(),
+  attempts: integer('attempts').default(0).notNull(),
+  sentAt: timestamp('sent_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index('broadcast_recipients_broadcast_idx').on(t.broadcastId),
+  index('broadcast_recipients_status_idx').on(t.status),
+]);
+
+// 28. RATE EVENTS (TODO #5.4: one row per accepted submission of a rate-limited
+// public form (follow, pledge, endorse, donate), keyed by action + a bucket (the
+// caller's IP, and separately the contact/identifier). A sliding-window count
+// over these rows is what the guard checks — same DB-backed approach as
+// password_reset_requests, generalized.)
+export const rateEvents = pgTable('rate_events', {
+  id: serial('id').primaryKey(),
+  action: varchar('action', { length: 40 }).notNull(), // 'follow' | 'pledge' | 'endorse' | 'donate'
+  bucket: varchar('bucket', { length: 140 }).notNull(), // 'ip:1.2.3.4' | 'contact:foo@bar'
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index('rate_events_action_bucket_idx').on(t.action, t.bucket, t.createdAt),
 ]);
 
 // Better-auth generated tables (run: bun run auth:schema)

@@ -20,6 +20,7 @@ import {
 	leaderPath
 } from '$lib/server/leader';
 import { resolveCampaignRun, loadCampaignWorkspaceData } from '$lib/server/campaign';
+import { enforceRateLimit, ipBucket } from '$lib/server/rateLimit';
 import { followAsAccount, unfollowAsAccount } from '$lib/server/follow';
 import { handleDeleteReviewAction, handleReviewAction } from '$lib/server/reviews';
 import { answerConstituentQuestion, PlatformOutOfCreditsError } from '$lib/server/ai';
@@ -216,6 +217,10 @@ export const actions: Actions = {
 		if (!donorName || !Number.isFinite(amount) || amount < 10) {
 			return fail(400, { error: 'Your name and an amount (KES 10 or more) are required.' });
 		}
+
+		// Spam guard: open form that can fire an STK push, so cap per IP and per phone.
+		const limit = await enforceRateLimit('donate', [ipBucket(event), phone ? `contact:${phone}` : '']);
+		if (!limit.ok) return fail(429, { error: 'Too many attempts. Please wait a minute and try again.' });
 
 		// Donations attach to the run's main campaign. A verified run already has one;
 		// a held officeholder's is created on first donation.

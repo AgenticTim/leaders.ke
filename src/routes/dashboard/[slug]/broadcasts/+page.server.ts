@@ -1,64 +1,61 @@
 import { fail } from '@sveltejs/kit';
-import { and, count, desc, eq, isNotNull, isNull } from 'drizzle-orm';
+import { and, count, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { followers, posts } from '$lib/server/db/schema';
+import { broadcasts, followers } from '$lib/server/db/schema';
 import { requireLeader } from '$lib/server/dashboard';
-import { fullName } from '$lib/server/leader';
-import { sendEmail } from '$lib/server/email';
+import { CHANNEL_COST, dispatchBroadcast, enqueueBroadcast, type BroadcastChannel } from '$lib/server/broadcast';
+import { getBalance } from '$lib/server/credits';
 import { getPageSize } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
 
-// Broadcasts: compose once, send to a geo segment. Email only in v1;
-// SMS/WhatsApp arrive with the credits system. Each send is logged as a
-// posts row (medium 'email') so history and analytics share one table.
+const CHANNELS: BroadcastChannel[] = ['email', 'sms', 'whatsapp'];
+
+// Broadcasts: compose once, send to a geo segment on a chosen channel. Sends move
+// through a queue (broadcasts + broadcast_recipients) with per-recipient delivery
+// logging; SMS/WhatsApp bill the campaign credit wallet, email is free.
 export const load: PageServerLoad = async (event) => {
 	const { ctx } = await requireLeader(event);
 	const pageSize = await getPageSize();
 	const page = Math.max(1, Number(event.url.searchParams.get('page') ?? 1));
 
-	const target = and(
-		eq(followers.digest, 'leader'),
-		eq(followers.digestId, ctx.profileUser.id),
-		isNull(followers.deletedAt)
-	);
+	const target = and(eq(followers.digest, 'leader'), eq(followers.digestId, ctx.profileUser.id), isNull(followers.deletedAt));
+	const historyFilter = and(eq(broadcasts.subjectUserId, ctx.profileUser.id), isNull(broadcasts.deletedAt));
 
-	const historyFilter = and(eq(posts.subjectUserId, ctx.profileUser.id), eq(posts.medium, 'email'), isNull(posts.deletedAt));
-	const [history, [{ n: total }], followerRows] = await Promise.all([
-		db
-			.select()
-			.from(posts)
-			.where(historyFilter)
-			.orderBy(desc(posts.createdAt))
-			.limit(pageSize)
-			.offset((page - 1) * pageSize),
-		db.select({ n: count() }).from(posts).where(historyFilter),
-		db.select().from(followers).where(target)
+	const [history, [{ n: total }], followerRows, balance] = await Promise.all([
+		db.select().from(broadcasts).where(historyFilter).orderBy(desc(broadcasts.createdAt)).limit(pageSize).offset((page - 1) * pageSize),
+		db.select({ n: count() }).from(broadcasts).where(historyFilter),
+		db.select().from(followers).where(target),
+		getBalance(ctx.profileUser.id)
 	]);
 
-	const reachable = followerRows.filter((f) => f.email && f.emailAddress);
+	// A row is reachable on a channel when it's confirmed, not opted out, opted in
+	// to that channel, and has a usable destination (email can fall back to the
+	// account address, so its count is a floor).
+	const live = followerRows.filter((f) => f.confirmedAt && !f.optedOutAt);
+	const reach = {
+		email: live.filter((f) => f.email && (f.emailAddress || f.userId)).length,
+		sms: live.filter((f) => f.sms && f.phoneNumber).length,
+		whatsapp: live.filter((f) => f.whatsapp && f.phoneNumber).length
+	};
 	const wards = [...new Set(followerRows.map((f) => f.ward).filter(Boolean))].sort() as string[];
-	const counties = [
-		...new Set(followerRows.map((f) => f.county).filter(Boolean))
-	].sort() as string[];
+	const counties = [...new Set(followerRows.map((f) => f.county).filter(Boolean))].sort() as string[];
 
 	return {
 		broadcasts: history.map((b) => ({
 			id: b.id,
-			title: b.title,
+			channel: b.channel,
+			title: b.subject,
 			body: b.body,
-			// manualSummary stores the audience + sent count, e.g. "ward:Kiharu · 12 sent"
-			summary: b.manualSummary,
+			summary: `${b.audienceLabel} · ${b.sentCount} sent${b.failedCount ? ` · ${b.failedCount} failed` : ''}${b.creditsSpent ? ` · ${b.creditsSpent} credits` : ''}`,
+			status: b.status,
 			sentAt: b.createdAt.toISOString()
 		})),
 		total,
 		page,
 		pageSize,
-		audience: {
-			total: followerRows.length,
-			reachable: reachable.length,
-			wards,
-			counties
-		}
+		balance,
+		channelCost: CHANNEL_COST,
+		audience: { total: followerRows.length, reach, wards, counties }
 	};
 };
 
@@ -66,57 +63,31 @@ export const actions: Actions = {
 	send: async (event) => {
 		const { domainUser, ctx } = await requireLeader(event);
 		const form = await event.request.formData();
+		const channel = String(form.get('channel') ?? 'email') as BroadcastChannel;
 		const subject = String(form.get('subject') ?? '').trim();
 		const body = String(form.get('body') ?? '').trim();
 		const audience = String(form.get('audience') ?? 'all'); // 'all' | 'county:<v>' | 'ward:<v>'
-		if (!subject || !body) return fail(400, { error: 'A broadcast needs a subject and a message.' });
 
-		const conditions = [
-			eq(followers.digest, 'leader'),
-			eq(followers.digestId, ctx.profileUser.id),
-			isNull(followers.deletedAt),
-			eq(followers.email, true),
-			isNotNull(followers.emailAddress),
-			// Skips a follow still pending its double opt-in (confirm-link click
-			// for email, texted code for phone — see the `follow`/`confirmPhone`
-			// actions on the campaign workspace page).
-			isNotNull(followers.confirmedAt)
-		];
+		if (!CHANNELS.includes(channel)) return fail(400, { error: 'Pick a valid channel.' });
+		if (!body) return fail(400, { error: 'A broadcast needs a message.' });
+		if (channel === 'email' && !subject) return fail(400, { error: 'An email broadcast needs a subject.' });
+
 		const [kind, value] = audience.split(':');
-		if (kind === 'county' && value) conditions.push(eq(followers.county, value));
-		if (kind === 'ward' && value) conditions.push(eq(followers.ward, value));
-
-		const recipients = await db
-			.select()
-			.from(followers)
-			.where(and(...conditions));
-
-		if (recipients.length === 0) {
-			return fail(400, { error: 'No reachable followers in that segment yet.' });
-		}
-
-		const senderName = fullName(ctx.profileUser);
-		// Sequential sends are fine at this scale; a queue takes over with credits/SMS.
-		for (const r of recipients) {
-			await sendEmail({
-				to: r.emailAddress!,
-				subject: `${senderName}: ${subject}`,
-				text: `${body}\n\n----\nYou follow ${senderName} on vote.ke. Reply STOP to this email to opt out.`
-			});
-		}
-
 		const audienceLabel = kind === 'all' ? 'all followers' : `${kind}: ${value}`;
-		await db.insert(posts).values({
-			creatorId: domainUser.id,
-			subjectUserId: ctx.profileUser.id,
-			title: subject,
-			body,
-			medium: 'email',
-			approved: true,
-			public: false,
-			manualSummary: `${audienceLabel} · ${recipients.length} sent`
-		});
 
-		return { sent: recipients.length };
+		const enqueued = await enqueueBroadcast({
+			subjectUserId: ctx.profileUser.id,
+			creatorId: domainUser.id,
+			channel,
+			subject: channel === 'email' ? subject : null,
+			body,
+			audience,
+			audienceLabel
+		});
+		if (!enqueued.ok) return fail(400, { error: enqueued.error });
+
+		// Send now; the sweep only exists to recover a crash mid-dispatch.
+		await dispatchBroadcast(enqueued.broadcastId);
+		return { sent: enqueued.total };
 	}
 };

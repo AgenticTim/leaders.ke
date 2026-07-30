@@ -8,6 +8,7 @@ import { and, asc, count, desc, eq, inArray, isNotNull, isNull, or } from 'drizz
 import { db } from '$lib/server/db';
 import { conversations, messages, pillars, reviews, users } from '$lib/server/db/schema';
 import { fullName, getDomainUser } from '$lib/server/leader';
+import { enforceRateLimit, ipBucket } from '$lib/server/rateLimit';
 
 export const REVIEW_MESSAGE_MAX_LENGTH = 500;
 
@@ -216,6 +217,10 @@ export async function handleReviewAction(event: RequestEvent, subjectId: number,
 	if (!event.locals.user) return fail(401, { reviewError: 'Sign in to leave a review.' });
 	const domainUser = await getDomainUser(event.locals.user.id);
 	if (!domainUser) return fail(401, { reviewError: 'Sign in to leave a review.' });
+
+	// Spam guard on the endorse/review surface: cap per account and per IP.
+	const limit = await enforceRateLimit('endorse', [ipBucket(event), `user:${domainUser.id}`]);
+	if (!limit.ok) return fail(429, { reviewError: 'Too many attempts. Please wait a minute and try again.' });
 
 	const form = await event.request.formData();
 	const rating = Number(form.get('rating'));

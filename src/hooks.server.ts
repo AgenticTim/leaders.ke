@@ -7,6 +7,7 @@ import { readFlash } from '$lib/server/flash';
 import { env } from '$env/dynamic/private';
 import { runSubscriptionSweep } from '$lib/server/subscriptionSweep';
 import { ingestNews } from '$lib/server/newsIngest';
+import { sweepBroadcasts } from '$lib/server/broadcast';
 import { getPlatformSettings } from '$lib/server/settings';
 
 // Subscription lifecycle timer: renewal reminders + expiry, swept shortly after
@@ -22,6 +23,14 @@ if (!building) {
 			.catch((err) => console.error('[subscriptions] sweep failed', err));
 	setTimeout(sweep, 15_000);
 	setInterval(sweep, 6 * 60 * 60 * 1000);
+
+	// Broadcast dispatch recovery: a send runs inline on submit, so this only
+	// mops up a broadcast left mid-flight by a crash/restart (queued recipients
+	// remain). Idempotent — dispatch only touches queued rows — so a short cadence
+	// is safe and keeps a stuck queue from sitting.
+	const broadcastSweep = () => sweepBroadcasts().catch((err) => console.error('[broadcasts] sweep failed', err));
+	setTimeout(broadcastSweep, 20_000);
+	setInterval(broadcastSweep, 5 * 60 * 1000);
 
 	// Daily news ingestion (Google News RSS per verified leader + whole-site
 	// feeds). On by default in production; dev opts in with NEWS_INGEST=1 so

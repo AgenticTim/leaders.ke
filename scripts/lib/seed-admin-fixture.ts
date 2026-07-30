@@ -519,5 +519,34 @@ export async function seedAdminFixture(db: AnyDb) {
 			.values({ userId: leaderUserId, digest: 'leader', digestId: leaderUserId, county: 'Wajir', email: true, sms: false, whatsapp: false });
 	}
 
+	// A few CONFIRMED contact-follows (email + phone) so the Broadcasts tab has
+	// reachable recipients across channels to demo against — guest follows are
+	// unconfirmed until a round-trip, which would leave the broadcast audience at 0.
+	const demoFollowers = [
+		{ name: 'Halima Abdi', emailAddress: 'halima.follower@leaders.ke', phoneNumber: '254712000001', ward: 'Eldas' },
+		{ name: 'Ibrahim Noor', emailAddress: 'ibrahim.follower@leaders.ke', phoneNumber: '254712000002', ward: 'Wajir Township' },
+		{ name: 'Fatuma Ali', emailAddress: 'fatuma.follower@leaders.ke', phoneNumber: '254712000003', ward: 'Tarbaj' }
+	];
+	for (const f of demoFollowers) {
+		const [ex] = await db
+			.select({ id: followers.id })
+			.from(followers)
+			.where(and(eq(followers.digest, 'leader'), eq(followers.digestId, leaderUserId), eq(followers.emailAddress, f.emailAddress), isNull(followers.deletedAt)));
+		if (ex) continue;
+		await db.insert(followers).values({
+			name: f.name,
+			emailAddress: f.emailAddress,
+			phoneNumber: f.phoneNumber,
+			county: 'Wajir',
+			ward: f.ward,
+			digest: 'leader',
+			digestId: leaderUserId,
+			email: true,
+			sms: true,
+			whatsapp: true,
+			confirmedAt: new Date()
+		});
+	}
+
 	console.log(`[admin-fixture] seeded demo leader /${LEADER_SLUG} (admin-managed, verified profile, unverified 2027 campaign) + citizens/manager (login pw: ${DUMMY_PASSWORD})`);
 }
