@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Countdown from "$lib/components/Countdown.svelte";
+	import Countdown from '$lib/components/Countdown.svelte';
 	import WordCycler from '$lib/components/WordCycler.svelte';
 	import packageData from '$lib/data/packages.json';
 	import type { PageData } from './$types';
@@ -10,7 +10,13 @@
 	// shape); the LABEL text itself comes from packages.json's perkLabels — the
 	// same file $lib/server/packages.ts and the admin Packages page read, so
 	// wording only ever changes in one place.
-	const PACKAGE_PERK_KEYS = ['analytics', 'prAiAgent', 'newsSourceControl', 'sentimentSuite', 'voterHeatmap'] as const;
+	const PACKAGE_PERK_KEYS = [
+		'analytics',
+		'prAiAgent',
+		'newsSourceControl',
+		'sentimentSuite',
+		'voterHeatmap'
+	] as const;
 	const PERK_LABELS: Record<(typeof PACKAGE_PERK_KEYS)[number], string> = packageData.perkLabels;
 
 	const leftSet = ['Level Up', 'Catapult', 'Propel', 'Amplify', 'Strengthen'];
@@ -29,8 +35,12 @@
 
 	// One monthly KES price per tier, same for every office — read from the
 	// `pricing` table (the same rows /dashboard/admin/packages edits).
-	const prices = TIER_KEYS.map((tier) => data.pricing.find((p) => p.tier === tier && p.billingCycle === 'monthly')?.amount ?? 0);
-	const packageFeatures = TIER_KEYS.map((tier) => data.packages.find((p) => p.tier === tier)?.features);
+	const prices = TIER_KEYS.map(
+		(tier) => data.pricing.find((p) => p.tier === tier && p.billingCycle === 'monthly')?.amount ?? 0
+	);
+	const packageFeatures = TIER_KEYS.map(
+		(tier) => data.packages.find((p) => p.tier === tier)?.features
+	);
 
 	// Card highlight bullets, built from the same features every tier's caps
 	// come from: managers/ambassadors/subscriptions collapse into one "Unlimited
@@ -66,13 +76,27 @@
 		'Press desk: publish news, tag leaders, parties',
 		'Broadcast to citizens using credits*',
 		'Fundraising toolkit*',
-		'Free support and platform maintenance',
+		'Free support and platform maintenance'
 	];
 
 	// Network-effect features: only real value once other leaders are on the
 	// platform too, so a private/DIY campaign site can never replicate them.
 	// available is either '✓' (shipped) or a target month for what isn't yet.
 	const networkFeatures = [
+		{
+			feature: 'Ballot simulator',
+			description:
+				"Citizens build and share their full 2027 ballot; every seat they fill drives traffic to that candidate's page - including yours, and to seats no one has claimed yet.",
+			available: '✓',
+			href: '/'
+		},
+		{
+			feature: 'Voters are here',
+			description:
+				'Citizens come to vote.ke to compare candidates and simulate their ballot, so you launch where the voters already are instead of buying traffic to a page no one is looking for.',
+			available: '✓',
+			href: null
+		},
 		{
 			feature: 'Agentic AI',
 			description:
@@ -82,7 +106,8 @@
 		},
 		{
 			feature: 'Compare',
-			description: 'Side by side manifesto, delivery record and reviews against rivals for the same seat.',
+			description:
+				'Side by side manifesto, delivery record and reviews against rivals for the same seat.',
 			available: '✓',
 			href: '/compare'
 		},
@@ -94,7 +119,8 @@
 		},
 		{
 			feature: 'Seat hub',
-			description: 'Your page listed alongside every rival for the seat, for context and credibility.',
+			description:
+				'Your page listed alongside every rival for the seat, for context and credibility.',
 			available: '✓',
 			href: null
 		},
@@ -113,49 +139,49 @@
 		{
 			feature: 'Endorsement cards',
 			description: 'Shareable graphics when a leader or alliance endorses you.',
-			available: "Aug 2026",
+			available: 'Aug 2026',
 			href: null
 		},
 		{
 			feature: 'Debate prep pack',
 			description: "AI brief of your record against each rival's published record.",
-			available: "Aug 2026",
+			available: 'Aug 2026',
 			href: null
 		},
 		{
 			feature: 'Right of reply',
-			description: 'Respond inline when tagged in a rival\'s post or a news mention.',
-			available: "Aug 2026",
+			description: "Respond inline when tagged in a rival's post or a news mention.",
+			available: 'Aug 2026',
 			href: null
 		},
 		{
 			feature: 'Combo ticket pledges',
 			description: 'A citizen pledges to a President, Governor and MP combo, tracked as one.',
-			available: "Aug 2026",
+			available: 'Aug 2026',
 			href: null
 		},
 		{
 			feature: 'Cross campaign ambassador pool',
 			description: 'One ambassador mobilizing for a whole ticket, not just one candidate.',
-			available: "Sep 2026",
+			available: 'Sep 2026',
 			href: null
 		},
 		{
 			feature: 'Portable team reputation',
 			description: 'A badge for managers and ambassadors who have worked on multiple campaigns.',
-			available: "Sep 2026",
+			available: 'Sep 2026',
 			href: null
 		},
 		{
 			feature: 'Benchmarking analytics',
 			description: 'Your conversion rate compared to the average for your seat.',
-			available: "Sep 2026",
+			available: 'Sep 2026',
 			href: null
 		},
 		{
 			feature: 'Joint town hall',
 			description: 'One question, compared answers from every candidate on the same seat.',
-			available: "Sep 2026",
+			available: 'Sep 2026',
 			href: null
 		}
 	];
@@ -168,16 +194,27 @@
 	// deliberately not offered: money never reorders a neutral civic surface.
 	const creditLabel = (n: number) => `KES ${n.toLocaleString('en-KE')}`;
 	const paygCredits = $derived([
-		{ item: 'AI chat', price: creditLabel(data.credits.aiChat), description: 'Per citizen question answered on your profile, campaign or channels.' },
-		{ item: 'SMS', price: creditLabel(data.credits.sms), description: 'Per SMS broadcast sent to a follower.' },
-		{ item: 'WhatsApp', price: creditLabel(data.credits.whatsapp), description: 'Per WhatsApp broadcast sent to a follower.' }
+		{
+			item: 'AI chat',
+			price: creditLabel(data.credits.aiChat),
+			description: 'Per citizen question answered on your profile, campaign or channels.'
+		},
+		{
+			item: 'SMS',
+			price: creditLabel(data.credits.sms),
+			description: 'Per SMS broadcast sent to a follower.'
+		},
+		{
+			item: 'WhatsApp',
+			price: creditLabel(data.credits.whatsapp),
+			description: 'Per WhatsApp broadcast sent to a follower.'
+		}
 	]);
 
 	// Annual billing bills 10 months (2 free). Toggle drives every price on the page.
 	let annual = $state(false);
 	const cycleMultiplier = $derived(annual ? 10 : 1);
 	const cycleSuffix = $derived(annual ? '/yr' : '/mo');
-
 
 	// Influencer (index 1) is the default active package; hovering/focusing another overrides it.
 	let hovered = $state<number | null>(null);
@@ -231,7 +268,7 @@
 <section class="mx-auto max-w-7xl px-4 py-14 sm:px-6">
 	<div class="text-center">
 		<h1 class="text-3xl font-extrabold tracking-tight text-heading sm:text-4xl">
-			<WordCycler words={leftSet}/> Your <WordCycler words={rightSet}/>
+			<WordCycler words={leftSet} /> Your <WordCycler words={rightSet} />
 		</h1>
 		<p class="mx-auto mt-4 max-w-xl text-base leading-relaxed">
 			A flat monthly rate plus PAYG to top up your broadcast credits.
@@ -284,7 +321,8 @@
 				others an outline that fills on hover. -->
 				<a
 					href="/onboard/profile"
-					class="mt-6 rounded-full border px-4 py-2.5 text-center font-semibold transition-all duration-300 focus:ring-0 focus:ring-ring focus:outline-none {active === t
+					class="mt-6 rounded-full border px-4 py-2.5 text-center font-semibold transition-all duration-300 focus:ring-0 focus:ring-ring focus:outline-none {active ===
+					t
 						? 'border-primary bg-primary text-on-primary hover:brightness-95'
 						: 'border-primary bg-surface text-primary hover:bg-primary hover:text-on-primary'}"
 				>
@@ -294,7 +332,6 @@
 		{/each}
 	</div>
 
-	
 	<div class="mt-8 flex items-center justify-center">
 		{@render billingToggle()}
 	</div>
@@ -318,7 +355,10 @@
 	</div>
 
 	<div class="mt-8 text-center">
-		<p class="mt-2 text-sm">Your payment helps us verify your candidature against IEBC records, continuously build and maintain our systems and pay for the infrastructure.</p>
+		<p class="mt-2 text-sm">
+			Your payment helps us verify your candidature against IEBC records, continuously build and
+			maintain our systems and pay for the infrastructure.
+		</p>
 	</div>
 
 	<!-- Vote.ke vs a private/DIY campaign platform: features that only exist
@@ -349,7 +389,11 @@
 							{/if}
 						</th>
 						<td class="px-4 py-3 text-sm text-muted">{row.description}</td>
-						<td class="px-4 py-3 text-sm {row.available === '✓' ? 'font-semibold text-primary' : 'text-heading'}">
+						<td
+							class="px-4 py-3 text-sm {row.available === '✓'
+								? 'font-semibold text-primary'
+								: 'text-heading'}"
+						>
 							{row.available}
 						</td>
 					</tr>
@@ -360,7 +404,9 @@
 
 	<!-- PAYG credits: what a credit buys, once the plan's included allowance runs out. -->
 	<h2 class="mt-14 text-2xl font-bold text-heading">PAYG Credits</h2>
-	<p class="mt-2 text-sm text-muted">The cost of sending a message on various channels. Top up whenever you run out (pay-as-you-go).</p>
+	<p class="mt-2 text-sm text-muted">
+		The cost of sending a message on various channels. Top up whenever you run out (pay-as-you-go).
+	</p>
 	<div class="mt-6 overflow-x-auto rounded-2xl border border-border">
 		<table class="w-full min-w-160 table-fixed border-collapse text-left">
 			<thead>
@@ -400,6 +446,5 @@
 		>
 			🚀 Lets Get Onboard
 		</a>
-
 	</div>
 </section>
