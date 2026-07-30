@@ -14,7 +14,10 @@ export type DirectoryFilters = {
 	/** Region label; for MCA this is a constituency seat name (wards roll up). */
 	region: string;
 	party: string;
-	status: '' | 'current' | 'aspirant';
+	// 'elected' = ever held the seat (current + former). 'candidate' = has a
+	// verified run this cycle, whether or not they also currently hold the seat
+	// (a sitting officeholder running for re-election shows up here too).
+	status: '' | 'elected' | 'candidate';
 	query: string;
 	/** Regime year: reslice the directory to who held the position that year
 	 * (term covering it); null = today's view (currents + aspirants preferred). */
@@ -41,7 +44,7 @@ const CONSTITUENCY_BY_WARD = new Map(
 	counties.flatMap((c) => c.constituencies).flatMap((con) => con.wards.map((w) => [w.seatName, con.seatName]))
 );
 
-const STATUS_ORDER: Record<string, number> = { current: 0, aspirant: 1, former: 2 };
+const STATUS_ORDER: Record<string, number> = { current: 0, candidate: 1, aspirant: 1, former: 2 };
 
 /**
  * One position's verified leaders as directory cards, filtered and paginated.
@@ -138,10 +141,36 @@ export async function listPositionDirectory(positionTitle: string, f: DirectoryF
 		)
 	].sort((a, b) => b - a);
 
-	// One card per person. Today's view prefers the non-'former' row (else the
-	// most recent term); a regime year reslices to the terms COVERING that year,
-	// each person wearing that era's seat.
-	const eligible = f.regime
+	// The "Candidates" view needs every verified ACTIVE_CYCLE run at this seat on
+	// its own terms — a sitting officeholder running for re-election must still
+	// show up here, which the default dedupe below deliberately hides (it keeps
+	// only their 'current' row). Built straight from runRows, never from the
+	// current/former-preferring merge, so it can never lose that person.
+	const candidateBySlug = new Map<string, (typeof rows)[number]>();
+	for (const r of runRows) {
+		if (!r.slug) continue;
+		candidateBySlug.set(r.slug, {
+			leaderId: null,
+			userId: r.userId,
+			slug: r.slug,
+			firstName: r.firstName,
+			otherNames: r.otherNames,
+			photoUrl: r.photoUrl,
+			status: 'candidate',
+			region: r.region,
+			startAt: new Date(r.cycleYear, 7, 10),
+			endAt: null,
+			verifiedAt: r.verifiedAt,
+			partyId: r.partyId
+		});
+	}
+
+	// One card per person for the default/"Elected" views. Today's view prefers
+	// the non-'former' row (else the most recent term); a regime year reslices
+	// to the terms COVERING that year, each person wearing that era's seat.
+	// Regime and 'candidate' don't combine — a candidacy is always this cycle,
+	// never a past regime — so the regime reslice only applies otherwise.
+	const eligible = f.regime && f.status !== 'candidate'
 		? rows.filter(
 				(r) =>
 					r.status !== 'aspirant' &&
@@ -160,7 +189,11 @@ export async function listPositionDirectory(positionTitle: string, f: DirectoryF
 					(r.status !== 'former' || (r.endAt?.getTime() ?? 0) > (existing.endAt?.getTime() ?? 0)));
 		if (better) bySlug.set(r.slug, r);
 	}
-	const people = [...bySlug.values()];
+	// 'candidate' status pulls from candidateBySlug (every 2027 run, current
+	// officeholders included); 'elected' and the default view both read the
+	// current/former-preferring dedupe above ('elected' additionally drops
+	// anyone whose only row is a bare candidacy, via the status filter below).
+	const people = f.status === 'candidate' ? [...candidateBySlug.values()] : [...bySlug.values()];
 	if (people.length === 0) {
 		return { total: 0, leaders: [] as DirectoryCard[], regionOptions: [] as string[], partyOptions: [] as string[], regimeOptions };
 	}
@@ -183,18 +216,24 @@ export async function listPositionDirectory(positionTitle: string, f: DirectoryF
 	const partyNameById = new Map(partyRows.map((r) => [r.id, r.name]));
 	const partyBy = new Map(people.map((p) => [p.userId, p.partyId ? (partyNameById.get(p.partyId) ?? null) : null]));
 
-	// Filter options come from the FULL position set (before filtering). Raw region
+	// Filter options come from the FULL position set (before filtering) — the
+	// union of the elected dedupe and the candidate set, so switching the status
+	// pill never shrinks what the region/party dropdowns offer. Raw region
 	// labels — for MCA these are ward seat names; SearchFilter derives the
 	// constituency dropdown from them itself.
 	const isMca = positionTitle === 'MCA';
-	const regionOptions = [...new Set(people.map((p) => p.region))].sort();
+	const allPeople = f.status === 'candidate' ? [...bySlug.values(), ...candidateBySlug.values()] : [...people, ...candidateBySlug.values()];
+	const regionOptions = [...new Set(allPeople.map((p) => p.region))].sort();
 	const partyOptions = [...new Set(partyRows.map((r) => r.name))].sort();
 
 	const q = f.query.trim().toLowerCase();
 	const filtered = people.filter((p) => {
 		if (f.region && (isMca ? CONSTITUENCY_BY_WARD.get(p.region) !== f.region : p.region !== f.region)) return false;
 		if (f.party && partyBy.get(p.userId) !== f.party) return false;
-		if (f.status && p.status !== f.status) return false;
+		// 'candidate' needs no extra check: `people` is already candidateBySlug's
+		// rows (all tagged 'candidate') when this filter is active. 'elected' means
+		// ever held the seat — current or former, just not a bare candidacy.
+		if (f.status === 'elected' && p.status === 'aspirant') return false;
 		if (q && !fullName(p).toLowerCase().includes(q)) return false;
 		return true;
 	});
@@ -227,7 +266,9 @@ export async function listPositionDirectory(positionTitle: string, f: DirectoryF
 			partyPath: party ? `/parties/${slugify(party)}` : null,
 			countyLabel: p.region,
 			positionTitle,
-			status: p.status,
+			// 'aspirant' is this function's internal name for a bare candidacy
+			// (no held term); the directory speaks "Candidate" everywhere now.
+			status: p.status === 'aspirant' ? 'candidate' : p.status,
 			verified: !!p.verifiedAt,
 			followers: p.followerCount
 		} satisfies DirectoryCard;

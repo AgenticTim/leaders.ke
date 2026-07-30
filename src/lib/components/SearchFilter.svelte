@@ -16,9 +16,10 @@
 		parties: string[];
 		region?: string;
 		party?: string;
-		// '' means both; every listed leader is already verified, so the only
-		// remaining status split worth filtering on is current vs. aspirant.
-		status?: '' | 'current' | 'aspirant';
+		// '' means both. 'elected' = ever held the seat (current + former);
+		// 'candidate' = has a verified run this cycle, including a sitting
+		// officeholder running for re-election.
+		status?: '' | 'elected' | 'candidate';
 		hasFilters: boolean;
 		onClear: () => void;
 	} = $props();
@@ -69,16 +70,16 @@
 </select>
 
 <div class="flex items-center gap-1 rounded-full border border-border bg-surface-2 p-1" role="group" aria-label="Status">
-	{#each (['current', 'aspirant'] as const) as s (s)}
+	{#each [{ value: 'elected', label: 'Elected' }, { value: 'candidate', label: 'Candidates' }] as const as opt (opt.value)}
 		<button
 			type="button"
-			aria-pressed={status === s}
-			onclick={() => (status = status === s ? '' : s)}
-			class="rounded-full px-4 py-1.5 text-sm font-semibold capitalize transition {status === s
+			aria-pressed={status === opt.value}
+			onclick={() => (status = status === opt.value ? '' : opt.value)}
+			class="rounded-full px-4 py-1.5 text-sm font-semibold transition {status === opt.value
 				? 'bg-primary text-on-primary'
 				: 'text-muted hover:text-heading'}"
 		>
-			{s}
+			{opt.label}
 		</button>
 	{/each}
 </div>

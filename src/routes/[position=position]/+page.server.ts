@@ -25,7 +25,7 @@ export const load: PageServerLoad = async ({ params, url, setHeaders }) => {
 	const filters = {
 		region: url.searchParams.get('region') ?? '',
 		party: url.searchParams.get('party') ?? '',
-		status: (rawStatus === 'current' || rawStatus === 'aspirant' ? rawStatus : '') as '' | 'current' | 'aspirant',
+		status: (rawStatus === 'elected' || rawStatus === 'candidate' ? rawStatus : '') as '' | 'elected' | 'candidate',
 		q: url.searchParams.get('q') ?? '',
 		// A 4-digit year reslices the directory to that regime's holders.
 		regime: /^\d{4}$/.test(rawRegime) ? Number(rawRegime) : null,

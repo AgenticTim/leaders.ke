@@ -19,7 +19,7 @@
 	// mirrors the loaded values; the effects below navigate when the user changes one.
 	let region = $state('');
 	let party = $state('');
-	let status = $state<'' | 'current' | 'aspirant'>('');
+	let status = $state<'' | 'elected' | 'candidate'>('');
 	let query = $state('');
 	$effect(() => {
 		region = data.filters.region;
