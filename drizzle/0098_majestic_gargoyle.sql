@@ -1,0 +1,2 @@
+ALTER TABLE "platform_settings" ADD COLUMN "news_fetch_time" varchar(5) DEFAULT '03:00' NOT NULL;--> statement-breakpoint
+ALTER TABLE "platform_settings" ADD COLUMN "news_last_fetched_at" timestamp with time zone;

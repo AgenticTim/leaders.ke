@@ -1260,6 +1260,15 @@ export const platformSettings = pgTable('platform_settings', {
   // every other source is a whole-site/section feed fetched once per run and
   // matched against every verified leader's full name.
   newsSources: jsonb('news_sources').$type<Record<string, boolean>>().default(DEFAULT_NEWS_SOURCES).notNull(),
+  // Daily crawl schedule (src/hooks.server.ts): local "HH:MM" time of day the
+  // in-process scheduler fires ingestNews() — checked on a short interval
+  // rather than a fixed 24h-since-boot timer, so a reboot mid-day doesn't
+  // trigger an extra off-schedule crawl. newsLastFetchedAt records the most
+  // recent completed run (manual "Crawl now" or scheduled), so the scheduler
+  // can tell "already ran today" apart from "due", and Settings can show it
+  // next to the manual trigger button.
+  newsFetchTime: varchar('news_fetch_time', { length: 5 }).default('03:00').notNull(),
+  newsLastFetchedAt: timestamp('news_last_fetched_at', { withTimezone: true }),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 

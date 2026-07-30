@@ -4,7 +4,7 @@ import { db } from '$lib/server/db';
 import { platformSettings } from '$lib/server/db/schema';
 import { requireAdmin } from '$lib/server/dashboard';
 import { getPlatformSettings } from '$lib/server/settings';
-import { NEWS_SOURCES } from '$lib/server/newsIngest';
+import { NEWS_SOURCES, ingestNews } from '$lib/server/newsIngest';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
@@ -98,5 +98,25 @@ export const actions: Actions = {
 		}
 		await db.update(platformSettings).set({ newsSources, updatedAt: new Date() }).where(eq(platformSettings.id, 1));
 		return { saved: true };
+	},
+
+	saveNewsFetchTime: async (event) => {
+		await requireAdmin(event);
+		const form = await event.request.formData();
+		const newsFetchTime = String(form.get('newsFetchTime') ?? '');
+		if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(newsFetchTime)) return fail(400, { error: 'Crawl time must be a valid HH:MM.' });
+		await db.update(platformSettings).set({ newsFetchTime, updatedAt: new Date() }).where(eq(platformSettings.id, 1));
+		return { saved: true };
+	},
+
+	// Manual "Crawl now": runs the same ingestNews() the daily scheduler calls.
+	// ingestNews() itself guards against overlapping with a concurrent run (see
+	// its ingestInFlight lock), so clicking this while the scheduled crawl is
+	// mid-flight just no-ops instead of racing it.
+	runNewsIngestNow: async (event) => {
+		await requireAdmin(event);
+		const result = await ingestNews();
+		if (result.skipped) return fail(409, { error: 'A crawl is already running, try again shortly.' });
+		return { crawled: true, ...result };
 	}
 };

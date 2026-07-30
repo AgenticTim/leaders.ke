@@ -11,7 +11,7 @@
 // re-runs are no-ops.
 import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { campaigns, leaders, posts, tags, users } from '$lib/server/db/schema';
+import { campaigns, leaders, platformSettings, posts, tags, users } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName } from '$lib/server/leader';
 import { classifyMentionSentiment } from '$lib/server/ai';
 import { getPlatformSettings } from '$lib/server/settings';
@@ -220,10 +220,28 @@ async function ingestSiteFeed(sourceId: string, url: string, people: VerifiedPer
 	return inserted;
 }
 
+// Guards against two ingestNews() passes running at once (the scheduler firing
+// the same minute as an admin's manual "Crawl now" click) — the source_url
+// unique index already makes concurrent inserts safe, but a lock avoids the
+// wasted double fetch/AI-classification work of a genuinely overlapping run.
+let ingestInFlight = false;
+
 /** One full pass over every verified person (Google News, per-person) plus
  * every enabled whole-site feed (checked against everyone at once), sequential
- * and politely spaced. `limitPeople` exists for dev smoke tests. */
-export async function ingestNews(opts: { limitPeople?: number } = {}): Promise<{ people: number; inserted: number; failed: number }> {
+ * and politely spaced. `limitPeople` exists for dev smoke tests. Records
+ * platformSettings.newsLastFetchedAt on completion regardless of outcome, so a
+ * run that failed midway still shows as attempted rather than silently stale. */
+export async function ingestNews(opts: { limitPeople?: number } = {}): Promise<{ people: number; inserted: number; failed: number; skipped?: true }> {
+	if (ingestInFlight) return { people: 0, inserted: 0, failed: 0, skipped: true };
+	ingestInFlight = true;
+	try {
+		return await runIngest(opts);
+	} finally {
+		ingestInFlight = false;
+	}
+}
+
+async function runIngest(opts: { limitPeople?: number }): Promise<{ people: number; inserted: number; failed: number }> {
 	let people = await listVerifiedPeople();
 	// Freshest runs first feels right for an interrupted pass: recently created
 	// campaigns are the ones with no coverage yet.
@@ -258,6 +276,7 @@ export async function ingestNews(opts: { limitPeople?: number } = {}): Promise<{
 	}
 
 	await backfillSentiment();
+	await db.update(platformSettings).set({ newsLastFetchedAt: new Date() }).where(eq(platformSettings.id, 1));
 
 	return { people: people.length, inserted, failed };
 }

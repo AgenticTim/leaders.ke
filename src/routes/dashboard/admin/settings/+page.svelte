@@ -5,19 +5,135 @@
 	let { data, form }: PageProps = $props();
 
 	let saving = $state(false);
+	let crawling = $state(false);
 </script>
 
 <svelte:head><title>Platform settings — vote.ke</title></svelte:head>
 
 <div>
 	<h1 class="text-xl font-bold text-heading">Platform settings</h1>
-	<p class="mt-1 text-sm text-muted">Anti-abuse thresholds, the application verification gate, and list pagination.</p>
+	<p class="mt-1 text-sm text-muted">
+		Anti-abuse thresholds, the application verification gate, and list pagination.
+	</p>
 
 	{#if form?.error}
-		<div class="mt-4 rounded-xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading">{form.error}</div>
+		<div
+			class="mt-4 rounded-xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading"
+		>
+			{form.error}
+		</div>
+	{:else if form?.crawled}
+		<div class="mt-4 rounded-xl bg-primary-soft p-4 text-sm font-medium text-on-primary">
+			Crawl done: {form.inserted} new mention{form.inserted === 1 ? '' : 's'} across {form.people} leaders
+			{#if form.failed}({form.failed} feed{form.failed === 1 ? '' : 's'} failed){/if}.
+		</div>
 	{:else if form?.saved}
-		<div class="mt-4 rounded-xl bg-primary-soft p-4 text-sm font-medium text-on-primary">Saved.</div>
+		<div class="mt-4 rounded-xl bg-primary-soft p-4 text-sm font-medium text-on-primary">
+			Saved.
+		</div>
 	{/if}
+
+	<!-- Daily crawl schedule + manual trigger (hooks.server.ts fires ingestNews()
+	once local time passes newsFetchTime, if it hasn't already run today). -->
+	<div class="mt-8 rounded-2xl border border-border bg-surface p-5">
+		<h2 class="font-semibold text-heading">News crawl</h2>
+		<p class="mt-1 text-xs text-muted">
+			What time of day the news crawl runs automatically, and a manual trigger.
+		</p>
+		<div class="mt-3 flex flex-wrap items-center gap-4">
+			<form method="post" action="?/saveNewsFetchTime" use:enhance>
+				<label class="flex items-center gap-2 text-sm">
+					<span class="text-heading">Daily crawl time</span>
+					<input
+						type="time"
+						name="newsFetchTime"
+						value={data.settings.newsFetchTime}
+						onchange={(e) => (e.currentTarget as HTMLInputElement).form?.requestSubmit()}
+						class="rounded-full border border-border bg-surface-2 px-3 py-1.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+					/>
+				</label>
+			</form>
+
+			<form
+				method="post"
+				action="?/runNewsIngestNow"
+				use:enhance={() => {
+					crawling = true;
+					return async ({ update }) => {
+						crawling = false;
+						await update({ reset: false });
+					};
+				}}
+			>
+				<button
+					type="submit"
+					disabled={crawling}
+					class="rounded-full border border-border px-4 py-1.5 text-sm font-semibold text-heading transition hover:bg-surface-2 disabled:opacity-60"
+				>
+					{crawling ? 'Crawling…' : 'Crawl now'}
+				</button>
+			</form>
+
+			<span class="text-xs text-muted">
+				Last crawled: {data.settings.newsLastFetchedAt
+					? new Date(data.settings.newsLastFetchedAt).toLocaleString()
+					: 'never'}
+			</span>
+		</div>
+	</div>
+
+	<!-- News ingestion sources (newsIngest.ts): which feeds the daily crawl reads.
+	A source with no working feed yet (url: null there) still shows here so the
+	toggle is ready — it's a no-op until a URL is filled in. Autosaves per
+	checkbox, same pattern as the Packages perk grid. -->
+	<div class="mt-8 rounded-2xl border border-border bg-surface p-5">
+		<h2 class="font-semibold text-heading">News ingestion sources</h2>
+		<p class="mt-1 text-xs text-muted">
+			Which outlets the daily news crawl reads. Google News is a per-leader search; every other
+			source is a whole-site feed checked against every verified leader.
+		</p>
+		<ul class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+			{#each Object.entries(data.newsSourceOptions) as [id, source] (id)}
+				<li>
+					<form
+						method="post"
+						action="?/saveNewsSources"
+						use:enhance
+						onchange={(e) => (e.currentTarget as HTMLFormElement).requestSubmit()}
+					>
+						{#each Object.keys(data.newsSourceOptions) as otherId (otherId)}
+							<!-- Every source's current value rides along on each source's own
+							form, so toggling one never resets the others to their defaults. -->
+							{#if otherId === id}
+								<label
+									class="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm"
+								>
+									<input
+										type="checkbox"
+										name={otherId}
+										value="true"
+										checked={!!data.settings.newsSources[otherId]}
+										class="size-4 shrink-0 rounded border-border text-primary focus:ring-0 focus:ring-ring"
+									/>
+									<input type="hidden" name={otherId} value="false" />
+									<span class="text-heading">{source.label}</span>
+									{#if !source.url && id !== 'googleNews'}
+										<span class="ml-auto shrink-0 text-xs text-muted">no feed yet</span>
+									{/if}
+								</label>
+							{:else}
+								<input
+									type="hidden"
+									name={otherId}
+									value={data.settings.newsSources[otherId] ? 'true' : 'false'}
+								/>
+							{/if}
+						{/each}
+					</form>
+				</li>
+			{/each}
+		</ul>
+	</div>
 
 	<form
 		method="post"
@@ -100,8 +216,8 @@ Applies everywhere a code/link is sent
 			<h2 class="font-semibold text-heading">Campaign verification gate</h2>
 			<p class="mt-1 text-xs text-muted">
 				Whether the "Verify Campaign" action on each of a profile's campaigns (Campaign tab)
-				requires the IEBC Certificate of Clearance to already be uploaded. Leave off until closer
-				to nominations — certificates aren't issued yet.
+				requires the IEBC Certificate of Clearance to already be uploaded. Leave off until closer to
+				nominations — certificates aren't issued yet.
 			</p>
 			<label class="mt-2 flex items-center gap-2">
 				<input
@@ -110,7 +226,9 @@ Applies everywhere a code/link is sent
 					checked={data.settings.requireIebcForVerification}
 					class="rounded border-border text-primary focus:ring-ring"
 				/>
-				<span class="text-sm text-heading">Require IEBC certificate before verifying a campaign</span>
+				<span class="text-sm text-heading"
+					>Require IEBC certificate before verifying a campaign</span
+				>
 			</label>
 		</div>
 
@@ -159,27 +277,12 @@ Applies everywhere a code/link is sent
 			</label>
 		</div>
 
-		<!-- The slug list needs room to breathe, so it spans the full grid width. -->
-		<div class="rounded-2xl border border-border bg-surface p-5 md:col-span-3">
-			<h2 class="font-semibold text-heading">Blocked slugs</h2>
-			<p class="mt-1 text-xs text-muted">
-				Words no leader may take as their public URL: the platform's own routes plus words kept for later use.
-				Comma or space separated. Numeric-only slugs (e.g. 2027) are always blocked.
-				Removing a route word lets a leader shadow that page, so edit with care.
-			</p>
-			<textarea
-				name="blockedSlugs"
-				rows="4"
-				value={data.settings.blockedSlugs.join(', ')}
-				class="mt-2 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-			></textarea>
-		</div>
-
 		<div class="rounded-2xl border border-border bg-surface p-5">
 			<h2 class="font-semibold text-heading">AI Chat grounding cap</h2>
 			<p class="mt-1 text-xs text-muted">
-				Max characters of profile, manifesto, posts, FAQ and uploaded documents sent in one AI Chat prompt
-				(docs/ai-chat-costs.md). Bounds per-question cost regardless of how much a leader has uploaded.
+				Max characters of profile, manifesto, posts, FAQ and uploaded documents sent in one AI Chat
+				prompt (docs/ai-chat-costs.md). Bounds per-question cost regardless of how much a leader has
+				uploaded.
 			</p>
 			<label class="mt-2 block">
 				<span class="text-xs font-medium text-muted">Max grounding characters</span>
@@ -196,8 +299,9 @@ Applies everywhere a code/link is sent
 		<div class="rounded-2xl border border-border bg-surface p-5">
 			<h2 class="font-semibold text-heading">AI Chat ask limits</h2>
 			<p class="mt-1 text-xs text-muted">
-				Guest limit is lifetime, not daily (anon_id/IP are trivially reset by clearing cookies, so it's a one-time
-				taste before requiring login, not a precise meter). Signed-in limit resets daily, tracked per account.
+				Guest limit is lifetime, not daily (anon_id/IP are trivially reset by clearing cookies, so
+				it's a one-time taste before requiring login, not a precise meter). Signed-in limit resets
+				daily, tracked per account.
 			</p>
 			<div class="mt-2 space-y-3">
 				<label class="block">
@@ -239,8 +343,9 @@ Applies everywhere a code/link is sent
 		<div class="rounded-2xl border border-border bg-surface p-5 md:col-span-3">
 			<h2 class="font-semibold text-heading">AI Chat — platform system prompt</h2>
 			<p class="mt-1 text-xs text-muted">
-				Governs the AI Chat assistant everywhere it runs, before any leader-specific instructions apply:
-				overall tone, honesty rules, neutrality between candidates, and what it does when it doesn't know an answer.
+				Governs the AI Chat assistant everywhere it runs, before any leader-specific instructions
+				apply: overall tone, honesty rules, neutrality between candidates, and what it does when it
+				doesn't know an answer.
 			</p>
 			<textarea
 				name="platformSystemPrompt"
@@ -253,14 +358,31 @@ Applies everywhere a code/link is sent
 		<div class="rounded-2xl border border-border bg-surface p-5 md:col-span-3">
 			<h2 class="font-semibold text-heading">AI Chat — leader system prompt</h2>
 			<p class="mt-1 text-xs text-muted">
-				Layers on top of the platform prompt specifically for answers about one leader's own profile:
-				how to represent their record and plans, and how to handle questions outside what they've published.
+				Layers on top of the platform prompt specifically for answers about one leader's own
+				profile: how to represent their record and plans, and how to handle questions outside what
+				they've published.
 			</p>
 			<textarea
 				name="leaderSystemPrompt"
 				rows="8"
 				value={data.settings.leaderSystemPrompt}
 				class="mt-2 w-full rounded-xl border border-border bg-surface px-4 py-2.5 font-mono text-xs text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+			></textarea>
+		</div>
+
+		<!-- The slug list needs room to breathe, so it spans the full grid width. -->
+		<div class="rounded-2xl border border-border bg-surface p-5 md:col-span-3">
+			<h2 class="font-semibold text-heading">Blocked slugs</h2>
+			<p class="mt-1 text-xs text-muted">
+				Words no leader may take as their public URL: the platform's own routes plus words kept for
+				later use. Comma or space separated. Numeric-only slugs (e.g. 2027) are always blocked.
+				Removing a route word lets a leader shadow that page, so edit with care.
+			</p>
+			<textarea
+				name="blockedSlugs"
+				rows="4"
+				value={data.settings.blockedSlugs.join(', ')}
+				class="mt-2 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
 			></textarea>
 		</div>
 
@@ -272,51 +394,4 @@ Applies everywhere a code/link is sent
 			{saving ? 'Saving…' : 'Save settings'}
 		</button>
 	</form>
-
-	<!-- News ingestion sources (newsIngest.ts): which feeds the daily crawl reads.
-	A source with no working feed yet (url: null there) still shows here so the
-	toggle is ready — it's a no-op until a URL is filled in. Autosaves per
-	checkbox, same pattern as the Packages perk grid. -->
-	<div class="mt-8 rounded-2xl border border-border bg-surface p-5">
-		<h2 class="font-semibold text-heading">News ingestion sources</h2>
-		<p class="mt-1 text-xs text-muted">
-			Which outlets the daily news crawl reads. Google News is a per-leader search; every other
-			source is a whole-site feed checked against every verified leader.
-		</p>
-		<ul class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-			{#each Object.entries(data.newsSourceOptions) as [id, source] (id)}
-				<li>
-					<form
-						method="post"
-						action="?/saveNewsSources"
-						use:enhance
-						onchange={(e) => (e.currentTarget as HTMLFormElement).requestSubmit()}
-					>
-						{#each Object.keys(data.newsSourceOptions) as otherId (otherId)}
-							<!-- Every source's current value rides along on each source's own
-							form, so toggling one never resets the others to their defaults. -->
-							{#if otherId === id}
-								<label class="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm">
-									<input
-										type="checkbox"
-										name={otherId}
-										value="true"
-										checked={!!data.settings.newsSources[otherId]}
-										class="size-4 shrink-0 rounded border-border text-primary focus:ring-0 focus:ring-ring"
-									/>
-									<input type="hidden" name={otherId} value="false" />
-									<span class="text-heading">{source.label}</span>
-									{#if !source.url && id !== 'googleNews'}
-										<span class="ml-auto shrink-0 text-xs text-muted">no feed yet</span>
-									{/if}
-								</label>
-							{:else}
-								<input type="hidden" name={otherId} value={data.settings.newsSources[otherId] ? 'true' : 'false'} />
-							{/if}
-						{/each}
-					</form>
-				</li>
-			{/each}
-		</ul>
-	</div>
 </div>

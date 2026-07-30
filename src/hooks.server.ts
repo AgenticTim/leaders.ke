@@ -7,6 +7,7 @@ import { readFlash } from '$lib/server/flash';
 import { env } from '$env/dynamic/private';
 import { runSubscriptionSweep } from '$lib/server/subscriptionSweep';
 import { ingestNews } from '$lib/server/newsIngest';
+import { getPlatformSettings } from '$lib/server/settings';
 
 // Subscription lifecycle timer: renewal reminders + expiry, swept shortly after
 // boot and every 6 hours for as long as the server process lives. In-process on
@@ -22,17 +23,33 @@ if (!building) {
 	setTimeout(sweep, 15_000);
 	setInterval(sweep, 6 * 60 * 60 * 1000);
 
-	// Daily news ingestion (Google News RSS per verified leader). On by default
-	// in production; dev opts in with NEWS_INGEST=1 so every reboot doesn't
-	// crawl Google. NEWS_INGEST=0 force-disables anywhere.
+	// Daily news ingestion (Google News RSS per verified leader + whole-site
+	// feeds). On by default in production; dev opts in with NEWS_INGEST=1 so
+	// every reboot doesn't crawl. NEWS_INGEST=0 force-disables anywhere.
+	// Scheduled by time-of-day (platformSettings.newsFetchTime, "HH:MM" local),
+	// not "N hours since boot": a checker runs hourly and fires once the clock
+	// passes that time AND newsLastFetchedAt isn't already today, so a mid-day
+	// restart never triggers an extra off-schedule crawl. Hourly is coarse
+	// enough that the actual fire time can drift up to ~59 minutes late, fine
+	// for a once-a-day crawl.
 	const ingestEnabled = env.NEWS_INGEST === '1' || (process.env.NODE_ENV === 'production' && env.NEWS_INGEST !== '0');
 	if (ingestEnabled) {
-		const ingest = () =>
+		const run = () =>
 			ingestNews()
-				.then(({ people, inserted, failed }) => console.log(`[news] ingested ${inserted} mentions across ${people} leaders (${failed} feeds failed)`))
+				.then(({ people, inserted, failed, skipped }) => {
+					if (!skipped) console.log(`[news] ingested ${inserted} mentions across ${people} leaders (${failed} feeds failed)`);
+				})
 				.catch((err) => console.error('[news] ingestion failed', err));
-		setTimeout(ingest, 60_000);
-		setInterval(ingest, 24 * 60 * 60 * 1000);
+
+		const checkSchedule = async () => {
+			const settings = await getPlatformSettings();
+			const now = new Date();
+			const nowHm = now.toTimeString().slice(0, 5); // "HH:MM" local
+			const ranToday = settings.newsLastFetchedAt && new Date(settings.newsLastFetchedAt).toDateString() === now.toDateString();
+			if (!ranToday && nowHm >= settings.newsFetchTime) run();
+		};
+		setTimeout(() => void checkSchedule(), 60_000); // one check shortly after boot, not a full hour's wait
+		setInterval(() => void checkSchedule(), 60 * 60 * 1000);
 	}
 }
 
