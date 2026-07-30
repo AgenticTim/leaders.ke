@@ -544,6 +544,11 @@ export const posts = pgTable('posts', {
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => [
   uniqueIndex('one_post_per_slug').on(t.slug).where(sql`${t.deletedAt} is null`),
+  // News ingest's check-then-insert dedupe isn't atomic under overlapping runs
+  // (confirmed: concurrent ingestNews() calls both passed the "does this URL
+  // exist" check before either insert committed). This constraint plus
+  // onConflictDoNothing at the insert site makes dedupe race-proof.
+  uniqueIndex('one_post_per_source_url').on(t.sourceUrl),
 ]);
 
 // 8.1 FEATURED
@@ -1171,10 +1176,12 @@ export const DEFAULT_BLOCKED_SLUGS = [
 ];
 
 // News ingestion sources (see $lib/server/newsIngest.ts for the actual feed
-// URLs keyed by these same ids) — on by default except the state broadcaster,
-// which an admin can opt into rather than the platform defaulting to it.
+// URLs keyed by these same ids) — on by default except the state broadcaster
+// and Google News, both opt-in rather than platform defaults (Google News is
+// per-leader search traffic against Google's RSS endpoint, which rate-limits
+// under sustained load, so an admin opts into it deliberately).
 export const DEFAULT_NEWS_SOURCES: Record<string, boolean> = {
-  googleNews: true,
+  googleNews: false,
   nationAfrica: true,
   standardMedia: true,
   theStar: true,

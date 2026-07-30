@@ -152,7 +152,9 @@ async function ingestForPerson(person: VerifiedPerson): Promise<number> {
 				public: true,
 				...(item.pubDate && !isNaN(item.pubDate.getTime()) ? { createdAt: item.pubDate } : {})
 			})
+			.onConflictDoNothing({ target: posts.sourceUrl })
 			.returning({ id: posts.id });
+		if (!post) continue; // lost the race to a concurrent run, already inserted
 		await db.insert(tags).values({ postId: post.id, subjectUserId: person.userId });
 		inserted++;
 	}
@@ -175,8 +177,26 @@ async function ingestSiteFeed(sourceId: string, url: string, people: VerifiedPer
 		const matched = people.filter((p) => text.includes(p.name.toLowerCase()) && sourceAllowed(p, sourceId));
 		if (matched.length === 0) continue;
 
+		// Dedupe: the same article URL, or the same headline already tagged to
+		// any of the matched people (wire-syndicated stories run verbatim on
+		// several outlets under different URLs).
 		const [byUrl] = await db.select({ id: posts.id }).from(posts).where(eq(posts.sourceUrl, item.link));
 		if (byUrl) continue;
+		const [byTitle] = await db
+			.select({ id: posts.id })
+			.from(posts)
+			.innerJoin(tags, eq(tags.postId, posts.id))
+			.where(
+				and(
+					eq(posts.title, item.title.slice(0, 255)),
+					inArray(
+						tags.subjectUserId,
+						matched.map((p) => p.userId)
+					),
+					isNull(posts.deletedAt)
+				)
+			);
+		if (byTitle) continue;
 
 		const sentiment = await classifyMentionSentiment(matched.map((p) => p.name).join(', '), item.title, item.description);
 		const [post] = await db
@@ -191,7 +211,9 @@ async function ingestSiteFeed(sourceId: string, url: string, people: VerifiedPer
 				public: true,
 				...(item.pubDate && !isNaN(item.pubDate.getTime()) ? { createdAt: item.pubDate } : {})
 			})
+			.onConflictDoNothing({ target: posts.sourceUrl })
 			.returning({ id: posts.id });
+		if (!post) continue; // lost the race to a concurrent run, already inserted
 		await db.insert(tags).values(matched.map((p) => ({ postId: post.id, subjectUserId: p.userId })));
 		inserted++;
 	}

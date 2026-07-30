@@ -1,0 +1,1 @@
+ALTER TABLE "platform_settings" ALTER COLUMN "news_sources" SET DEFAULT '{"googleNews":false,"nationAfrica":true,"standardMedia":true,"theStar":true,"businessDaily":true,"citizenDigital":true,"capitalFm":true,"kbc":false,"kenyaTimes":true,"ktnNews":true,"peopleDaily":true}'::jsonb;

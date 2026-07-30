@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "one_post_per_source_url" ON "posts" USING btree ("source_url");
