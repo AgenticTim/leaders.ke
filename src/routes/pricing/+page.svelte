@@ -8,12 +8,12 @@
 	// Mirrors $lib/server/packages.ts's PACKAGE_PERK_KEYS/PERK_LABELS — kept as a
 	// plain client-side list (that module is server-only) but the KEYS must
 	// match packages.features exactly, since data.packages comes from there.
-	const PACKAGE_PERK_KEYS = ['analytics', 'prAiAgent', 'voterHeatmap', 'sentimentSuite'] as const;
+	const PACKAGE_PERK_KEYS = ['analytics', 'prAiAgent', 'sentimentSuite', 'voterHeatmap'] as const;
 	const PERK_LABELS: Record<(typeof PACKAGE_PERK_KEYS)[number], string> = {
 		analytics: 'Analytics: page views, conversions, pledges',
-		prAiAgent: 'PR AI Agent: daily news research',
-		voterHeatmap: 'Voter heatmap per ward',
-		sentimentSuite: 'Sentiment Intelligence suite: campaign, competition'
+		prAiAgent: 'PR AI Agent for daily news research & response drafts',
+		sentimentSuite: 'Sentiment Intelligence suite: campaign, competition',
+		voterHeatmap: 'Voter heatmap per ward'
 	};
 
 	const leftSet = ['Level Up', 'Catapult', 'Propel', 'Amplify', 'Strengthen'];
@@ -45,14 +45,16 @@
 		const highlights: string[] = [];
 		if (f) {
 			if (f.managers === null && f.ambassadors === null && f.subscriptions === null) {
-				highlights.push('Unlimited managers, ambassadors & subscriptions');
+				highlights.push('Unlimited managers');
+				highlights.push('Unlimited ambassadors');
+				highlights.push('Unlimited subscriptions');
 			} else {
 				highlights.push(`${fmtCap(f.managers)} campaign managers`);
 				highlights.push(`${fmtCap(f.ambassadors)} ambassadors`);
 				highlights.push(`${fmtCap(f.subscriptions)} citizen subscriptions`);
 			}
-			for (const key of PACKAGE_PERK_KEYS) if (f[key]) highlights.push(PERK_LABELS[key]);
 			highlights.push(`${fmtCap(f.creditsPerMonth)} credits/mo`);
+			for (const key of PACKAGE_PERK_KEYS) if (f[key]) highlights.push(PERK_LABELS[key]);
 		}
 		return { tagline: taglines[t], highlights };
 	});
@@ -68,19 +70,6 @@
 		'Broadcast to citizens using credits*',
 		'Fundraising toolkit*',
 		'Free support and platform maintenance',
-	];
-
-	// Comparison rows: same metric across all three tiers ("—" means not
-	// included). Numeric caps and perk checks both come from packageFeatures.
-	const comparison = [
-		{ label: 'Campaign managers', values: packageFeatures.map((f) => (f ? fmtCap(f.managers) : '—')) },
-		{ label: 'Campaign ambassadors', values: packageFeatures.map((f) => (f ? fmtCap(f.ambassadors) : '—')) },
-		{ label: 'Citizen subscriptions', values: packageFeatures.map((f) => (f ? fmtCap(f.subscriptions) : '—')) },
-		...PACKAGE_PERK_KEYS.map((key) => ({
-			label: PERK_LABELS[key],
-			values: packageFeatures.map((f) => (f?.[key] ? '✓' : '—'))
-		})),
-		{ label: 'Credits included/mo', values: packageFeatures.map((f) => (f ? fmtCap(f.creditsPerMonth) : '—')) }
 	];
 
 	// Network-effect features: only real value once other leaders are on the
@@ -333,68 +322,6 @@
 				</li>
 			{/each}
 		</ul>
-	</div>
-
-	<!-- Tier comparison -->
-	<h2 class="mt-14 text-2xl font-bold text-heading">Features per package</h2>
-	<div class="mt-6 overflow-x-auto rounded-2xl border border-border">
-		<table class="w-full min-w-160 table-fixed border-collapse text-left">
-			<thead>
-				<tr class="bg-surface-2">
-					<th class="w-2/5 px-4 py-3 text-sm font-semibold text-heading">Feature</th>
-					{#each tiers as tier (tier)}
-						<th class="w-1/5 px-4 py-3 text-sm font-semibold text-heading">{tier}</th>
-					{/each}
-				</tr>
-			</thead>
-			<tbody>
-				{#each comparison as row (row.label)}
-					<tr class="border-t border-border">
-						<th class="px-4 py-3 text-sm font-medium text-heading">{row.label}</th>
-						{#each row.values as value, i (tiers[i])}
-							<td
-								class="px-4 py-3 text-sm {value === '✓'
-									? 'font-semibold text-primary'
-									: value === '—'
-										? 'text-muted'
-										: 'text-heading'}"
-							>
-								{value}
-							</td>
-						{/each}
-					</tr>
-				{/each}
-			</tbody>
-			<tfoot>
-				<tr class="border-t border-border bg-surface-2">
-					<th class="px-4 py-3 text-sm font-medium text-heading">
-						{!annual ? "Monthly" : "Annual"} Price
-					</th>
-					{#each tiers as tier, t (tier)}
-						<td class="px-4 py-3 text-sm tabular-nums">
-							<span class="font-semibold text-heading"
-								>KES {fmt.format(prices[t] * cycleMultiplier)}</span
-							>
-							<span class="text-muted">{cycleSuffix}</span>
-						</td>
-					{/each}
-				</tr>
-				<!-- Get started row -->
-				<tr class="border-t border-border">
-					<td class="px-2">{@render billingToggle()}</td>
-					{#each tiers as tier (tier)}
-						<td class="px-4 py-3">
-							<a
-								href="/onboard/profile"
-								class="inline-block rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-on-primary transition hover:brightness-95 focus:ring-0 focus:ring-ring focus:outline-none"
-							>
-								Get started
-							</a>
-						</td>
-					{/each}
-				</tr>
-			</tfoot>
-		</table>
 	</div>
 
 	<div class="mt-8 text-center">
