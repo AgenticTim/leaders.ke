@@ -112,12 +112,25 @@
 							</span>
 						</h1>
 						<p class="mt-1 text-sm text-muted">
-							<span class="capitalize">{leader.status}</span>
+							<!-- A campaign-less aspirant (fresh profile) gets a "Create a campaign"
+							prompt instead of a bare "Aspirant" label — linked into the dashboard
+							Campaign tab when the viewer can edit this profile. -->
+							{#if leader.status === 'aspirant' && !data.campaign}
+								{#if data.canEdit && leader.slug}
+									<a href="/dashboard/{leader.slug}/campaign" class="font-medium text-primary hover:underline">Create a campaign</a>
+								{:else}
+									<span>Create a campaign</span>
+								{/if}
+							{:else}
+								<span class="capitalize">{leader.status}</span>
+							{/if}
 							·
 							<a href={data.breadcrumb.seatPath} class="hover:text-primary">
 								{leader.positionTitle}, {leader.regionLabel}
 							</a>
-							{#if leader.party}· {leader.party}{/if}
+							{#if leader.party}
+								· <a href={leader.partyPath ?? '/parties'} class="hover:text-primary hover:underline">{leader.party}</a>
+							{/if}
 						</p>
 
 						<div class="mt-2 flex flex-col sm:flex-row text-center justify-between text-sm">
