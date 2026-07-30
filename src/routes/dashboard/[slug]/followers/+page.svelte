@@ -81,6 +81,36 @@
 	{/if}
 </div>
 
+{#if data.pledgeCount > 0}
+	<div class="mt-6 rounded-2xl border border-border bg-surface p-5">
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<div>
+				<p class="font-semibold text-heading">
+					Voter heatmap <span class="text-sm font-normal text-muted">({data.pledgeCount} pledge{data.pledgeCount === 1 ? '' : 's'})</span>
+				</p>
+				<p class="mt-1 text-sm text-muted">Where your vote pledges concentrate, by county and ward.</p>
+			</div>
+			{#if !data.heatmapUnlocked}
+				<a href="/pricing" class="shrink-0 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95">
+					Upgrade to Dominate
+				</a>
+			{/if}
+		</div>
+		{#if data.heatmapUnlocked}
+			<!-- Grouped by (county, ward) from the pledging citizen's own account
+			geo — a null ward is a county-only pledger (no ward set on their account). -->
+			<ul class="mt-4 divide-y divide-border">
+				{#each data.heatmap as row (row.county + (row.ward ?? ''))}
+					<li class="flex items-center justify-between gap-3 py-2 text-sm">
+						<span class="text-heading">{row.county}{#if row.ward}<span class="text-muted">, {row.ward}</span>{/if}</span>
+						<span class="font-semibold text-heading">{row.n}</span>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</div>
+{/if}
+
 {#if data.total === 0}
 	<!-- The add-a-citizen form below stays available: manual recruitment is how a
 	roster gets its first rows. -->

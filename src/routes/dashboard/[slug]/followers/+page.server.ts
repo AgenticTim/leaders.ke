@@ -1,12 +1,32 @@
 import { fail } from '@sveltejs/kit';
 import { and, desc, eq, gte, isNull, count } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { followers } from '$lib/server/db/schema';
+import { followers, pledges, users } from '$lib/server/db/schema';
 import { requireLeader } from '$lib/server/dashboard';
-import { createInvite, listOpenInvites } from '$lib/server/invites';
+import { createInvite, getPersonTier, listOpenInvites } from '$lib/server/invites';
+import { getPackageFeatures } from '$lib/server/packages';
 import { addCitizenFollower } from '$lib/server/ambassador';
+import { getRunCampaign } from '$lib/server/leader';
 import { getPageSize } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
+
+/** Live pledges to this person's active-cycle run, grouped by the pledging
+ * citizen's own account county/ward (set on their Account page) — the richer,
+ * always-current geo signal now that pledging requires an account, rather than
+ * the one-off contact-capture constituency/ward columns pledges itself carries
+ * (dead weight since pledging stopped taking anonymous name/contact forms). */
+async function voterHeatmap(campaignId: number): Promise<{ county: string; ward: string | null; n: number }[]> {
+	const rows = await db
+		.select({ county: users.county, ward: users.ward, n: count() })
+		.from(pledges)
+		.innerJoin(users, eq(pledges.userId, users.id))
+		.where(and(eq(pledges.campaignId, campaignId), isNull(pledges.deletedAt)))
+		.groupBy(users.county, users.ward)
+		.orderBy(desc(count()));
+	return rows
+		.filter((r): r is { county: string; ward: string | null; n: number } => !!r.county)
+		.map((r) => ({ county: r.county, ward: r.ward, n: r.n }));
+}
 
 // Follower roster with geo segments; geo values feed the broadcast targeting UI too.
 // Ward filtering happens server-side so it composes correctly with pagination.
@@ -26,7 +46,14 @@ export const load: PageServerLoad = async (event) => {
 
 	const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-	const [rows, [weekRow], [totalRow], wardRows, openInvites] = await Promise.all([
+	// Admin-toggled perk (packages.features.voterHeatmap — same fact /pricing
+	// shows), not a hardcoded tier name: flipping the toggle changes both
+	// pages together. Count is real either way; only the breakdown is gated.
+	const tier = await getPersonTier(ctx.profileUser.id);
+	const heatmapUnlocked = !!(await getPackageFeatures(tier))?.voterHeatmap;
+	const campaign = await getRunCampaign(ctx.profileUser.id);
+
+	const [rows, [weekRow], [totalRow], wardRows, openInvites, [pledgeCountRow], heatmap] = await Promise.all([
 		db
 			.select()
 			.from(followers)
@@ -37,7 +64,11 @@ export const load: PageServerLoad = async (event) => {
 		db.select({ n: count() }).from(followers).where(and(target, gte(followers.createdAt, weekAgo))),
 		db.select({ n: count() }).from(followers).where(filtered),
 		db.selectDistinct({ ward: followers.ward }).from(followers).where(target),
-		listOpenInvites(ctx.profileUser.id)
+		listOpenInvites(ctx.profileUser.id),
+		campaign
+			? db.select({ n: count() }).from(pledges).where(and(eq(pledges.campaignId, campaign.id), isNull(pledges.deletedAt)))
+			: Promise.resolve([{ n: 0 }]),
+		campaign && heatmapUnlocked ? voterHeatmap(campaign.id) : Promise.resolve([])
 	]);
 
 	return {
@@ -59,7 +90,10 @@ export const load: PageServerLoad = async (event) => {
 		pageSize,
 		ward,
 		wards: wardRows.map((w) => w.ward).filter((w): w is string => !!w).sort(),
-		followerInvites: openInvites.filter((i) => i.role === 'follower')
+		followerInvites: openInvites.filter((i) => i.role === 'follower'),
+		pledgeCount: pledgeCountRow?.n ?? 0,
+		heatmapUnlocked,
+		heatmap
 	};
 };
 
