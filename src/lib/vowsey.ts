@@ -51,8 +51,10 @@ export function init(opts: InitOptions): void {
 	const visitorId = persistentId(localStorage, VISITOR_KEY);
 	const sessionId = persistentId(sessionStorage, SESSION_KEY);
 
-	// ── Pageview: send once now, and again on exit with time-on-page ──
+	// ── Pageview: send once now, and again on exit with time-on-page. Both beacons
+	// share one viewId so the server upserts a single row per view. ──
 	const enteredAt = Date.now();
+	const viewId = crypto.randomUUID();
 	const sendView = (durationMs: number | null, beacon = false) =>
 		post(
 			`${host}/api/ingest`,
@@ -60,6 +62,7 @@ export function init(opts: InitOptions): void {
 				key,
 				visitorId,
 				sessionId,
+				viewId,
 				page: location.href,
 				referrer: document.referrer || null,
 				screenRes: `${screen.width}x${screen.height}`,

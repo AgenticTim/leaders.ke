@@ -729,6 +729,13 @@
       "when": 1785442730302,
       "tag": "0103_many_molly_hayes",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1785449907682,
+      "tag": "0104_trgm_search_indexes",
+      "breakpoints": true
     }
   ]
 }

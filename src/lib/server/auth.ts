@@ -53,6 +53,13 @@ export const auth = betterAuth({
 		// No sendDeleteAccountVerification, so deleteUser deletes immediately after the password check. Powers /delete-account.
 		deleteUser: { enabled: true }
 	},
+	session: {
+		// Short-lived signed cookie copy of the session, so getSession() in
+		// hooks.server.ts skips the DB on most requests (it runs on every request,
+		// including fully public pages). Trade-off: a revoked session stays usable
+		// for up to maxAge seconds.
+		cookieCache: { enabled: true, maxAge: 300 }
+	},
 	// Link Google to an existing account with the same email instead of erroring or
 	// making a duplicate. Google is trusted (it verifies emails), so the link is
 	// automatic — someone who signed up with email/password can later "Sign in with
