@@ -7,11 +7,20 @@ import { fullName } from '$lib/server/leader';
 import { extractMentionSlugs, generatePostSlug } from '$lib/server/posts';
 import { answerConstituentQuestion } from '$lib/server/ai';
 import { getPageSize } from '$lib/server/settings';
+import { getPersonTier } from '$lib/server/invites';
+import { tierAtLeast } from '$lib/server/packages';
 import type { Actions, PageServerLoad } from './$types';
 
 // The News tab: campaign posts, campaign events, and aggregated external mentions,
 // merged into one feed (was split across /posts and /pr). Broadcasts (medium
 // email/sms/whatsapp) still live under /dashboard/broadcasts.
+//
+// "PR AI Agent: daily news research" is sold as Dominate-only (/pricing). The
+// ingestion pipeline itself (newsIngest.ts) still runs for every verified
+// person — restricting collection would mean re-ingesting a leader's whole
+// history on upgrade, and the crawl/classification cost is trivial next to the
+// per-tier gate that actually matters: whether the mentions surface in THIS
+// tab. So the gate lives here, not in newsIngest.ts.
 const CRISIS_THRESHOLD_24H = 3;
 // Negative-tone mentions in 24h that alone flag a crisis, whatever the volume.
 const NEGATIVE_THRESHOLD_24H = 2;
@@ -32,16 +41,24 @@ export const load: PageServerLoad = async (event) => {
 	const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 	const mentionFilter = and(eq(tags.subjectUserId, ctx.profileUser.id), isNull(tags.deletedAt), isNull(posts.deletedAt));
 
-	const [ownPosts, mentionRows, dayRow, negative24h, eventRows] = await Promise.all([
+	const tier = await getPersonTier(ctx.profileUser.id);
+	const mentionsUnlocked = tierAtLeast(tier, 'dominate');
+
+	const [ownPosts, mentionRows, dayRow, negative24h, eventRows, mentionsCount] = await Promise.all([
 		db.select().from(posts).where(ownPostFilter).orderBy(desc(posts.createdAt)).limit(300),
-		db
-			.select({ tagId: tags.id, post: posts })
-			.from(tags)
-			.innerJoin(posts, eq(tags.postId, posts.id))
-			.where(mentionFilter)
-			.orderBy(desc(posts.createdAt))
-			// Bounded: ingestion adds mentions daily; the feed pages over this set.
-			.limit(300),
+		// Full rows only fetched once unlocked — a locked tab shows counts only
+		// (below), never the actual coverage text, so there's nothing to upsell
+		// around by reading it for free.
+		mentionsUnlocked
+			? db
+					.select({ tagId: tags.id, post: posts })
+					.from(tags)
+					.innerJoin(posts, eq(tags.postId, posts.id))
+					.where(mentionFilter)
+					.orderBy(desc(posts.createdAt))
+					// Bounded: ingestion adds mentions daily; the feed pages over this set.
+					.limit(300)
+			: Promise.resolve([]),
 		db
 			.select({ n: count() })
 			.from(tags)
@@ -60,7 +77,14 @@ export const load: PageServerLoad = async (event) => {
 					.from(events)
 					.where(and(eq(events.campaignId, ctx.campaignId), isNull(events.deletedAt)))
 					.orderBy(desc(events.startAt))
-			: Promise.resolve([])
+			: Promise.resolve([]),
+		// Lifetime mention count — shown on the locked upsell card ("37 mentions
+		// waiting"), cheap enough to always compute regardless of tier.
+		db
+			.select({ n: count() })
+			.from(tags)
+			.where(and(eq(tags.subjectUserId, ctx.profileUser.id), isNull(tags.deletedAt)))
+			.then(([r]) => r.n)
 	]);
 
 	// Team-tagged mentions on each own post (creatorId set — not the system-generated
@@ -194,11 +218,15 @@ export const load: PageServerLoad = async (event) => {
 		activeTag,
 		authorName: fullName(ctx.profileUser),
 		tags: allTags,
+		mentionsUnlocked,
+		mentionsCount,
 		mentions24h: dayRow,
 		negative24h,
 		// Crisis is volume OR tone: a burst of coverage, or several negative
 		// stories even at normal volume — either way, respond before it sets.
-		crisis: dayRow >= CRISIS_THRESHOLD_24H || negative24h >= NEGATIVE_THRESHOLD_24H,
+		// Locked tiers get no crisis banner either — it's part of the same
+		// PR AI Agent feature, not a separate free warning.
+		crisis: mentionsUnlocked && (dayRow >= CRISIS_THRESHOLD_24H || negative24h >= NEGATIVE_THRESHOLD_24H),
 		drafts: ownPosts.filter((p) => !p.public).map((d) => ({ id: d.id, title: d.title })),
 		editTarget
 	};

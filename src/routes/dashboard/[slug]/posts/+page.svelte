@@ -111,6 +111,24 @@
 		</p>
 	</div>
 {/if}
+{#if !data.mentionsUnlocked && data.mentionsCount > 0}
+	<!-- PR AI Agent (mentions, sentiment, crisis alerts) is a Dominate-only
+	feature — the ingestion still runs for every leader, so the count is real,
+	but the coverage itself stays hidden until upgrade. -->
+	<div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface-2 p-5">
+		<div>
+			<p class="font-semibold text-heading">
+				{data.mentionsCount} press mention{data.mentionsCount === 1 ? '' : 's'} found — locked
+			</p>
+			<p class="mt-1 text-sm text-muted">
+				The PR AI Agent (daily news research, sentiment, crisis alerts) is a Dominate feature.
+			</p>
+		</div>
+		<a href="/pricing" class="shrink-0 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95">
+			Upgrade to Dominate
+		</a>
+	</div>
+{/if}
 {#if form?.drafted}
 	<div class="mb-6 rounded-xl bg-primary-soft p-4 text-sm font-medium text-on-primary">Draft response created below.</div>
 {/if}
