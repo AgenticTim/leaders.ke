@@ -326,7 +326,8 @@
 						</button>
 						<p class="text-xs leading-relaxed text-muted">
 							Pledged donations are confirmed by the campaign team once received. M-Pesa STK push
-							coming soon.
+							coming soon. A 5% platform fee applies — see the
+							<a href="/fundraising" class="underline hover:text-heading">fundraising rules</a>.
 						</p>
 					</form>
 				{/if}

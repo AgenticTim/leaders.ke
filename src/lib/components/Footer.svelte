@@ -30,7 +30,8 @@
 				{ href: '/for-leaders', label: 'Run Your Campaign' },
 				{ href: '/onboard/profile', label: 'Get Onboard' },
 				{ href: '/features', label: 'Features' },
-				{ href: '/pricing', label: 'Pricing' }
+				{ href: '/pricing', label: 'Pricing' },
+				{ href: '/fundraising', label: 'Fundraising' },
 			]
 		},
 		{

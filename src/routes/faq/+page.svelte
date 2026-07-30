@@ -94,7 +94,7 @@
 				},
 				{
 					q: 'Are there fundraising fees?',
-					a: 'The platform takes a small percentage per tier on donations, disclosed at the point of donation; the fee is charged once and cut on refunds.'
+					a: 'A flat 5% platform fee on every confirmed donation, the same on every package, disclosed at the point of donation. The fee is not returned on refunds. Full details on the Fundraising Rules page.'
 				},
 				{
 					q: 'Can I be featured on the homepage?',
