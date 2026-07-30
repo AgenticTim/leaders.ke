@@ -21,4 +21,4 @@ export const SRC_PAY_BY_TITLE: Record<string, SrcPay> = {
 };
 
 /** Attribution line for the salary figures, shown alongside the amount. */
-export const SRC_EFFECTIVE = 'SRC, effective 1 July 2024';
+export const SRC_EFFECTIVE = 'effective 1 July 2024';

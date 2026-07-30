@@ -118,14 +118,26 @@ export async function loadSeatHub(position: string, region: string, regimeYear?:
 	});
 
 	// Manifesto delivery rollup for the seat's current holder (same shape the
-	// public leader profile shows), so the hub can score the incumbent.
+	// public leader profile shows), so the hub can score the incumbent. Pillars
+	// hang off the holder's active-cycle campaign keyed by subjectUserId — NOT
+	// campaigns.leaderId, which the seeder never sets (see publicProfile.ts) — so
+	// join through that, and only for the live regime (a past holder's current
+	// manifesto would be an anachronism against a bygone term).
 	let delivery = { total: 0, delivered: 0, inProgress: 0 };
-	if (currentRow) {
+	if (currentRow && isActiveRegime) {
 		const pillarRows = await db
 			.select({ deliveryStatus: pillars.deliveryStatus })
 			.from(pillars)
 			.innerJoin(campaigns, eq(pillars.campaignId, campaigns.id))
-			.where(and(eq(campaigns.leaderId, currentRow.leaders.id), isNull(pillars.deletedAt)));
+			.where(
+				and(
+					eq(campaigns.subjectUserId, currentRow.users.id),
+					eq(campaigns.cycleYear, ACTIVE_CYCLE),
+					isNull(campaigns.parentCampaignId),
+					isNull(campaigns.deletedAt),
+					isNull(pillars.deletedAt)
+				)
+			);
 		delivery = {
 			total: pillarRows.length,
 			delivered: pillarRows.filter((p) => p.deliveryStatus === 'delivered').length,
