@@ -305,7 +305,9 @@
 				isFollowing={data.isFollowing}
 			/>
 
-			<!-- Fundraising -->
+			<!-- Fundraising: the goal + donate form show only when the campaign has set
+			a goal. Without one, the candidate isn't fundraising, so the box says so
+			instead of showing an empty "raised of KES 0". -->
 			<div class="rounded-3xl border border-border bg-surface p-6">
 				<h2 class="text-lg font-bold text-heading">Fund the campaign</h2>
 				{#if data.fundraising.goal > 0}
@@ -318,60 +320,65 @@
 					<div class="mt-2 h-3 overflow-hidden rounded-full bg-surface-2">
 						<div class="h-full rounded-full bg-primary" style="width: {progress}%"></div>
 					</div>
-				{:else}
-					<p class="mt-2 text-sm text-muted">
-						KES {fmt.format(data.fundraising.raised)} raised so far.
-					</p>
-				{/if}
 
-				{#if form?.donated}
-					<div class="mt-3 rounded-2xl bg-primary-soft p-4 text-sm font-medium text-on-primary">
-						{#if form.stk}
-							Asante! Check your phone and enter your M-Pesa PIN to complete the KES
-							{fmt.format(form.amount)} donation.
-						{:else}
-							Asante! Send KES {fmt.format(form.amount)} via M-Pesa to the campaign's till and the team
-							will confirm it.
-						{/if}
-					</div>
-				{:else}
-					<form method="post" action="?/donate" class="mt-3 space-y-2" use:enhance>
-						<input
-							type="text"
-							name="donorName"
-							required
-							value={data.viewerProfile?.name ?? ''}
-							placeholder="Your name"
-							class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-						/>
-						<div class="flex gap-2">
-							<input
-								type="text"
-								name="phone"
-								placeholder="M-Pesa phone (optional)"
-								class="min-w-0 flex-1 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-							/>
-							<input
-								type="number"
-								name="amount"
-								required
-								min="10"
-								placeholder="KES"
-								class="w-24 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-							/>
+					{#if form?.donated}
+						<div class="mt-3 rounded-2xl bg-primary-soft p-4 text-sm font-medium text-on-primary">
+							{#if form.stk}
+								Asante! Check your phone and enter your M-Pesa PIN to complete the KES
+								{fmt.format(form.amount)} donation.
+							{:else}
+								Asante! Send KES {fmt.format(form.amount)} via M-Pesa to the campaign's till and the team
+								will confirm it.
+							{/if}
 						</div>
-						<button
-							type="submit"
-							class="w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95"
-						>
-							Donate
-						</button>
-						<p class="text-xs leading-relaxed text-muted">
-							With your M-Pesa phone, you get a payment prompt on your handset; without it, the
-							campaign team confirms your pledge once received. A 5% platform fee applies — see the
-							<a href="/fundraising" class="underline hover:text-heading">fundraising rules</a>.
-						</p>
-					</form>
+					{:else}
+						<form method="post" action="?/donate" class="mt-3 space-y-2" use:enhance>
+							<div class="flex gap-2">
+								<input
+									type="text"
+									name="donorName"
+									required
+									value={data.viewerProfile?.name ?? ''}
+									placeholder="Your name"
+									class="min-w-0 flex-1 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+								/>
+								<input
+									type="text"
+									name="phone"
+									value={data.viewerProfile?.phone ?? ''}
+									placeholder="M-Pesa phone (optional)"
+									class="min-w-0 flex-1 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+								/>
+							</div>
+							<div class="flex items-center gap-2">
+								<span class="flex-1">Amount, KES</span>
+								<input
+									type="number"
+									name="amount"
+									required
+									min="10"
+									placeholder="KES"
+									class="min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+								/>
+							</div>
+							<button
+								type="submit"
+								class="w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95"
+							>
+								Donate
+							</button>
+							<p class="text-xs leading-relaxed text-muted">
+								With your M-Pesa phone, you get a payment prompt on your handset; without it, the
+								campaign team confirms your pledge once received. A 5% platform fee applies - see
+								the
+								<a href="/fundraising" class="underline hover:text-heading">fundraising rules</a>.
+							</p>
+						</form>
+					{/if}
+				{:else}
+					<p class="mt-2 text-xs text-muted">
+						{leader.name} is not fundraising for this campaign.
+					</p>
 				{/if}
 			</div>
 		</div>

@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { chargeMobileMoney, normalizeMpesaPhone, paystackEnabled } from '$lib/server/paystack';
 import {
+	contacts,
 	creditTransactions,
 	donations,
 	managers,
@@ -34,6 +35,34 @@ import {
 } from '$lib/server/chat';
 import { getPlatformSettings } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
+
+/** A signed-in citizen's own phone (sms preferred, else whatsapp), formatted as
+ * a local 07.../01.. number for prefilling the donate form's M-Pesa field. A
+ * verified number wins over an unverified one. Messy/scraped contacts that
+ * don't parse to a valid Kenyan mobile are skipped rather than prefilled. */
+async function viewerPhone(userId: number): Promise<string | null> {
+	const rows = await db
+		.select({ value: contacts.value, channel: contacts.channel, verifiedAt: contacts.verifiedAt })
+		.from(contacts)
+		.where(
+			and(
+				eq(contacts.userId, userId),
+				inArray(contacts.channel, ['sms', 'whatsapp']),
+				isNull(contacts.deletedAt)
+			)
+		);
+	const sorted = rows.sort((a, b) => {
+		if (!!a.verifiedAt !== !!b.verifiedAt) return a.verifiedAt ? -1 : 1; // verified first
+		return a.channel === 'sms' ? -1 : 1; // then sms over whatsapp
+	});
+	for (const r of sorted) {
+		// normalizeMpesaPhone canonicalizes to +254XXXXXXXXX (or null if invalid);
+		// swap the +254 back to a leading 0 for the familiar local display.
+		const canonical = normalizeMpesaPhone(r.value);
+		if (canonical) return `0${canonical.slice(4)}`;
+	}
+	return null;
+}
 
 // /[leader]/[year]: the active campaign workspace — manifesto with delivery
 // tracker, updates, citizen reviews, vote pledges, fundraising and the AI
@@ -128,9 +157,9 @@ export const load: PageServerLoad = async ({ params, locals, cookies }) => {
 		campaignId: row.campaignId,
 		isPledged,
 		signedIn: !!locals.user,
-		// Lets the Fund block prefill the donor name for a signed-in citizen instead
-		// of asking them to retype it.
-		viewerProfile: viewer ? { name: fullName(viewer) } : null,
+		// Lets the Fund block prefill the donor name AND M-Pesa phone for a signed-in
+		// citizen instead of asking them to retype either (prefer a verified phone).
+		viewerProfile: viewer ? { name: fullName(viewer), phone: await viewerPhone(viewer.id) } : null,
 		pledgeCount: workspace.pledgeCount,
 		fundraising: workspace.fundraising
 	};
@@ -219,8 +248,12 @@ export const actions: Actions = {
 		}
 
 		// Spam guard: open form that can fire an STK push, so cap per IP and per phone.
-		const limit = await enforceRateLimit('donate', [ipBucket(event), phone ? `contact:${phone}` : '']);
-		if (!limit.ok) return fail(429, { error: 'Too many attempts. Please wait a minute and try again.' });
+		const limit = await enforceRateLimit('donate', [
+			ipBucket(event),
+			phone ? `contact:${phone}` : ''
+		]);
+		if (!limit.ok)
+			return fail(429, { error: 'Too many attempts. Please wait a minute and try again.' });
 
 		// Donations attach to the run's main campaign. A verified run already has one;
 		// a held officeholder's is created on first donation.
