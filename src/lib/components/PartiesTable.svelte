@@ -18,7 +18,13 @@
 
 	// Shared by /dashboard/admin/parties (with the Verify/Unverify action column)
 	// and the public /parties directory (read-only — showActions defaults false).
-	let { parties, showActions = false, error }: { parties: Party[]; showActions?: boolean; error?: string } = $props();
+	// onEdit (admin only) adds an Edit button that hands the party id back up.
+	let {
+		parties,
+		showActions = false,
+		error,
+		onEdit
+	}: { parties: Party[]; showActions?: boolean; error?: string; onEdit?: (id: number) => void } = $props();
 
 	const dateFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' });
 	const initialsOf = (name: string) =>
@@ -95,7 +101,7 @@
 </div>
 
 <div class="mt-4 overflow-x-auto rounded-2xl border border-border">
-	<table class="w-full text-sm">
+	<table class="w-full text-sm whitespace-nowrap">
 		<thead class="bg-surface-2 text-left text-xs font-semibold tracking-wide text-muted uppercase">
 			<tr>
 				{#snippet sortable(col: SortCol, label: string)}
@@ -143,16 +149,30 @@
 					</td>
 					{#if showActions}
 						<td class="px-4 py-2.5 text-right">
-							<form method="post" action={party.verifiedAt ? '?/unverify' : '?/verify'} use:enhance>
-								<input type="hidden" name="partyId" value={party.id} />
-								<button
-									type="submit"
-									onclick={(e) => e.stopPropagation()}
-									class="rounded-full border border-border px-3 py-1 text-xs font-semibold text-heading transition hover:bg-surface-2"
-								>
-									{party.verifiedAt ? 'Unverify' : 'Verify'}
-								</button>
-							</form>
+							<div class="flex items-center justify-end gap-2">
+								{#if onEdit}
+									<button
+										type="button"
+										onclick={(e) => {
+											e.stopPropagation();
+											onEdit(party.id);
+										}}
+										class="rounded-full border border-border px-3 py-1 text-xs font-semibold text-heading transition hover:bg-surface-2"
+									>
+										Edit
+									</button>
+								{/if}
+								<form method="post" action={party.verifiedAt ? '?/unverify' : '?/verify'} use:enhance>
+									<input type="hidden" name="partyId" value={party.id} />
+									<button
+										type="submit"
+										onclick={(e) => e.stopPropagation()}
+										class="rounded-full border border-border px-3 py-1 text-xs font-semibold text-heading transition hover:bg-surface-2"
+									>
+										{party.verifiedAt ? 'Unverify' : 'Verify'}
+									</button>
+								</form>
+							</div>
 						</td>
 					{/if}
 				</tr>

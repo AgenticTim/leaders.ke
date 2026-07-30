@@ -7,16 +7,22 @@
 	let {
 		file,
 		aspect,
+		mime = 'image/jpeg',
 		onconfirm,
 		oncancel
 	}: {
 		file: File;
 		/** Locked crop ratio as width / height; omit for free-form. */
 		aspect?: number;
-		/** Receives the cropped image as a File (same name, image/jpeg). */
+		/** Output image type. Default JPEG; pass 'image/png' to keep transparency
+		 * (e.g. a party logo), or 'image/webp'. */
+		mime?: 'image/jpeg' | 'image/png' | 'image/webp';
+		/** Receives the cropped image as a File (same name, `mime` type). */
 		onconfirm: (cropped: File) => void;
 		oncancel: () => void;
 	} = $props();
+
+	const EXT_BY_MIME: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 
 	const url = URL.createObjectURL(file);
 
@@ -85,8 +91,12 @@
 	function confirmCrop() {
 		if (!imgEl) return;
 		// Displayed-space box → natural-resolution pixels, so quality is preserved.
-		const scaleX = imgEl.naturalWidth / imgEl.clientWidth;
-		const scaleY = imgEl.naturalHeight / imgEl.clientHeight;
+		// An SVG with only a viewBox (no width/height) reports naturalWidth 0 — fall
+		// back to the displayed size so it still rasterizes instead of a 0px canvas.
+		const naturalW = imgEl.naturalWidth || imgEl.clientWidth;
+		const naturalH = imgEl.naturalHeight || imgEl.clientHeight;
+		const scaleX = naturalW / imgEl.clientWidth;
+		const scaleY = naturalH / imgEl.clientHeight;
 		const canvas = document.createElement('canvas');
 		canvas.width = Math.max(1, Math.round(rect.w * scaleX));
 		canvas.height = Math.max(1, Math.round(rect.h * scaleY));
@@ -98,9 +108,10 @@
 				if (!blob) return;
 				URL.revokeObjectURL(url);
 				const base = file.name.replace(/\.[^.]+$/, '');
-				onconfirm(new File([blob], `${base}.jpg`, { type: 'image/jpeg' }));
+				const ext = EXT_BY_MIME[mime] ?? 'jpg';
+				onconfirm(new File([blob], `${base}.${ext}`, { type: mime }));
 			},
-			'image/jpeg',
+			mime,
 			0.92
 		);
 	}

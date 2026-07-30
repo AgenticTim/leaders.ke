@@ -53,6 +53,31 @@ export async function saveLeaderDocument(subjectUserId: number, kind: UploadKind
 	return `/uploads/leaders/${subjectUserId}/${filename}`;
 }
 
+const PARTY_LOGO_MIME: Record<string, string> = {
+	'image/png': 'png',
+	'image/jpeg': 'jpg',
+	'image/webp': 'webp',
+	'image/svg+xml': 'svg'
+};
+
+/** Saves a party logo (admin upload) under .uploads/parties/<id>/, returning the
+ * URL to persist on parties.logo. SVG is allowed since ORPP symbols are often
+ * vector; served as a static file via /uploads, never inlined. */
+export async function savePartyLogo(partyId: number, file: File): Promise<string> {
+	if (file.size > MAX_UPLOAD_BYTES) throw new Error('File is larger than 10 MB.');
+	const ext = PARTY_LOGO_MIME[file.type];
+	if (!ext) throw new Error('The logo must be a PNG, JPEG, WebP, or SVG image.');
+
+	const filename = `${randomUUID()}.${ext}`;
+	const localDir = env.STORAGE_LOCAL_DIR || '.uploads';
+	const dir = path.join(process.cwd(), localDir, 'parties', String(partyId));
+	await mkdir(dir, { recursive: true });
+
+	const buffer = Buffer.from(await file.arrayBuffer());
+	await writeFile(path.join(dir, filename), buffer);
+	return `/uploads/parties/${partyId}/${filename}`;
+}
+
 const KNOWLEDGE_MIME: Record<string, string> = {
 	'application/pdf': 'pdf',
 	'text/plain': 'txt',
