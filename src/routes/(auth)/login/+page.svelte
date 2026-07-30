@@ -6,10 +6,8 @@
 	let { data }: { data: PageData } = $props();
 </script>
 
-<AuthCard title="Welcome back" subtitle="Sign in to your vote.ke account">
-	{#if data.notice}
-		<p class="mb-4 rounded-xl bg-primary-soft p-3 text-sm text-on-primary">{data.notice}</p>
-	{/if}
+<AuthCard title="Welcome back" 
+	subtitle={data.notice ? data.notice : "Sign in to your vote.ke account"}>
 	{#if data.inviteBanner}
 		<p class="mb-4 rounded-xl bg-primary-soft p-3 text-sm text-on-primary">
 			You've been invited by {data.inviteBanner.leaderName} to join as

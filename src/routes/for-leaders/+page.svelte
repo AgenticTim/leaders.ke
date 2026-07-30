@@ -150,7 +150,7 @@
 			<!-- Primary action first; a single secondary keeps attention on claiming. -->
 			<div class="mt-8 sm:mt-12 flex flex-wrap gap-2 sm:gap-3">
 				<a
-					href="/onboard/profile"
+					href="/signup?next=%2Fonboard%2Fprofile&message=Sign up to claim your leader page"
 					class="rounded-full bg-primary px-4 py-3 sm:px-6 sm:py-3 font-semibold text-on-primary transition hover:brightness-95 focus:ring-0 focus:ring-ring focus:outline-none"
 				>
 					🚀 Claim your page

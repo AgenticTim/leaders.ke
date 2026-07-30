@@ -39,7 +39,10 @@ export const load: PageServerLoad = async (event) => {
 	// The flash notice explains why they landed here (e.g. "log in to claim a
 	// profile"). hooks only peeks it on /login and /signup, so it survives
 	// switching between the two forms; the action clears it on success.
-	const notice = event.locals.flash ?? null;
+	// ?message= lets any link explain the ask inline (e.g. the for-leaders CTA:
+	// /signup?next=/onboard/profile&message=...). Plain text, length-capped —
+	// it renders as our own banner, so never let a crafted URL turn it into an essay.
+	const notice = event.locals.flash ?? event.url.searchParams.get('message')?.slice(0, 160) ?? null;
 
 	return { next, inviteBanner, lockedEmail, ballotIntent, notice, googleEnabled: googleAuthEnabled };
 };

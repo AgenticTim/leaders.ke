@@ -8,11 +8,8 @@
 
 <AuthCard
 	title="Create your account"
-	subtitle={data.ballotIntent ? 'And see how your leaders performed' : 'And simulate your 2027 vote'}
+	subtitle={data.notice ? data.notice : data.ballotIntent ? 'And see how your leaders performed' : 'And simulate your 2027 vote'}
 >
-	{#if data.notice}
-		<p class="mb-4 rounded-xl bg-primary-soft p-3 text-sm text-on-primary">{data.notice}</p>
-	{/if}
 	{#if data.inviteBanner}
 		<p class="mb-4 rounded-xl bg-primary-soft p-3 text-sm text-on-primary">
 			You've been invited by {data.inviteBanner.leaderName} to join as

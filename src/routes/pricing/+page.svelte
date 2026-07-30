@@ -283,15 +283,13 @@
 					{/each}
 				</ul>
 
-				<!-- Revealed under the hovered/active package -->
+				<!-- Always visible: the active package gets the filled button, the
+				others an outline that fills on hover. -->
 				<a
 					href="/onboard/profile"
-					tabindex={active === t ? 0 : -1}
-					aria-hidden={active === t ? undefined : 'true'}
-					class="mt-6 rounded-full bg-primary px-4 py-2.5 text-center font-semibold text-on-primary transition-all duration-300 hover:brightness-95 focus:ring-0 focus:ring-ring focus:outline-none {active ===
-					t
-						? 'translate-y-0 opacity-100'
-						: 'pointer-events-none translate-y-1 opacity-0'}"
+					class="mt-6 rounded-full border px-4 py-2.5 text-center font-semibold transition-all duration-300 focus:ring-0 focus:ring-ring focus:outline-none {active === t
+						? 'border-primary bg-primary text-on-primary hover:brightness-95'
+						: 'border-primary bg-surface text-primary hover:bg-primary hover:text-on-primary'}"
 				>
 					Get started
 				</a>
