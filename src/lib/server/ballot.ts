@@ -3,9 +3,9 @@
 // for office, not held terms. ACTIVE_CYCLE (2027) is the cycle this ballot covers.
 import { randomBytes } from 'node:crypto';
 import type { RequestEvent } from '@sveltejs/kit';
-import { and, eq, isNull, isNotNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull, isNotNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { ballotSimulations, campaigns, parties, positions, users } from '$lib/server/db/schema';
+import { ballotSimulations, campaigns, leaders, parties, positions, users } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, getDomainUser, leaderPath } from '$lib/server/leader';
 import type { County, Constituency, Ward } from '$lib/data/geo';
 
@@ -94,6 +94,25 @@ function toCandidate(row: {
 	};
 }
 
+/** A person's current-term party, keyed by user id — the fallback when a 2027 run
+ * carries no partyId of its own (most seeded runs don't; an incumbent runs under
+ * their current party by default until they declare otherwise). Most recent
+ * current term wins if somehow more than one. */
+async function currentTermPartyByUser(userIds: number[]): Promise<Map<number, string>> {
+	if (!userIds.length) return new Map();
+	const rows = await db
+		.select({ userId: leaders.userId, partyName: parties.name, startAt: leaders.startAt })
+		.from(leaders)
+		.innerJoin(parties, eq(leaders.partyId, parties.id))
+		.where(and(inArray(leaders.userId, userIds), eq(leaders.status, 'current'), isNull(leaders.deletedAt)));
+	const best = new Map<number, { name: string; startAt: Date }>();
+	for (const r of rows) {
+		const cur = best.get(r.userId);
+		if (!cur || r.startAt > cur.startAt) best.set(r.userId, { name: r.partyName, startAt: r.startAt });
+	}
+	return new Map([...best].map(([id, v]) => [id, v.name]));
+}
+
 /** Verified 2027 runs (campaigns) for one position title + exact region name. */
 async function verifiedCampaignsFor(title: string, region: string): Promise<Candidate[]> {
 	const rows = await db
@@ -113,7 +132,9 @@ async function verifiedCampaignsFor(title: string, region: string): Promise<Cand
 				isNull(users.deletedAt)
 			)
 		);
-	return rows.map(toCandidate);
+	// Fill a missing run-party from the candidate's current-term party.
+	const fallback = await currentTermPartyByUser(rows.filter((r) => !r.partyName).map((r) => r.users.id));
+	return rows.map((r) => toCandidate({ ...r, partyName: r.partyName ?? fallback.get(r.users.id) ?? null }));
 }
 
 /**
@@ -181,7 +202,9 @@ export async function resolveCandidateById(candidateId: string | null): Promise<
 			.innerJoin(users, eq(campaigns.subjectUserId, users.id))
 			.leftJoin(parties, eq(campaigns.partyId, parties.id))
 			.where(and(eq(campaigns.id, id), isNull(campaigns.deletedAt)));
-		return row ? toCandidate(row) : null;
+		if (!row) return null;
+		const partyName = row.partyName ?? (await currentTermPartyByUser([row.users.id])).get(row.users.id) ?? null;
+		return toCandidate({ ...row, partyName });
 	}
 
 	if (candidateId.startsWith('person:')) {
