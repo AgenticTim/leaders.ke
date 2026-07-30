@@ -64,6 +64,58 @@
 			</button>
 		</form>
 
+		<!-- Treasurer report: reconciliation totals + payout math, with the same
+		numbers downloadable as CSV for the campaign's books. -->
+		<div class="mt-6 rounded-2xl border border-border bg-surface p-5">
+			<div class="flex flex-wrap items-center justify-between gap-2">
+				<h3 class="font-semibold text-heading">Treasurer report</h3>
+				<a
+					href="fundraising/report"
+					download
+					class="rounded-full border border-border px-3.5 py-1.5 text-xs font-semibold text-muted transition hover:bg-surface-2 hover:text-heading"
+				>
+					Download CSV
+				</a>
+			</div>
+
+			<dl class="mt-4 space-y-2 text-sm">
+				<div class="flex justify-between gap-4">
+					<dt class="text-muted">Gross confirmed ({data.treasurer.counts.confirmed})</dt>
+					<dd class="font-medium tabular-nums text-heading">KES {fmt.format(data.treasurer.grossConfirmed)}</dd>
+				</div>
+				<div class="flex justify-between gap-4">
+					<dt class="text-muted">
+						Platform fee ({Math.round(data.treasurer.feeRate * 100)}%,
+						<a href="/fundraising" class="underline hover:text-heading">rules</a>)
+					</dt>
+					<dd class="font-medium tabular-nums text-heading">− KES {fmt.format(data.treasurer.platformFee)}</dd>
+				</div>
+				<div class="flex justify-between gap-4 border-t border-border pt-2">
+					<dt class="font-semibold text-heading">Net payable to campaign</dt>
+					<dd class="font-bold tabular-nums text-primary">KES {fmt.format(data.treasurer.netPayable)}</dd>
+				</div>
+			</dl>
+
+			<dl class="mt-4 space-y-1.5 border-t border-border pt-3 text-xs text-muted">
+				<div class="flex justify-between gap-4">
+					<dt>Via M-Pesa STK ({data.treasurer.channels.mpesaStk.count})</dt>
+					<dd class="tabular-nums">KES {fmt.format(data.treasurer.channels.mpesaStk.amount)}</dd>
+				</div>
+				<div class="flex justify-between gap-4">
+					<dt>Confirmed manually ({data.treasurer.channels.manual.count})</dt>
+					<dd class="tabular-nums">KES {fmt.format(data.treasurer.channels.manual.amount)}</dd>
+				</div>
+				<div class="flex justify-between gap-4">
+					<dt>Awaiting confirmation ({data.treasurer.counts.pending})</dt>
+					<dd class="tabular-nums">KES {fmt.format(data.treasurer.amounts.pending)}</dd>
+				</div>
+				<div class="flex justify-between gap-4">
+					<dt>Failed ({data.treasurer.counts.failed})</dt>
+					<dd class="tabular-nums">KES {fmt.format(data.treasurer.amounts.failed)}</dd>
+				</div>
+			</dl>
+		</div>
+
 		<div class="mt-6 rounded-2xl bg-surface-2 p-4 text-sm leading-relaxed text-muted">
 			Donors currently pledge on your public page and pay via M-Pesa directly; confirm each
 			donation against your statement below. Automatic M-Pesa STK push arrives with the payments

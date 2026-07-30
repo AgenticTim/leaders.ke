@@ -4,6 +4,7 @@ import { db } from '$lib/server/db';
 import { campaigns, donations } from '$lib/server/db/schema';
 import { requireLeader } from '$lib/server/dashboard';
 import { redirectWithFlash } from '$lib/server/flash';
+import { buildTreasurerSummary } from '$lib/server/fundraising';
 import { fullName, getOrCreateRunCampaign } from '$lib/server/leader';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -34,6 +35,9 @@ export const load: PageServerLoad = async (event) => {
 	return {
 		goal: campaign.fundraisingGoal,
 		raised: Number(confirmedRow.total ?? 0),
+		// Treasurer reconciliation: status/channel totals + payout math (5% fee),
+		// mirrored row-for-row by the CSV at ./fundraising/report.
+		treasurer: buildTreasurerSummary(rows),
 		donations: rows.map((d) => ({
 			id: d.id,
 			donorName: d.donorName,
