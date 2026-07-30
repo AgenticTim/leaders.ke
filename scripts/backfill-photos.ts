@@ -20,11 +20,14 @@ const TARGET_BYTES = 50 * 1024;
 const SIZE = 320;
 
 // Source filename in ../backfills -> the DB slug it belongs to. example-leader.png
-// is a placeholder and deliberately absent.
+// is handled separately below: seed-admin-fixture.ts creates that user AFTER the
+// seed pipeline's own photo-assignment phases have already run, so pointing it at
+// a plain users.slug lookup here would only work post-hoc, never on a fresh seed.
 const FILE_TO_SLUG: Record<string, string> = {
 	'Peter Gatirau Munya.png': 'peter-gatirau-munya',
 	'kiraitu-murungi.jpeg': 'kiraitu-murungi',
-	'mwai-kibaki.png': 'emilio-mwai-kibaki'
+	'mwai-kibaki.png': 'emilio-mwai-kibaki',
+	'franklin-mithika-linturi.png': 'franklin-mithika-linturi'
 };
 
 /** Center-cropped square (horizontal), top-anchored vertically -> 320px -> JPEG

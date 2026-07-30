@@ -9,17 +9,22 @@
 //   stays a clean admin; it just gets a `managers` row on the profile, which is what the
 //   dashboard role switcher reads ("Managing: Example Leader") — ownership alone never
 //   surfaces there.
-// - Kept UNVERIFIED on purpose (verifiedAt stays null on every leaders row): the public
-//   route gate (`/[leader]/+page.server.ts`) 404s unverified profiles for everyone but a
-//   platform admin, and every public listing (leaders grid, seat hubs, /vote ballot,
-//   search, quick-search) already filters to verifiedAt IS NOT NULL. So the profile is
-//   visible ONLY to a signed-in admin, with zero new columns or query changes.
+// - The profile page itself is public regardless of verifiedAt (every non-deactivated
+//   profile is; see publicProfile.ts) — verifiedAt only gates whether a leaders row
+//   surfaces in a LISTING (directory grids, seat hubs, era browsing). Its two leaders
+//   rows (former Nairobi Governor, former Nairobi Senator) ARE verified, on purpose,
+//   so those listings have a verified-badge example to exercise. The 2027 campaign
+//   stays UNVERIFIED: that keeps it out of every campaign-gated surface (the ballot,
+//   candidate lookups, seat-hub "contesting" lists, news ingestion), so the demo run
+//   never pollutes the live 2027 race even though the held-office history is real.
 // - The dummy leader/citizens/manager all get real logins (password DUMMY_PASSWORD, emails
 //   logged) so their side of the review/team flows can be tested too.
 //
 // Fully idempotent: every insert guards on an existing row, so re-running (a partial
 // `--admin-fixture` phase or a full reseed) backfills without duplicating.
 import { randomUUID } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { and, eq, isNull } from 'drizzle-orm';
 import { hashPassword } from 'better-auth/crypto';
 import {
@@ -51,6 +56,12 @@ const BIO =
 const LOREM_LINE =
 	'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.';
 
+// This user is created AFTER the seed pipeline's own photo-assignment phases
+// (seed-photos.ts) have already run, so it can never pick up a shipped photo the
+// way a real scraped person does — set it directly here instead, whenever the
+// git-tracked file exists, so a full reseed always leaves the fixture with one.
+const PHOTO_PATH = join(import.meta.dir, '..', '..', 'static', 'leaders', `${LEADER_SLUG}.jpg`);
+
 /** Position id for a (title, region) seat, or null if the positions phase hasn't run. */
 async function positionId(db: AnyDb, title: string, region: string): Promise<number | null> {
 	const [p] = await db
@@ -60,7 +71,8 @@ async function positionId(db: AnyDb, title: string, region: string): Promise<num
 	return p?.id ?? null;
 }
 
-/** Insert-or-find a leaders row for this person+seat+status (verifiedAt stays null). */
+/** Insert-or-find a leaders row for this person+seat+status, verified on purpose
+ * (see the module comment) so it exercises a verified-badge/listing example. */
 async function ensureLeader(
 	db: AnyDb,
 	userId: number,
@@ -74,10 +86,14 @@ async function ensureLeader(
 		.select({ id: leaders.id })
 		.from(leaders)
 		.where(and(eq(leaders.userId, userId), eq(leaders.positionId, posId), eq(leaders.status, status), isNull(leaders.deletedAt)));
-	if (existing) return existing.id;
+	if (existing) {
+		// Backfills a verifiedAt onto a row created before this fixture was verified.
+		await db.update(leaders).set({ verifiedAt: new Date() }).where(and(eq(leaders.id, existing.id), isNull(leaders.verifiedAt)));
+		return existing.id;
+	}
 	const [row] = await db
 		.insert(leaders)
-		.values({ userId, positionId: posId, status, startAt, endAt, verifiedAt: null, description })
+		.values({ userId, positionId: posId, status, startAt, endAt, verifiedAt: new Date(), description })
 		.returning({ id: leaders.id });
 	return row.id;
 }
@@ -131,12 +147,18 @@ export async function seedAdminFixture(db: AnyDb) {
 	const leaderUserId = await getOrCreateDummyUser(db, LEADER_NAME, LEADER_EMAIL, LEADER_SLUG);
 	await db
 		.update(users)
-		.set({ bio: BIO, address: 'City Hall, Nairobi', socials: { twitter: 'https://twitter.com/leaders_ke' } })
+		.set({
+			bio: BIO,
+			address: 'City Hall, Nairobi',
+			socials: { twitter: 'https://twitter.com/leaders_ke' },
+			...(existsSync(PHOTO_PATH) ? { photoUrl: `/leaders/${LEADER_SLUG}.jpg` } : {})
+		})
 		.where(eq(users.id, leaderUserId));
 
-	// Seats. Held Nairobi Governor and Nairobi Senator in prior regimes (leaders rows);
-	// vying for Nairobi Governor again in 2027 — that run is a campaign, not a leaders
-	// row (see the manifesto block below). The whole fixture stays unverified/admin-only.
+	// Seats. Held Nairobi Governor and Nairobi Senator in prior regimes (leaders rows,
+	// verified — see module comment); vying for Nairobi Governor again in 2027 — that
+	// run is a campaign, not a leaders row (see the manifesto block below), and stays
+	// unverified so the demo run itself never surfaces on any campaign-gated surface.
 	await ensureLeader(db, leaderUserId, govId, 'former', new Date('2013-08-27T00:00:00+03:00'), new Date('2017-08-08T00:00:00+03:00'), null);
 	await ensureLeader(db, leaderUserId, senId, 'former', new Date('2017-08-08T00:00:00+03:00'), new Date('2022-08-09T00:00:00+03:00'), null);
 
@@ -188,7 +210,7 @@ export async function seedAdminFixture(db: AnyDb) {
 	if (!campaign) {
 		[campaign] = await db
 			.insert(campaigns)
-			.values({ creatorId: leaderUserId, subjectUserId: leaderUserId, leaderId: null, positionId: govId, cycleYear: 2027, title: 'Nairobi Forward', description: BIO })
+			.values({ creatorId: leaderUserId, subjectUserId: leaderUserId, leaderId: null, positionId: govId, cycleYear: 2027, title: 'Example Campaign: Nairobi Forward 2027', description: BIO })
 			.returning({ id: campaigns.id });
 	}
 	const pillarRows = [
@@ -329,5 +351,5 @@ export async function seedAdminFixture(db: AnyDb) {
 			.values({ userId: leaderUserId, digest: 'leader', digestId: leaderUserId, county: 'Nairobi', email: true, sms: false, whatsapp: false });
 	}
 
-	console.log(`[admin-fixture] seeded demo leader /${LEADER_SLUG} (admin-managed, unverified) + citizens/manager (login pw: ${DUMMY_PASSWORD})`);
+	console.log(`[admin-fixture] seeded demo leader /${LEADER_SLUG} (admin-managed, verified profile, unverified 2027 campaign) + citizens/manager (login pw: ${DUMMY_PASSWORD})`);
 }
