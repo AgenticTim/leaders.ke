@@ -40,6 +40,7 @@ import {
 	positions,
 	posts,
 	reviews,
+	subscriptions,
 	tags,
 	users
 } from '../../src/lib/server/db/schema';
@@ -272,6 +273,70 @@ export async function seedAdminFixture(db: AnyDb) {
 				.where(and(eq(tags.postId, post.id), eq(tags.subjectUserId, leaderUserId), isNull(tags.deletedAt)));
 			if (!tag) await db.insert(tags).values({ creatorId: leaderUserId, postId: post.id, subjectUserId: leaderUserId });
 		}
+	}
+
+	// Dominate-tier subscription: exercises every Dominate-gated dashboard feature
+	// (Competitors tab sentiment breakdown, voter heatmap, news source control)
+	// from the demo profile, the same way the fixture already exercises verified
+	// badges and flagged reviews. Self-paid (payerId = leaderUserId), matching a
+	// candidate who subscribes for themselves.
+	const [existingSub] = await db
+		.select({ id: subscriptions.id })
+		.from(subscriptions)
+		.where(and(eq(subscriptions.subjectUserId, leaderUserId), eq(subscriptions.status, 'active')));
+	if (!existingSub) {
+		await db.insert(subscriptions).values({
+			subjectUserId: leaderUserId,
+			payerId: leaderUserId,
+			tier: 'dominate',
+			billingCycle: 'annual',
+			amount: 500_000,
+			paidAt: new Date(),
+			status: 'active',
+			startAt: new Date(),
+			endsAt: new Date('2027-12-31T00:00:00+03:00'),
+			paymentMethod: 'mpesa',
+			paymentReference: `DEMO-${LEADER_SLUG}`
+		});
+	}
+
+	// Aggregated news coverage (the same shape newsIngest.ts produces — a null-
+	// creator post + a tags row per mentioned person) so the Competitors tab's
+	// Sentiment Intelligence Suite has a real positive/neutral/negative mix to
+	// chart for this demo profile instead of an empty "No coverage yet" bar.
+	const coverageRows = [
+		{ title: 'Example Leader unveils Wajir water pipeline progress', sentiment: 'positive' as const },
+		{ title: 'Wajir residents praise Example Leader housing bill push', sentiment: 'positive' as const },
+		{ title: 'Example Leader tours drought-hit wards, pledges relief funds', sentiment: 'positive' as const },
+		{ title: 'Example Leader attends county budget review meeting', sentiment: 'neutral' as const },
+		{ title: 'Example Leader responds to questions on stalled road project', sentiment: 'neutral' as const },
+		{ title: 'Critics accuse Example Leader of slow pace on water pipeline', sentiment: 'negative' as const }
+	];
+	for (const [i, cr] of coverageRows.entries()) {
+		const sourceUrl = `https://example.com/demo-coverage/${LEADER_SLUG}-${i}`;
+		let [post] = await db.select({ id: posts.id }).from(posts).where(and(eq(posts.sourceUrl, sourceUrl), isNull(posts.deletedAt)));
+		if (!post) {
+			[post] = await db
+				.insert(posts)
+				.values({
+					subjectUserId: leaderUserId,
+					title: cr.title,
+					body: LOREM_LINE,
+					sourceUrl,
+					medium: 'web',
+					sentiment: cr.sentiment,
+					approved: true,
+					public: true
+				})
+				.onConflictDoNothing({ target: posts.sourceUrl })
+				.returning({ id: posts.id });
+		}
+		if (!post) continue;
+		const [tag] = await db
+			.select({ id: tags.id })
+			.from(tags)
+			.where(and(eq(tags.postId, post.id), eq(tags.subjectUserId, leaderUserId), isNull(tags.deletedAt)));
+		if (!tag) await db.insert(tags).values({ postId: post.id, subjectUserId: leaderUserId });
 	}
 
 	// Reviews: one self-review (public), one citizen public review, one flagged/hidden
