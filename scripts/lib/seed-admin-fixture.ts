@@ -12,7 +12,7 @@
 // - The profile page itself is public regardless of verifiedAt (every non-deactivated
 //   profile is; see publicProfile.ts) — verifiedAt only gates whether a leaders row
 //   surfaces in a LISTING (directory grids, seat hubs, era browsing). Its two leaders
-//   rows (former Nairobi Governor, former Nairobi Senator) ARE verified, on purpose,
+//   rows (former Wajir Governor, former Wajir Senator) ARE verified, on purpose,
 //   so those listings have a verified-badge example to exercise. The 2027 campaign
 //   stays UNVERIFIED: that keeps it out of every campaign-gated surface (the ballot,
 //   candidate lookups, seat-hub "contesting" lists, news ingestion), so the demo run
@@ -135,10 +135,10 @@ export async function seedAdminFixture(db: AnyDb) {
 		return;
 	}
 
-	const govId = await positionId(db, 'Governor', 'Nairobi');
-	const senId = await positionId(db, 'Senator', 'Nairobi');
+	const govId = await positionId(db, 'Governor', 'Wajir');
+	const senId = await positionId(db, 'Senator', 'Wajir');
 	if (!govId || !senId) {
-		console.warn('[admin-fixture] Nairobi Governor/Senator positions missing (run the positions phase first), skipping');
+		console.warn('[admin-fixture] Wajir Governor/Senator positions missing (run the positions phase first), skipping');
 		return;
 	}
 
@@ -149,18 +149,18 @@ export async function seedAdminFixture(db: AnyDb) {
 		.update(users)
 		.set({
 			bio: BIO,
-			address: 'City Hall, Nairobi',
+			address: 'City Hall, Wajir',
 			socials: { twitter: 'https://twitter.com/leaders_ke' },
 			...(existsSync(PHOTO_PATH) ? { photoUrl: `/leaders/${LEADER_SLUG}.jpg` } : {})
 		})
 		.where(eq(users.id, leaderUserId));
 
-	// Seats. Held Nairobi Governor and Nairobi Senator in prior regimes (leaders rows,
-	// verified — see module comment); vying for Nairobi Governor again in 2027 — that
+	// Seats. Held Wajir Governor and Wajir Senator in prior regimes (leaders rows,
+	// verified — see module comment); vying for Wajir Governor again in 2027 — that
 	// run is a campaign, not a leaders row (see the manifesto block below), and stays
 	// unverified so the demo run itself never surfaces on any campaign-gated surface.
-	await ensureLeader(db, leaderUserId, govId, 'former', new Date('2013-08-27T00:00:00+03:00'), new Date('2017-08-08T00:00:00+03:00'), null);
-	await ensureLeader(db, leaderUserId, senId, 'former', new Date('2017-08-08T00:00:00+03:00'), new Date('2022-08-09T00:00:00+03:00'), null);
+	await ensureLeader(db, leaderUserId, govId, 'former', new Date('2003-08-27T00:00:00+03:00'), new Date('2007-08-08T00:00:00+03:00'), null);
+	await ensureLeader(db, leaderUserId, senId, 'former', new Date('2007-08-08T00:00:00+03:00'), new Date('2012-08-09T00:00:00+03:00'), null);
 
 	// Contacts (marked verified so the "Verified" chip renders on the profile).
 	for (const c of [
@@ -172,7 +172,7 @@ export async function seedAdminFixture(db: AnyDb) {
 
 	// Education + professional history belongs to the person (spans every term/run).
 	const expRows = [
-		{ type: 'education' as const, title: 'Bachelor of Laws (LLB)', institution: 'University of Nairobi', from: '2004-09-01', to: '2008-06-01' },
+		{ type: 'education' as const, title: 'Bachelor of Laws (LLB)', institution: 'University of Wajir', from: '2004-09-01', to: '2008-06-01' },
 		{ type: 'education' as const, title: 'Master of Public Policy', institution: 'Strathmore University', from: '2009-09-01', to: '2011-06-01' },
 		{ type: 'professional' as const, title: 'Managing Partner', institution: 'Lorem & Ipsum Advocates', from: '2011-07-01', to: '2013-08-01' },
 		{ type: 'professional' as const, title: 'Board Chairperson', institution: 'Dolor Sit Foundation', from: '2018-01-01', to: null }
@@ -210,7 +210,7 @@ export async function seedAdminFixture(db: AnyDb) {
 	if (!campaign) {
 		[campaign] = await db
 			.insert(campaigns)
-			.values({ creatorId: leaderUserId, subjectUserId: leaderUserId, leaderId: null, positionId: govId, cycleYear: 2027, title: 'Example Campaign: Nairobi Forward 2027', description: BIO })
+			.values({ creatorId: leaderUserId, subjectUserId: leaderUserId, leaderId: null, positionId: govId, cycleYear: 2027, title: 'Example Campaign: Wajir Forward 2027', description: BIO })
 			.returning({ id: campaigns.id });
 	}
 	const pillarRows = [
@@ -239,7 +239,7 @@ export async function seedAdminFixture(db: AnyDb) {
 	// Web posts on the leading term: the newest drives the profile's "Latest post"
 	// pointer, and one is tagged to the leader so the "In the news" block populates.
 	const postRows = [
-		{ title: 'My plan for Nairobi water', body: BIO, news: false },
+		{ title: 'My plan for Wajir water', body: BIO, news: false },
 		{ title: 'Example Leader tables affordable-housing bill', body: BIO, news: true }
 	];
 	for (const pr of postRows) {
@@ -348,7 +348,7 @@ export async function seedAdminFixture(db: AnyDb) {
 	if (!existingFollow) {
 		await db
 			.insert(followers)
-			.values({ userId: leaderUserId, digest: 'leader', digestId: leaderUserId, county: 'Nairobi', email: true, sms: false, whatsapp: false });
+			.values({ userId: leaderUserId, digest: 'leader', digestId: leaderUserId, county: 'Wajir', email: true, sms: false, whatsapp: false });
 	}
 
 	console.log(`[admin-fixture] seeded demo leader /${LEADER_SLUG} (admin-managed, verified profile, unverified 2027 campaign) + citizens/manager (login pw: ${DUMMY_PASSWORD})`);
