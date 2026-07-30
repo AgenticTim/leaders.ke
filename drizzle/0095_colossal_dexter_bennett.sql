@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "news_source_allowlist" jsonb DEFAULT 'null'::jsonb;

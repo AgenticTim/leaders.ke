@@ -1,6 +1,13 @@
 {
-	"$comment": "pricing-v2 (leaders.ke-pricing-v2.csv): one flat rate per tier, every office costs the same. Prices in KES; annual = 10 x monthly (2 months free). Caps: null = unlimited. creditsPerMonth funds metered broadcast sends (SMS = 1 credit, WhatsApp = 5 credits). knowledgeMb caps total Knowledge-tab text (docs/ai-chat-costs.md). analytics/prAiAgent/voterHeatmap/sentimentSuite are on/off perks shown as ✓/— on /pricing.",
-	"kickstart": { "monthly": 2500, "annual": 25000, "managers": 2, "ambassadors": 10, "subscriptions": 10000, "creditsPerMonth": 500, "knowledgeMb": 10, "analytics": false, "prAiAgent": false, "voterHeatmap": false, "sentimentSuite": false },
-	"mobilize": { "monthly": 12500, "annual": 125000, "managers": 5, "ambassadors": 100, "subscriptions": 100000, "creditsPerMonth": 3000, "knowledgeMb": 50, "analytics": true, "prAiAgent": false, "voterHeatmap": false, "sentimentSuite": false },
-	"dominate": { "monthly": 50000, "annual": 500000, "managers": null, "ambassadors": null, "subscriptions": null, "creditsPerMonth": 15000, "knowledgeMb": 100, "analytics": true, "prAiAgent": true, "voterHeatmap": true, "sentimentSuite": true }
+	"$comment": "pricing-v2 (leaders.ke-pricing-v2.csv): one flat rate per tier, every office costs the same. Prices in KES; annual = 10 x monthly (2 months free). Caps: null = unlimited. creditsPerMonth funds metered broadcast sends (SMS = 1 credit, WhatsApp = 5 credits). knowledgeMb caps total Knowledge-tab text (docs/ai-chat-costs.md). analytics/prAiAgent/voterHeatmap/sentimentSuite/newsSourceControl are on/off perks shown as ✓/— on /pricing; perkLabels below is their single-source-of-truth display text, read by /pricing, /dashboard/admin/packages, and $lib/server/packages.ts alike.",
+	"kickstart": { "monthly": 2500, "annual": 25000, "managers": 2, "ambassadors": 10, "subscriptions": 10000, "creditsPerMonth": 500, "knowledgeMb": 10, "analytics": false, "prAiAgent": false, "voterHeatmap": false, "sentimentSuite": false, "newsSourceControl": false },
+	"mobilize": { "monthly": 12500, "annual": 125000, "managers": 5, "ambassadors": 100, "subscriptions": 100000, "creditsPerMonth": 3000, "knowledgeMb": 50, "analytics": true, "prAiAgent": true, "voterHeatmap": false, "sentimentSuite": false, "newsSourceControl": false },
+	"dominate": { "monthly": 50000, "annual": 500000, "managers": null, "ambassadors": null, "subscriptions": null, "creditsPerMonth": 15000, "knowledgeMb": 100, "analytics": true, "prAiAgent": true, "voterHeatmap": true, "sentimentSuite": true, "newsSourceControl": true },
+	"perkLabels": {
+		"analytics": "Analytics: page views, conversions, pledges",
+		"prAiAgent": "PR AI Agent for daily news research & response drafts",
+		"newsSourceControl": "Control your news: filter platforms that can tag you in news to avoid biased reporting",
+		"sentimentSuite": "Sentiment Intelligence Suite: distinguish media coverage that is helping vs hurting your campaign and that of your rivals",
+		"voterHeatmap": "Voter heatmap per ward: see where the numbers can tilt the outcome of the vote."
+	}
 }

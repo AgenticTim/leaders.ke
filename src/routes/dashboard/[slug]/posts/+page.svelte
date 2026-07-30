@@ -112,21 +112,67 @@
 	</div>
 {/if}
 {#if !data.mentionsUnlocked && data.mentionsCount > 0}
-	<!-- PR AI Agent (mentions, sentiment, crisis alerts) is a Dominate-only
-	feature — the ingestion still runs for every leader, so the count is real,
-	but the coverage itself stays hidden until upgrade. -->
+	<!-- PR AI Agent (mentions, sentiment, crisis alerts) is a Mobilize+ perk —
+	the ingestion still runs for every leader, so the count is real, but the
+	coverage itself stays hidden until upgrade. -->
 	<div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface-2 p-5">
 		<div>
 			<p class="font-semibold text-heading">
 				{data.mentionsCount} press mention{data.mentionsCount === 1 ? '' : 's'} found — locked
 			</p>
 			<p class="mt-1 text-sm text-muted">
-				The PR AI Agent (daily news research, sentiment, crisis alerts) is a Dominate feature.
+				The PR AI Agent (daily news research, sentiment, crisis alerts) is a Mobilize/Dominate feature.
 			</p>
 		</div>
 		<a href="/pricing" class="shrink-0 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95">
-			Upgrade to Dominate
+			Upgrade
 		</a>
+	</div>
+{/if}
+{#if data.mentionsUnlocked}
+	<!-- News source picker: Dominate-only (packages.features.newsSourceControl).
+	Mobilize sees the mentions feed but not this control — every source is
+	allowed to tag them, same as everyone below Dominate. -->
+	<div class="mb-6 rounded-2xl border border-border bg-surface p-5">
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<div>
+				<p class="font-semibold text-heading">News sources</p>
+				<p class="mt-1 text-sm text-muted">Which outlets are allowed to tag you in a mention.</p>
+			</div>
+			{#if !data.sourceControlUnlocked}
+				<a href="/pricing" class="shrink-0 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95">
+					Upgrade to Dominate
+				</a>
+			{/if}
+		</div>
+		{#if data.sourceControlUnlocked}
+			{#if form?.sourcesSaved}
+				<p class="mt-2 text-xs font-medium text-primary">Saved.</p>
+			{/if}
+			<form
+				method="post"
+				action="?/setNewsSources"
+				use:enhance
+				class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2"
+			>
+				{#each Object.entries(data.newsSourceOptions) as [id, source] (id)}
+					<label class="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm">
+						<input
+							type="checkbox"
+							name={id}
+							value="true"
+							checked={data.newsSourceAllowlist === null || data.newsSourceAllowlist.includes(id)}
+							onchange={(e) => (e.currentTarget.form as HTMLFormElement).requestSubmit()}
+							class="size-4 shrink-0 rounded border-border text-primary focus:ring-0 focus:ring-ring"
+						/>
+						<input type="hidden" name={id} value="false" />
+						<span class="text-heading">{source.label}</span>
+					</label>
+				{/each}
+			</form>
+		{:else}
+			<p class="mt-3 text-sm text-muted">Every reputable source is currently allowed to mention you.</p>
+		{/if}
 	</div>
 {/if}
 {#if form?.drafted}

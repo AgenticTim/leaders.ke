@@ -1,20 +1,17 @@
 <script lang="ts">
 	import Countdown from "$lib/components/Countdown.svelte";
 	import WordCycler from '$lib/components/WordCycler.svelte';
+	import packageData from '$lib/data/packages.json';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
-	// Mirrors $lib/server/packages.ts's PACKAGE_PERK_KEYS/PERK_LABELS — kept as a
-	// plain client-side list (that module is server-only) but the KEYS must
-	// match packages.features exactly, since data.packages comes from there.
-	const PACKAGE_PERK_KEYS = ['analytics', 'prAiAgent', 'sentimentSuite', 'voterHeatmap'] as const;
-	const PERK_LABELS: Record<(typeof PACKAGE_PERK_KEYS)[number], string> = {
-		analytics: 'Analytics: page views, conversions, pledges',
-		prAiAgent: 'PR AI Agent for daily news research & response drafts',
-		sentimentSuite: 'Sentiment Intelligence suite: campaign, competition',
-		voterHeatmap: 'Voter heatmap per ward'
-	};
+	// The key ORDER is literal here (drives iteration + matches packages.features'
+	// shape); the LABEL text itself comes from packages.json's perkLabels — the
+	// same file $lib/server/packages.ts and the admin Packages page read, so
+	// wording only ever changes in one place.
+	const PACKAGE_PERK_KEYS = ['analytics', 'prAiAgent', 'newsSourceControl', 'sentimentSuite', 'voterHeatmap'] as const;
+	const PERK_LABELS: Record<(typeof PACKAGE_PERK_KEYS)[number], string> = packageData.perkLabels;
 
 	const leftSet = ['Level Up', 'Catapult', 'Propel', 'Amplify', 'Strengthen'];
 	const rightSet = ['Leadership', 'Campaign', 'Publicity', 'Advocacy', 'Supporters'];

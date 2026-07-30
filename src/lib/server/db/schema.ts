@@ -88,6 +88,11 @@ export const users = pgTable('users', {
   nationalId: varchar('national_id', { length: 20 }),
   idFrontUrl: text('id_front_url'),
   idBackUrl: text('id_back_url'),
+  // Dominate-only perk (packages.features.newsSourceControl): which of
+  // NEWS_SOURCES ($lib/server/newsIngest.ts) are allowed to tag this person in
+  // a mention. null = every source allowed (the default for everyone, and the
+  // only state that matters below Dominate — the control simply isn't shown).
+  newsSourceAllowlist: jsonb('news_source_allowlist').$type<string[] | null>().default(null),
   // An admin has manually confirmed nationalId + idFrontUrl + idBackUrl + photoUrl
   // all belong to this person — set once, reused across every profile they manage
   // (identity doesn't change per profile). A badge only, like every other
@@ -817,6 +822,9 @@ export type PackageFeatures = {
   prAiAgent: boolean;
   voterHeatmap: boolean;
   sentimentSuite: boolean;
+  // Dominate-only: pick which news sources are allowed to tag you in a mention
+  // (see users.newsSourceAllowlist above).
+  newsSourceControl: boolean;
 };
 
 export const packages = pgTable('packages', {
@@ -1162,6 +1170,23 @@ export const DEFAULT_BLOCKED_SLUGS = [
   'blog', 'news', 'press', 'verify', 'settings', 'education', 'data-policy', 'faq'
 ];
 
+// News ingestion sources (see $lib/server/newsIngest.ts for the actual feed
+// URLs keyed by these same ids) — on by default except the state broadcaster,
+// which an admin can opt into rather than the platform defaulting to it.
+export const DEFAULT_NEWS_SOURCES: Record<string, boolean> = {
+  googleNews: true,
+  nationAfrica: true,
+  standardMedia: true,
+  theStar: true,
+  businessDaily: true,
+  citizenDigital: true,
+  capitalFm: true,
+  kbc: false,
+  kenyaTimes: true,
+  ktnNews: true,
+  peopleDaily: true
+};
+
 export const platformSettings = pgTable('platform_settings', {
   id: integer('id').primaryKey().default(1),
   // Shared by every OTP send (sms/whatsapp/email) and by re-inviting the same
@@ -1222,6 +1247,12 @@ export const platformSettings = pgTable('platform_settings', {
   // on [leader]/+page.server.ts and [leader]/[year=year]/+page.server.ts); a
   // heuristic-fallback answer never calls Anthropic, so it's never charged.
   aiChatCostCredits: integer('ai_chat_cost_credits').default(5).notNull(),
+  // News ingestion sources (see $lib/server/newsIngest.ts): which reputable
+  // Kenyan outlets' RSS feeds the daily crawl reads, admin-toggleable per
+  // source on Settings. Google News is fetched per-leader (a targeted search);
+  // every other source is a whole-site/section feed fetched once per run and
+  // matched against every verified leader's full name.
+  newsSources: jsonb('news_sources').$type<Record<string, boolean>>().default(DEFAULT_NEWS_SOURCES).notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 

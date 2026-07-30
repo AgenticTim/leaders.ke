@@ -5,6 +5,7 @@
 	// on change; an empty cap means unlimited. Seed values come from
 	// src/lib/data/packages.json (bun run db:seed -- --packages).
 	import { enhance } from '$app/forms';
+	import packageData from '$lib/data/packages.json';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -18,14 +19,11 @@
 		{ key: 'creditsPerMonth', label: 'Credits included/mo' },
 		{ key: 'knowledgeMb', label: 'Knowledge upload (MB)' }
 	] as const;
-	// On/off perks — same list PERK_LABELS/PACKAGE_PERK_KEYS in packages.ts
-	// drives; the /pricing comparison table reads the same features.
-	const PERKS = [
-		{ key: 'analytics', label: 'Analytics: page views, conversions, pledges' },
-		{ key: 'prAiAgent', label: 'PR AI Agent: daily news research' },
-		{ key: 'voterHeatmap', label: 'Voter heatmap per ward' },
-		{ key: 'sentimentSuite', label: 'Sentiment Intelligence suite: campaign, competition' }
-	] as const;
+	// On/off perks — the key ORDER matches $lib/server/packages.ts's
+	// PACKAGE_PERK_KEYS; each label comes from packages.json's perkLabels (the
+	// same file /pricing and packages.ts read), so wording only changes once.
+	const PERK_KEYS = ['analytics', 'prAiAgent', 'newsSourceControl', 'sentimentSuite', 'voterHeatmap'] as const;
+	const PERKS = PERK_KEYS.map((key) => ({ key, label: packageData.perkLabels[key] }));
 
 	const rate = (tier: string, cycle: string) => data.pricing.find((p) => p.tier === tier && p.billingCycle === cycle);
 	const pkg = (tier: string) => data.packages.find((p) => p.tier === tier);

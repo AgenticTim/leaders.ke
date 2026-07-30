@@ -4,11 +4,12 @@ import { db } from '$lib/server/db';
 import { platformSettings } from '$lib/server/db/schema';
 import { requireAdmin } from '$lib/server/dashboard';
 import { getPlatformSettings } from '$lib/server/settings';
+import { NEWS_SOURCES } from '$lib/server/newsIngest';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
 	await requireAdmin(event);
-	return { settings: await getPlatformSettings() };
+	return { settings: await getPlatformSettings(), newsSourceOptions: NEWS_SOURCES };
 };
 
 export const actions: Actions = {
@@ -81,6 +82,21 @@ export const actions: Actions = {
 			})
 			.where(eq(platformSettings.id, 1));
 
+		return { saved: true };
+	},
+
+	// One toggle per news source (see NEWS_SOURCES in newsIngest.ts). Same
+	// checkbox-omits-itself-when-unchecked issue as the Packages perk grid: a
+	// hidden "false" fallback after each checkbox in the form carries the off
+	// state, since the checkbox itself is simply absent from FormData then.
+	saveNewsSources: async (event) => {
+		await requireAdmin(event);
+		const form = await event.request.formData();
+		const newsSources: Record<string, boolean> = {};
+		for (const id of Object.keys(NEWS_SOURCES)) {
+			newsSources[id] = form.get(id) === 'true';
+		}
+		await db.update(platformSettings).set({ newsSources, updatedAt: new Date() }).where(eq(platformSettings.id, 1));
 		return { saved: true };
 	}
 };

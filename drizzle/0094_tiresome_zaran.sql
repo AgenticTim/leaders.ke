@@ -1,0 +1,2 @@
+ALTER TABLE "platform_settings" ALTER COLUMN "require_phone_verification" SET DEFAULT false;--> statement-breakpoint
+ALTER TABLE "platform_settings" ADD COLUMN "news_sources" jsonb DEFAULT '{"googleNews":true,"nationAfrica":true,"standardMedia":true,"theStar":true,"businessDaily":true,"citizenDigital":true,"capitalFm":true,"kbc":false,"kenyaTimes":true,"ktnNews":true,"peopleDaily":true}'::jsonb NOT NULL;

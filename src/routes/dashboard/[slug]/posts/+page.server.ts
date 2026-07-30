@@ -9,18 +9,21 @@ import { answerConstituentQuestion } from '$lib/server/ai';
 import { getPageSize } from '$lib/server/settings';
 import { getPersonTier } from '$lib/server/invites';
 import { getPackageFeatures } from '$lib/server/packages';
+import { NEWS_SOURCES } from '$lib/server/newsIngest';
 import type { Actions, PageServerLoad } from './$types';
 
 // The News tab: campaign posts, campaign events, and aggregated external mentions,
 // merged into one feed (was split across /posts and /pr). Broadcasts (medium
 // email/sms/whatsapp) still live under /dashboard/broadcasts.
 //
-// "PR AI Agent: daily news research" is sold as Dominate-only (/pricing). The
-// ingestion pipeline itself (newsIngest.ts) still runs for every verified
-// person — restricting collection would mean re-ingesting a leader's whole
-// history on upgrade, and the crawl/classification cost is trivial next to the
-// per-tier gate that actually matters: whether the mentions surface in THIS
-// tab. So the gate lives here, not in newsIngest.ts.
+// "PR AI Agent" (mentions/sentiment/crisis banner) is a Mobilize+ perk;
+// "Pick your news sources" (which outlets are allowed to tag this person at
+// all — users.newsSourceAllowlist) is Dominate-only (/pricing). The ingestion
+// pipeline itself (newsIngest.ts) still runs for every verified person —
+// restricting collection would mean re-ingesting a leader's whole history on
+// upgrade, and the crawl/classification cost is trivial next to the per-tier
+// gates that actually matter: whether mentions surface in THIS tab, and which
+// sources may produce one at all. Both gates live here, not in newsIngest.ts.
 const CRISIS_THRESHOLD_24H = 3;
 // Negative-tone mentions in 24h that alone flag a crisis, whatever the volume.
 const NEGATIVE_THRESHOLD_24H = 2;
@@ -41,11 +44,13 @@ export const load: PageServerLoad = async (event) => {
 	const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 	const mentionFilter = and(eq(tags.subjectUserId, ctx.profileUser.id), isNull(tags.deletedAt), isNull(posts.deletedAt));
 
-	// Admin-toggled perk (packages.features.prAiAgent — /dashboard/admin/packages,
-	// same fact /pricing shows) rather than a hardcoded tier name: flipping the
-	// toggle changes both pages together.
+	// Admin-toggled perks (packages.features — /dashboard/admin/packages, same
+	// facts /pricing shows) rather than hardcoded tier names: flipping a toggle
+	// changes both pages together.
 	const tier = await getPersonTier(ctx.profileUser.id);
-	const mentionsUnlocked = !!(await getPackageFeatures(tier))?.prAiAgent;
+	const features = await getPackageFeatures(tier);
+	const mentionsUnlocked = !!features?.prAiAgent;
+	const sourceControlUnlocked = !!features?.newsSourceControl;
 
 	const [ownPosts, mentionRows, dayRow, negative24h, eventRows, mentionsCount] = await Promise.all([
 		db.select().from(posts).where(ownPostFilter).orderBy(desc(posts.createdAt)).limit(300),
@@ -223,6 +228,10 @@ export const load: PageServerLoad = async (event) => {
 		tags: allTags,
 		mentionsUnlocked,
 		mentionsCount,
+		sourceControlUnlocked,
+		newsSourceOptions: NEWS_SOURCES,
+		// null = every source allowed (also the state for everyone below Dominate).
+		newsSourceAllowlist: ctx.profileUser.newsSourceAllowlist,
 		mentions24h: dayRow,
 		negative24h,
 		// Crisis is volume OR tone: a burst of coverage, or several negative
@@ -258,6 +267,25 @@ async function syncMentions(postId: number, creatorId: number, mentionSlugs: str
 }
 
 export const actions: Actions = {
+	// Dominate-only (packages.features.newsSourceControl, re-checked here since
+	// the client can't be trusted to enforce the gate): which outlets may tag
+	// this person at all. null (every checkbox on) clears the allowlist rather
+	// than storing "every id" — that way a newly added source is allowed by
+	// default instead of silently excluded until re-saved.
+	setNewsSources: async (event) => {
+		const { ctx } = await requireLeader(event);
+		const tier = await getPersonTier(ctx.profileUser.id);
+		if (!(await getPackageFeatures(tier))?.newsSourceControl) {
+			return fail(403, { error: 'Picking news sources is a Dominate package feature.' });
+		}
+		const form = await event.request.formData();
+		const ids = Object.keys(NEWS_SOURCES);
+		const enabled = ids.filter((id) => form.get(id) === 'true');
+		const allowlist = enabled.length === ids.length ? null : enabled;
+		await db.update(users).set({ newsSourceAllowlist: allowlist }).where(eq(users.id, ctx.profileUser.id));
+		return { sourcesSaved: true };
+	},
+
 	create: async (event) => {
 		const { domainUser, ctx } = await requireLeader(event);
 		const form = await event.request.formData();

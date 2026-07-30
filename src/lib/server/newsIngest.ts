@@ -14,9 +14,32 @@ import { db } from '$lib/server/db';
 import { campaigns, leaders, posts, tags, users } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName } from '$lib/server/leader';
 import { classifyMentionSentiment } from '$lib/server/ai';
+import { getPlatformSettings } from '$lib/server/settings';
 
 const MAX_ITEMS_PER_PERSON = 5; // newest few per run — a daily cadence never needs more
+const MAX_ITEMS_PER_SITE_FEED = 60; // a whole-site feed's newest items checked against every leader
 const FETCH_DELAY_MS = 400; // sequential + spaced: a polite crawler Google won't throttle
+
+// Reputable Kenyan outlets whose RSS feeds are checked against every verified
+// leader's full name each run (one fetch per feed, not per leader — cheaper
+// than the Google News per-person loop below). Admin-toggleable per source on
+// /dashboard/admin/settings (platformSettings.newsSources, keyed by these same
+// ids). `url: null` means the toggle exists but no working feed has been found
+// for that outlet yet — it's skipped even if turned on, so flipping it on does
+// nothing harmful while a real URL is filled in later.
+export const NEWS_SOURCES: Record<string, { label: string; url: string | null }> = {
+	googleNews: { label: 'Google News (per-leader search)', url: null }, // handled by ingestForPerson, not the generic feed loop
+	nationAfrica: { label: 'Daily Nation (nation.africa)', url: 'https://nation.africa/kenya/rss.xml' },
+	standardMedia: { label: 'The Standard', url: 'https://www.standardmedia.co.ke/rss/headlines.php' },
+	theStar: { label: 'The Star', url: null },
+	businessDaily: { label: 'Business Daily Africa', url: null },
+	citizenDigital: { label: 'Citizen Digital', url: null },
+	capitalFm: { label: 'Capital FM News', url: 'https://www.capitalfm.co.ke/news/feed/' },
+	kbc: { label: 'KBC', url: 'https://www.kbc.co.ke/feed/' },
+	kenyaTimes: { label: 'The Kenya Times', url: null },
+	ktnNews: { label: 'KTN News', url: null },
+	peopleDaily: { label: 'People Daily', url: null }
+};
 
 type FeedItem = { title: string; link: string; description: string; pubDate: Date | null };
 
@@ -57,9 +80,19 @@ function stripHtml(s: string): string {
 	return decodeXml(s).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+type VerifiedPerson = { userId: number; name: string; allowlist: string[] | null };
+
+/** Whether `sourceId` is allowed to tag this person: the Dominate-only perk
+ * (newsSourceControl) is what lets a person HAVE a non-null allowlist at all —
+ * everyone else's is null, i.e. every source allowed, matching today's
+ * behavior exactly. */
+function sourceAllowed(person: VerifiedPerson, sourceId: string): boolean {
+	return person.allowlist === null || person.allowlist.includes(sourceId);
+}
+
 /** Every publicly visible person: a verified held term or a verified run this
  * cycle — the same gate the public site uses everywhere. */
-async function listVerifiedPeople(): Promise<{ userId: number; name: string }[]> {
+async function listVerifiedPeople(): Promise<VerifiedPerson[]> {
 	const [termRows, runRows] = await Promise.all([
 		db
 			.select({ id: leaders.userId })
@@ -73,13 +106,16 @@ async function listVerifiedPeople(): Promise<{ userId: number; name: string }[]>
 	const ids = [...new Set([...termRows, ...runRows].map((r) => r.id).filter((id): id is number => id !== null))];
 	if (!ids.length) return [];
 	const people = await db
-		.select({ id: users.id, firstName: users.firstName, otherNames: users.otherNames })
+		.select({ id: users.id, firstName: users.firstName, otherNames: users.otherNames, allowlist: users.newsSourceAllowlist })
 		.from(users)
 		.where(and(inArray(users.id, ids), isNull(users.deletedAt)));
-	return people.map((p) => ({ userId: p.id, name: fullName(p) })).filter((p) => p.name.trim().includes(' '));
+	return people
+		.map((p) => ({ userId: p.id, name: fullName(p), allowlist: p.allowlist }))
+		.filter((p) => p.name.trim().includes(' '));
 }
 
-async function ingestForPerson(person: { userId: number; name: string }): Promise<number> {
+async function ingestForPerson(person: VerifiedPerson): Promise<number> {
+	if (!sourceAllowed(person, 'googleNews')) return 0;
 	const url = `https://news.google.com/rss/search?q=${encodeURIComponent(`"${person.name}" Kenya`)}&hl=en-KE&gl=KE&ceid=KE:en`;
 	const res = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; vote.ke-news/1.0)' } });
 	if (!res.ok) throw new Error(`feed ${res.status}`);
@@ -123,22 +159,78 @@ async function ingestForPerson(person: { userId: number; name: string }): Promis
 	return inserted;
 }
 
-/** One full pass over every verified person, sequential and politely spaced.
- * `limitPeople` exists for dev smoke tests. */
+/** One whole-site feed, checked against every verified leader's full name.
+ * A single article can mention several leaders — each gets its own tags row
+ * on the same post (same convention as a team post's inline @mentions), and
+ * all share one sentiment classification (the article's general tone) rather
+ * than a separate AI call per mentioned person. */
+async function ingestSiteFeed(sourceId: string, url: string, people: VerifiedPerson[]): Promise<number> {
+	const res = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; vote.ke-news/1.0)' } });
+	if (!res.ok) throw new Error(`feed ${res.status}`);
+	const items = parseRss(await res.text()).slice(0, MAX_ITEMS_PER_SITE_FEED);
+
+	let inserted = 0;
+	for (const item of items) {
+		const text = `${item.title} ${item.description}`.toLowerCase();
+		const matched = people.filter((p) => text.includes(p.name.toLowerCase()) && sourceAllowed(p, sourceId));
+		if (matched.length === 0) continue;
+
+		const [byUrl] = await db.select({ id: posts.id }).from(posts).where(eq(posts.sourceUrl, item.link));
+		if (byUrl) continue;
+
+		const sentiment = await classifyMentionSentiment(matched.map((p) => p.name).join(', '), item.title, item.description);
+		const [post] = await db
+			.insert(posts)
+			.values({
+				title: item.title.slice(0, 255),
+				body: item.description || item.title,
+				sourceUrl: item.link,
+				medium: 'web',
+				sentiment,
+				approved: true,
+				public: true,
+				...(item.pubDate && !isNaN(item.pubDate.getTime()) ? { createdAt: item.pubDate } : {})
+			})
+			.returning({ id: posts.id });
+		await db.insert(tags).values(matched.map((p) => ({ postId: post.id, subjectUserId: p.userId })));
+		inserted++;
+	}
+	return inserted;
+}
+
+/** One full pass over every verified person (Google News, per-person) plus
+ * every enabled whole-site feed (checked against everyone at once), sequential
+ * and politely spaced. `limitPeople` exists for dev smoke tests. */
 export async function ingestNews(opts: { limitPeople?: number } = {}): Promise<{ people: number; inserted: number; failed: number }> {
 	let people = await listVerifiedPeople();
 	// Freshest runs first feels right for an interrupted pass: recently created
 	// campaigns are the ones with no coverage yet.
 	people = people.slice(0, opts.limitPeople ?? people.length);
 
+	const sources = (await getPlatformSettings()).newsSources;
+
 	let inserted = 0;
 	let failed = 0;
-	for (const person of people) {
+
+	if (sources.googleNews !== false) {
+		for (const person of people) {
+			try {
+				inserted += await ingestForPerson(person);
+			} catch (err) {
+				failed++;
+				console.error(`[news] ingest failed for ${person.name}:`, err instanceof Error ? err.message : err);
+			}
+			await new Promise((r) => setTimeout(r, FETCH_DELAY_MS));
+		}
+	}
+
+	for (const [sourceId, source] of Object.entries(NEWS_SOURCES)) {
+		if (sourceId === 'googleNews' || !source.url || sources[sourceId] === false) continue;
 		try {
-			inserted += await ingestForPerson(person);
+			inserted += await ingestSiteFeed(sourceId, source.url, people);
 		} catch (err) {
 			failed++;
-			console.error(`[news] ingest failed for ${person.name}:`, err instanceof Error ? err.message : err);
+			console.error(`[news] ingest failed for ${source.label}:`, err instanceof Error ? err.message : err);
 		}
 		await new Promise((r) => setTimeout(r, FETCH_DELAY_MS));
 	}

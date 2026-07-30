@@ -272,4 +272,51 @@ Applies everywhere a code/link is sent
 			{saving ? 'Saving…' : 'Save settings'}
 		</button>
 	</form>
+
+	<!-- News ingestion sources (newsIngest.ts): which feeds the daily crawl reads.
+	A source with no working feed yet (url: null there) still shows here so the
+	toggle is ready — it's a no-op until a URL is filled in. Autosaves per
+	checkbox, same pattern as the Packages perk grid. -->
+	<div class="mt-8 rounded-2xl border border-border bg-surface p-5">
+		<h2 class="font-semibold text-heading">News ingestion sources</h2>
+		<p class="mt-1 text-xs text-muted">
+			Which outlets the daily news crawl reads. Google News is a per-leader search; every other
+			source is a whole-site feed checked against every verified leader.
+		</p>
+		<ul class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+			{#each Object.entries(data.newsSourceOptions) as [id, source] (id)}
+				<li>
+					<form
+						method="post"
+						action="?/saveNewsSources"
+						use:enhance
+						onchange={(e) => (e.currentTarget as HTMLFormElement).requestSubmit()}
+					>
+						{#each Object.keys(data.newsSourceOptions) as otherId (otherId)}
+							<!-- Every source's current value rides along on each source's own
+							form, so toggling one never resets the others to their defaults. -->
+							{#if otherId === id}
+								<label class="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm">
+									<input
+										type="checkbox"
+										name={otherId}
+										value="true"
+										checked={!!data.settings.newsSources[otherId]}
+										class="size-4 shrink-0 rounded border-border text-primary focus:ring-0 focus:ring-ring"
+									/>
+									<input type="hidden" name={otherId} value="false" />
+									<span class="text-heading">{source.label}</span>
+									{#if !source.url && id !== 'googleNews'}
+										<span class="ml-auto shrink-0 text-xs text-muted">no feed yet</span>
+									{/if}
+								</label>
+							{:else}
+								<input type="hidden" name={otherId} value={data.settings.newsSources[otherId] ? 'true' : 'false'} />
+							{/if}
+						{/each}
+					</form>
+				</li>
+			{/each}
+		</ul>
+	</div>
 </div>

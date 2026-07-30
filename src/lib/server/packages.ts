@@ -7,6 +7,7 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { packages, pricing, type PackageFeatures } from '$lib/server/db/schema';
+import packageData from '$lib/data/packages.json';
 
 export type PricingRow = {
 	id: number;
@@ -53,17 +54,14 @@ export const PACKAGE_FEATURE_KEYS = ['managers', 'ambassadors', 'subscriptions',
 export type PackageFeatureKey = (typeof PACKAGE_FEATURE_KEYS)[number];
 
 // On/off perks: the /pricing comparison table's ✓/— rows, plus whatever a
-// tier-gated feature checks in code (e.g. the News tab's PR AI Agent). One
-// list drives the admin toggle grid, the pricing table's rows, and the label
-// shown for each — adding a perk here is the only place to touch.
-export const PACKAGE_PERK_KEYS = ['analytics', 'prAiAgent', 'voterHeatmap', 'sentimentSuite'] as const;
+// tier-gated feature checks in code (e.g. the News tab's PR AI Agent). The key
+// list is literal here (drives iteration order + TS narrowing); the LABEL text
+// itself lives in packages.json's perkLabels — the single source /pricing,
+// /dashboard/admin/packages, and this module all read, so wording only ever
+// changes in one place.
+export const PACKAGE_PERK_KEYS = ['analytics', 'prAiAgent', 'voterHeatmap', 'sentimentSuite', 'newsSourceControl'] as const;
 export type PackagePerkKey = (typeof PACKAGE_PERK_KEYS)[number];
-export const PERK_LABELS: Record<PackagePerkKey, string> = {
-	analytics: 'Analytics: page views, conversions, pledges',
-	prAiAgent: 'PR AI Agent: daily news research',
-	voterHeatmap: 'Voter heatmap per ward',
-	sentimentSuite: 'Sentiment Intelligence suite: campaign, competition'
-};
+export const PERK_LABELS: Record<PackagePerkKey, string> = packageData.perkLabels;
 
 export type PackageRow = { tier: string; features: PackageFeatures };
 
