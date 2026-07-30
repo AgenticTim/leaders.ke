@@ -33,13 +33,15 @@ export const load: PageServerLoad = async (event) => {
 	const mentionFilter = and(eq(tags.subjectUserId, ctx.profileUser.id), isNull(tags.deletedAt), isNull(posts.deletedAt));
 
 	const [ownPosts, mentionRows, dayRow, negative24h, eventRows] = await Promise.all([
-		db.select().from(posts).where(ownPostFilter).orderBy(desc(posts.createdAt)),
+		db.select().from(posts).where(ownPostFilter).orderBy(desc(posts.createdAt)).limit(300),
 		db
 			.select({ tagId: tags.id, post: posts })
 			.from(tags)
 			.innerJoin(posts, eq(tags.postId, posts.id))
 			.where(mentionFilter)
-			.orderBy(desc(posts.createdAt)),
+			.orderBy(desc(posts.createdAt))
+			// Bounded: ingestion adds mentions daily; the feed pages over this set.
+			.limit(300),
 		db
 			.select({ n: count() })
 			.from(tags)

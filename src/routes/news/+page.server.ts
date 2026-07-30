@@ -128,7 +128,9 @@ export const load: PageServerLoad = async (event) => {
 		isNull(posts.deletedAt),
 		isNull(users.deletedAt)
 	);
-	const postRows = await db.select({ post: posts, author: users }).from(posts).innerJoin(users, eq(posts.subjectUserId, users.id)).where(postFilter).orderBy(desc(posts.createdAt));
+	// Bounded: the page paginates in JS off this set, and the tag sidebar counts
+	// over it — 200 newest team articles is far beyond what the UI surfaces.
+	const postRows = await db.select({ post: posts, author: users }).from(posts).innerJoin(users, eq(posts.subjectUserId, users.id)).where(postFilter).orderBy(desc(posts.createdAt)).limit(200);
 
 	const postIds = postRows.map((r) => r.post.id);
 	// Team @mentions of OTHER leaders written inline in a team post's own body
@@ -163,11 +165,16 @@ export const load: PageServerLoad = async (event) => {
 		isNull(tags.creatorId),
 		inArray(tags.subjectUserId, publicUserIds)
 	);
+	// Bounded hard: daily ingestion grows this table forever, and this page only
+	// ever shows a page-size slice — the mentions sidebar counts cover the 500
+	// newest tag rows, which is a rolling few weeks of coverage, not all history.
 	const mentionTagRows = await db
 		.select({ post: posts, taggedUserId: tags.subjectUserId })
 		.from(posts)
 		.innerJoin(tags, eq(tags.postId, posts.id))
-		.where(mentionPostFilter);
+		.where(mentionPostFilter)
+		.orderBy(desc(posts.createdAt))
+		.limit(500);
 
 	const mentionPostById = new Map<number, typeof posts.$inferSelect>();
 	const taggedUserIdsByPostId = new Map<number, number[]>();

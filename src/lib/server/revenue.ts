@@ -4,7 +4,7 @@
 import { and, desc, eq, gte, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '$lib/server/db';
-import { campaigns, leaders, payments, subscriptions, users } from '$lib/server/db/schema';
+import { payments, subscriptions, users } from '$lib/server/db/schema';
 import { fullName } from '$lib/server/leader';
 
 export type SubscriptionRow = {

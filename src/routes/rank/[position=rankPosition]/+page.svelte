@@ -2,7 +2,6 @@
 	import { preloadData } from '$app/navigation';
 	import DataTable, { type Column } from '$lib/components/DataTable.svelte';
 	import PositionBadges from '$lib/components/PositionBadges.svelte';
-	import QuickSearch from '$lib/components/QuickSearch.svelte';
 	import { RANK_POSITIONS } from '$lib/utils/rankPositions';
 	import { seatPath } from '$lib/utils/seat';
 	import type { PageProps } from './$types';

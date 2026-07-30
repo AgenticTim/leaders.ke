@@ -1,5 +1,4 @@
 <script lang="ts">
-	import Avatar from '$lib/components/Avatar.svelte';
 	import DeliveryScore from '$lib/components/DeliveryScore.svelte';
 	import LeaderCard from '$lib/components/LeaderCard.svelte';
 	import RegimeLinks from '$lib/components/RegimeLinks.svelte';

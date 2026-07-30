@@ -277,6 +277,7 @@ export const load: PageServerLoad = async ({ url }) => {
 
 	return {
 		q,
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars -- rest-sibling strip
 		leaders: leaderResults.map(({ rank, ...rest }) => rest),
 		experience: experienceResults,
 		parties: partyResults,

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import Countdown from '$lib/components/Countdown.svelte';
 	import type { PageData } from './$types';
-	import SloganCycler from '$lib/components/SloganCycler.svelte';
 	import WordCycler from '$lib/components/WordCycler.svelte';
 
 	// This page sells to the paying customer (candidates and currents); the

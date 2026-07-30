@@ -75,7 +75,6 @@ export async function saveContactsTab(event: RequestEvent) {
 
 	const form = await event.request.formData();
 	const address = String(form.get('address') ?? '').trim();
-	const sms = String(form.get('sms') ?? '').trim();
 	const website = String(form.get('website') ?? '').trim();
 
 	let socialEntries: { kind: string; value: string }[] = [];

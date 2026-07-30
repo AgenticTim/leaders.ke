@@ -3,7 +3,6 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import { computeDashboardModes } from '$lib/utils/dashboardModes';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -85,9 +84,6 @@
 	const base = $derived(data.leaderContext?.basePath ?? '/dashboard');
 
 	// The modes this account can switch between right now — rendered by the root
-	// Header (it's above this layout in the tree), computed from the same page
-	// data/URL this layout already has so it's identical either place.
-	const modes = $derived(computeDashboardModes(page.url.pathname, data));
 
 	// This mode's tabs. Only pages that actually exist are listed (no dead links);
 	// every listed tab is always reachable, so no per-tab enable flag is needed.

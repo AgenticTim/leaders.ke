@@ -4,6 +4,8 @@
 	import { computeDashboardModes, type DashboardModesInput } from '$lib/utils/dashboardModes';
 	import NotificationsPanel from './NotificationsPanel.svelte';
 	import QuickSearch from './QuickSearch.svelte';
+	import CloseIcon from './svgs/CloseIcon.svelte';
+	import MenuIcon from './svgs/MenuIcon.svelte';
 	import ThemeToggle from './ThemeToggle.svelte';
 
 	// user is null when signed out; drives the Log in / Log out switch.
@@ -125,9 +127,7 @@
 				class="grid size-9 place-items-center rounded-full border border-border bg-surface-2 text-heading transition hover:bg-surface-3 focus:ring-0 focus:ring-ring focus:outline-none lg:hidden"
 			>
 				{#if mobileSearchOpen}
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4">
-						<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
-					</svg>
+					<CloseIcon class="size-4" />
 				{:else}
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4">
 						<path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.34-4.34M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
@@ -205,13 +205,9 @@
 				class="grid size-9 place-items-center rounded-md text-heading transition hover:bg-surface-2 md:hidden"
 			>
 				{#if menuOpen}
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-5">
-						<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
-					</svg>
+					<CloseIcon class="size-5" />
 				{:else}
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-5">
-						<path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16" />
-					</svg>
+					<MenuIcon class="size-5" />
 				{/if}
 			</button>
 		</div>

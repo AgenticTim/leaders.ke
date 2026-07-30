@@ -7,7 +7,7 @@ function safeNext(next: string | null): string {
 	return next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard';
 }
 export const load: PageServerLoad = async (event) => {
-	const { authUser, domainUser } = await requireDashboardUser(event);
+	const { domainUser } = await requireDashboardUser(event);
 	const next = safeNext(event.url.searchParams.get('next'));
 	const emailVerified = domainUser.verified.email;
 	if (emailVerified) redirect(302, next);

@@ -7,7 +7,7 @@
 import { randomBytes } from 'node:crypto';
 import { and, count, desc, eq, gt, gte, isNull, or } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { ambassadors, followers, invites, leaders, managers, positions, subscriptions, users } from '$lib/server/db/schema';
+import { ambassadors, followers, invites, managers, positions, subscriptions, users } from '$lib/server/db/schema';
 import { user as authUsers } from '$lib/server/db/auth.schema';
 import { activeTermForPerson, fullName, getRunCampaign } from '$lib/server/leader';
 import { sendEmail } from '$lib/server/email';
@@ -352,9 +352,6 @@ export async function acceptInvite(token: string, userId: number, signedInEmail:
 	if (invite.email !== signedInEmail.trim().toLowerCase()) {
 		return { ok: false as const, error: `This invite was sent to ${invite.email}. Sign in with that email to accept it.` };
 	}
-
-	// Ambassador/follower placement needs the person's active term (per-run rows).
-	const activeTerm = await activeTermForPerson(invite.subjectUserId);
 
 	if (invite.role === 'manager') {
 		const [existing] = await db

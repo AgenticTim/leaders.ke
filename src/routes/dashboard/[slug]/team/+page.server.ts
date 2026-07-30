@@ -3,7 +3,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { ambassadors, invites, managers, users } from '$lib/server/db/schema';
 import { user as authUsers } from '$lib/server/db/auth.schema';
-import { getRouteLeaderContext, isCampaignAdmin, requireDashboardUser, requireLeader } from '$lib/server/dashboard';
+import { isCampaignAdmin, requireLeader } from '$lib/server/dashboard';
 import { createInvite, listOpenInvites, revokeInvite, tryDirectGrant } from '$lib/server/invites';
 import { fullName } from '$lib/server/leader';
 import { isCampaignRole, isValidNationalId, type ManagerRoles } from '$lib/utils/campaignRoles';

@@ -156,7 +156,8 @@ export async function findMatchingProfiles(firstName: string, otherNames: string
 		// (more likely to be who the citizen means).
 		.sort((a, b) => b.score - a.score || Number(b.status !== 'aspirant') - Number(a.status !== 'aspirant'))
 		.slice(0, 12)
-		.map(({ score: _score, ...rest }) => rest);
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars -- rest-sibling strip
+		.map(({ score, ...rest }) => rest);
 }
 
 export type OnboardInput = {

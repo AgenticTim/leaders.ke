@@ -6,7 +6,7 @@
 import { fail, type RequestEvent } from '@sveltejs/kit';
 import { and, asc, count, desc, eq, inArray, isNotNull, isNull, or } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { campaigns, conversations, messages, pillars, reviews, users } from '$lib/server/db/schema';
+import { conversations, messages, pillars, reviews, users } from '$lib/server/db/schema';
 import { fullName, getDomainUser } from '$lib/server/leader';
 
 export const REVIEW_MESSAGE_MAX_LENGTH = 500;
