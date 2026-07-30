@@ -187,9 +187,13 @@
 			No campaigns yet. Add one to declare a seat, platform and manifesto.
 		</div>
 	{:else}
-		{#if activeCampaign?.verified}
+		{#if activeCampaign?.verified && !data.isAdmin}
 			<p class="mt-4 rounded-xl border border-border px-4 py-2 text-sm text-muted">
 				This run is verified and live — the seat and cycle are locked. You can still edit the title, platform and certificate.
+			</p>
+		{:else if activeCampaign?.verified && data.isAdmin}
+			<p class="mt-4 rounded-xl border border-border px-4 py-2 text-sm text-muted">
+				Admin: this run is verified and live. Changing the seat or cycle moves it on the ballot — edit with care.
 			</p>
 		{/if}
 		{#if data.isAdmin && activeCampaign}
@@ -258,7 +262,7 @@
 			<div class:opacity-60={activeCampaign?.verified}>
 				<PositionSelector
 					positions={data.positions}
-					verified={!!activeCampaign?.verified}
+					verified={!!activeCampaign?.verified && !data.isAdmin}
 					initialPositionId={activeCampaign?.positionId ?? null}
 				/>
 			</div>

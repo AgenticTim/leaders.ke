@@ -98,7 +98,8 @@ type DeliveryStatus = (typeof DELIVERY_STATUSES)[number];
 
 export const actions: Actions = {
 	save: async (event) => {
-		const { ctx } = await requireLeader(event);
+		const { ctx, domainUser } = await requireLeader(event);
+		const isAdmin = !!domainUser.adminAt;
 		const form = await event.request.formData();
 		const campaignId = Number(form.get('campaignId') ?? 0); // 0 = create a new campaign
 		const title = String(form.get('title') ?? '').trim();
@@ -169,9 +170,10 @@ export const actions: Actions = {
 			if (!existing) return fail(404, { error: 'Campaign not found.' });
 
 			// A verified campaign keeps its seat/cycle (it's public/on the ballot);
-			// only its title/platform/party/certificate change.
+			// only its title/platform/party/certificate change — EXCEPT a platform
+			// admin, who can correct the seat/cycle even on a verified run.
 			const updates: Record<string, unknown> = { title, description, partyId, updatedAt: new Date() };
-			if (!existing.verifiedAt) {
+			if (!existing.verifiedAt || isAdmin) {
 				updates.positionId = positionId;
 				updates.cycleYear = cycleYear;
 			}
