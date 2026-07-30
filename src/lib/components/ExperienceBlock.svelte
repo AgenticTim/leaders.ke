@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	type Props = {
 		title: string;
 		href?: string;
@@ -10,9 +11,12 @@
 		badge?: string;
 		badgeClass?: string;
 		onRemove?: () => void;
+		// Optional footer, e.g. the deliveries list + "+ Delivered" affordance the
+		// Profile tab renders under each saved item.
+		footer?: Snippet;
 	};
 
-	let { title, href, subtitle, description, dateLabel, unsaved = false, pending = false, badge, badgeClass, onRemove }: Props = $props();
+	let { title, href, subtitle, description, dateLabel, unsaved = false, pending = false, badge, badgeClass, onRemove, footer }: Props = $props();
 </script>
 
 <li
@@ -36,6 +40,10 @@
 	</p>
 	{#if description}
 		<p class="mt-1 text-muted italic">{description}</p>
+	{/if}
+
+	{#if footer}
+		{@render footer()}
 	{/if}
 
 	{#if onRemove}

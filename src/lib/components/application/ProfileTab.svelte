@@ -11,6 +11,7 @@
 	// `data` to this contract and hosts the actions this form posts to (relative
 	// ?/action URLs). The photo is staged locally (cropped, previewed) and
 	// uploads WITH ?/save — nothing touches the server before "Save profile".
+	type DeliveryItem = { id: number; title: string; description: string | null; pinned: boolean };
 	type TabData = {
 		positions: { id: number; title: string; region: string }[];
 		// Absent when the Party select shouldn't render (party changes belong to
@@ -19,6 +20,11 @@
 		photoUrl?: string | null;
 		existingExperience: { id: number; type: string; title: string; institution: string; description?: string | null; from: number | null; to: number | null }[];
 		existingLeadership: { id: number; positionTitle: string; region: string; description: string | null; from: number; to: number | null; partyId: number | null; partyName: string | null }[];
+		// Deliveries (merged in from the old Delivery tab), keyed by target string
+		// "leader:<id>" / "experience:<id>" — listed under the matching saved item.
+		deliveriesByTarget?: Record<string, DeliveryItem[]>;
+		pinnedCount?: number;
+		maxPinned?: number;
 		form: { firstName: string; otherNames: string; bio: string; positionId: number | null; slug: string | null; hasLeader: boolean; verified: boolean };
 		application?: { profile: { complete: boolean; missing: string[] }; documentation?: { missing: string[] } } | null;
 	};
@@ -188,12 +194,28 @@
 	function removeLeadership(i: number) {
 		pendingLeadership.splice(i, 1);
 	}
+	// Removing a SAVED item is destructive on the next profile save, so confirm
+	// first (unsaved/pending adds are discarded without a prompt — nothing's lost).
 	function removeExistingExperience(id: number) {
+		if (!confirm('Remove this experience from the profile? It, and anything delivered under it, is deleted when you save.')) return;
 		removedExperienceIds.push(id);
 	}
 	function removeExistingLeadership(id: number) {
+		if (!confirm('Remove this role from the profile? It, and anything delivered under it, is deleted when you save.')) return;
 		removedLeadershipIds.push(id);
 	}
+
+	// Deliveries (merged from the old Delivery tab): saved immediately per item,
+	// independent of the deferred profile save. One add-form open at a time.
+	let openDelivery = $state<string | null>(null);
+	let delTitle = $state('');
+	let delDescription = $state('');
+	function toggleDelivery(target: string) {
+		openDelivery = openDelivery === target ? null : target;
+		delTitle = '';
+		delDescription = '';
+	}
+	const deliveriesFor = (target: string): DeliveryItem[] => data.deliveriesByTarget?.[target] ?? [];
 </script>
 
 <svelte:head><title>Profile — vote.ke</title></svelte:head>
@@ -212,7 +234,13 @@
 	top-right — it's gated on Profile/Contacts/Team together, not just this page,
 	so it can't live inside a single tab. -->
 
+	<!-- The profile fields form. The experience section (below) is deliberately
+	OUTSIDE it: each delivery there saves via its own immediate-POST form, which
+	can't legally nest inside this one. Staged experience adds/removes still ride
+	this form via the hidden inputs, and the bottom "Save profile" button posts
+	here via the form="profile-form" association. -->
 	<form
+		id="profile-form"
 		method="post"
 		action="?/save"
 		enctype="multipart/form-data"
@@ -359,271 +387,6 @@
 			</label>
 		{/if}
 
-		{#if data.form.hasLeader}
-			<div class="border-t border-border pt-6">
-				<div class="flex items-center justify-between">
-					<h3 class="text-lg font-semibold text-heading">Add Experience</h3>
-					<h4 class="text-sm text-muted italic">List your past and current roles here</h4>
-				</div>
-
-				{#if visibleLeadership.length > 0 || pendingLeadership.length > 0}
-					<h4 class="mt-3 text-xs font-semibold tracking-wide text-muted uppercase">Leadership</h4>
-					<ul class="mt-2 space-y-2">
-						{#each visibleLeadership as item (item.id)}
-							<ExperienceBlock
-								title="{item.positionTitle}, {item.region}"
-								subtitle={item.partyName}
-								description={item.description}
-								dateLabel="{item.from}–{item.to ?? 'present'}"
-								onRemove={() => removeExistingLeadership(item.id)}
-							/>
-						{/each}
-						{#each pendingLeadership as item, i (i)}
-							<ExperienceBlock
-								title={item.positionLabel}
-								subtitle={item.partyName}
-								description={item.description}
-								dateLabel="{item.from}–{item.to ?? 'present'}"
-								unsaved
-								pending
-								onRemove={() => removeLeadership(i)}
-							/>
-						{/each}
-					</ul>
-				{/if}
-
-				{#if visibleExperience.some((e) => e.type === 'professional') || pendingExperience.some((e) => e.type === 'professional')}
-					<h4 class="mt-3 text-xs font-semibold tracking-wide text-muted uppercase">Professional</h4>
-					<ul class="mt-2 space-y-2">
-						{#each visibleExperience.filter((e) => e.type === 'professional') as item (item.id)}
-							<ExperienceBlock
-								title={item.title}
-								subtitle={item.institution}
-								description={item.description}
-								dateLabel="{item.from}{item.to ? `–${item.to}` : ''}"
-								onRemove={() => removeExistingExperience(item.id)}
-							/>
-						{/each}
-						{#each pendingExperience as item, i (i)}
-							{#if item.type === 'professional'}
-								<ExperienceBlock
-									title={item.title}
-									subtitle={item.institution}
-									description={item.description}
-									dateLabel="{item.from}{item.to ? `–${item.to}` : ''}"
-									unsaved
-									pending
-									onRemove={() => removeExperience(i)}
-								/>
-							{/if}
-						{/each}
-					</ul>
-				{/if}
-
-				{#if visibleExperience.some((e) => e.type === 'education') || pendingExperience.some((e) => e.type === 'education')}
-					<h4 class="mt-3 text-xs font-semibold tracking-wide text-muted uppercase">Education</h4>
-					<ul class="mt-2 space-y-2">
-						{#each visibleExperience.filter((e) => e.type === 'education') as item (item.id)}
-							<ExperienceBlock
-								title={item.title}
-								subtitle={item.institution}
-								description={item.description}
-								dateLabel="{item.from}{item.to ? `–${item.to}` : ''}"
-								onRemove={() => removeExistingExperience(item.id)}
-							/>
-						{/each}
-						{#each pendingExperience as item, i (i)}
-							{#if item.type === 'education'}
-								<ExperienceBlock
-									title={item.title}
-									subtitle={item.institution}
-									description={item.description}
-									dateLabel="{item.from}{item.to ? `–${item.to}` : ''}"
-									unsaved
-									pending
-									onRemove={() => removeExperience(i)}
-								/>
-							{/if}
-						{/each}
-					</ul>
-				{/if}
-
-				<div class="mt-3 flex flex-wrap gap-2">
-					<button
-						type="button"
-						onclick={() => toggleAdding('leadership')}
-						class="rounded-full border px-4 py-2 text-sm font-semibold transition {adding === 'leadership'
-							? 'border-primary bg-primary text-on-primary'
-							: 'border-border bg-surface text-heading hover:bg-surface-2'}"
-					>
-						+ Elected
-					</button>
-					<button
-						type="button"
-						onclick={() => toggleAdding('professional')}
-						class="rounded-full border px-4 py-2 text-sm font-semibold transition {adding === 'professional'
-							? 'border-primary bg-primary text-on-primary'
-							: 'border-border bg-surface text-heading hover:bg-surface-2'}"
-					>
-						+ Professional
-					</button>
-					<button
-						type="button"
-						onclick={() => toggleAdding('education')}
-						class="rounded-full border px-4 py-2 text-sm font-semibold transition {adding === 'education'
-							? 'border-primary bg-primary text-on-primary'
-							: 'border-border bg-surface text-heading hover:bg-surface-2'}"
-					>
-						+ Education
-					</button>
-				</div>
-
-				{#if adding === 'leadership'}
-					{#key leadResetKey}
-						<div class="mt-4 space-y-4 rounded-xl border border-border bg-surface-2 p-4">
-							<PositionSelector
-								positions={data.positions}
-								verified={false}
-								initialPositionId={null}
-								label="Position held"
-								required={false}
-								bind:value={leadPositionId}
-							/>
-							{#if data.parties}
-								<label class="block">
-									<span class="text-sm font-medium text-heading">Party held under</span>
-									<select
-										bind:value={leadPartyId}
-										class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-									>
-										<option value="">Independent (no party)</option>
-										{#each data.parties as party (party.id)}
-											<option value={party.id}>{party.name}</option>
-										{/each}
-									</select>
-								</label>
-							{/if}
-							<label class="block">
-								<span class="text-sm font-medium text-heading">Description</span>
-								<input
-									type="text"
-									bind:value={leadDescription}
-									maxlength="255"
-									placeholder="Optional"
-									class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-								/>
-							</label>
-							<div class="grid grid-cols-2 gap-3">
-								<label class="block">
-									<span class="text-sm font-medium text-heading">From</span>
-									<select
-										bind:value={leadFrom}
-										class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-									>
-										<option value="">Year</option>
-										{#each years as year (year)}
-											<option value={year}>{year}</option>
-										{/each}
-									</select>
-								</label>
-								<label class="block">
-									<span class="text-sm font-medium text-heading">To (optional)</span>
-									<select
-										bind:value={leadTo}
-										class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-									>
-										<option value="">Ongoing</option>
-										{#each leadToYears as year (year)}
-											<option value={year}>{year}</option>
-										{/each}
-									</select>
-								</label>
-							</div>
-							{#if leadDateInvalid}
-								<p class="text-sm font-medium text-heading">"To" can't be before "From".</p>
-							{/if}
-							<button
-								type="button"
-								onclick={addLeadership}
-								disabled={!leadPositionId || !leadFrom || leadDateInvalid}
-								class="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95 disabled:opacity-60"
-							>
-								Add elected role
-							</button>
-						</div>
-					{/key}
-				{:else if adding === 'professional' || adding === 'education'}
-					<div class="mt-4 space-y-4 rounded-xl border border-border bg-surface-2 p-4">
-						<label class="block">
-							<span class="text-sm font-medium text-heading">Title</span>
-							<input
-								type="text"
-								bind:value={expTitle}
-								placeholder={adding === 'education' ? 'Bachelor of Laws (LL.B.)' : 'Minister for Agriculture'}
-								class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-							/>
-						</label>
-						<label class="block">
-							<span class="text-sm font-medium text-heading">Institution</span>
-							<input
-								type="text"
-								bind:value={expInstitution}
-								placeholder={adding === 'education' ? 'University of Nairobi' : 'Government of Kenya'}
-								class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-							/>
-						</label>
-						<label class="block">
-							<span class="text-sm font-medium text-heading">Description</span>
-							<textarea
-								bind:value={expDescription}
-								maxlength="500"
-								rows="3"
-								placeholder="Optional: what the role or study involved and achieved"
-								class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-							></textarea>
-						</label>
-						<div class="grid grid-cols-2 gap-3">
-							<label class="block">
-								<span class="text-sm font-medium text-heading">From</span>
-								<select
-									bind:value={expFrom}
-									class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-								>
-									<option value="">Year</option>
-									{#each years as year (year)}
-										<option value={year}>{year}</option>
-									{/each}
-								</select>
-							</label>
-							<label class="block">
-								<span class="text-sm font-medium text-heading">To (optional)</span>
-								<select
-									bind:value={expTo}
-									class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-								>
-									<option value="">Ongoing</option>
-									{#each expToYears as year (year)}
-										<option value={year}>{year}</option>
-									{/each}
-								</select>
-							</label>
-						</div>
-						{#if expDateInvalid}
-							<p class="text-sm font-medium text-heading">"To" can't be before "From".</p>
-						{/if}
-						<button
-							type="button"
-							onclick={addExperience}
-							disabled={!expTitle.trim() || !expInstitution.trim() || !expFrom || expDateInvalid}
-							class="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95 disabled:opacity-60"
-						>
-							Add {adding}
-						</button>
-					</div>
-				{/if}
-			</div>
-		{/if}
-
 		{#if claimAttestation}
 			<label class="flex items-start gap-3 rounded-xl border border-border bg-surface-2 p-4">
 				<input
@@ -641,17 +404,296 @@
 				</span>
 			</label>
 		{/if}
-
-		<div class="border-t border-border pt-6">
-			<button
-				type="submit"
-				disabled={saving || (claimAttestation && !attested)}
-				class="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-95 disabled:opacity-60"
-			>
-				{saving ? 'Saving…' : 'Save profile'}
-			</button>
-		</div>
 	</form>
+
+	{#if data.form.hasLeader}
+		<div class="mt-5 border-t border-border pt-6">
+			<div class="flex items-center justify-between">
+				<h3 class="text-lg font-semibold text-heading">Add Experience</h3>
+				<h4 class="text-sm text-muted italic">List your past and current roles here</h4>
+			</div>
+			<p class="mt-1 text-xs text-muted">
+				Add what you delivered under each role. {data.pinnedCount ?? 0} of {data.maxPinned ?? 5} pinned deliveries show on your public profile.
+			</p>
+
+			{#if form?.deliveryError}
+				<div class="mt-3 rounded-xl border border-border bg-surface-2 p-3 text-sm font-medium text-heading">{form.deliveryError}</div>
+			{/if}
+
+			{#if visibleLeadership.length > 0 || pendingLeadership.length > 0}
+				<h4 class="mt-3 text-xs font-semibold tracking-wide text-muted uppercase">Leadership</h4>
+				<ul class="mt-2 space-y-2">
+					{#each visibleLeadership as item (item.id)}
+						<ExperienceBlock
+							title="{item.positionTitle}, {item.region}"
+							subtitle={item.partyName}
+							description={item.description}
+							dateLabel="{item.from}–{item.to ?? 'present'}"
+							onRemove={() => removeExistingLeadership(item.id)}
+						>
+							{#snippet footer()}{@render deliveryFooter(`leader:${item.id}`)}{/snippet}
+						</ExperienceBlock>
+					{/each}
+					{#each pendingLeadership as item, i (i)}
+						<ExperienceBlock
+							title={item.positionLabel}
+							subtitle={item.partyName}
+							description={item.description}
+							dateLabel="{item.from}–{item.to ?? 'present'}"
+							unsaved
+							pending
+							onRemove={() => removeLeadership(i)}
+						/>
+					{/each}
+				</ul>
+			{/if}
+
+			{#if visibleExperience.some((e) => e.type === 'professional') || pendingExperience.some((e) => e.type === 'professional')}
+				<h4 class="mt-3 text-xs font-semibold tracking-wide text-muted uppercase">Professional</h4>
+				<ul class="mt-2 space-y-2">
+					{#each visibleExperience.filter((e) => e.type === 'professional') as item (item.id)}
+						<ExperienceBlock
+							title={item.title}
+							subtitle={item.institution}
+							description={item.description}
+							dateLabel="{item.from}{item.to ? `–${item.to}` : ''}"
+							onRemove={() => removeExistingExperience(item.id)}
+						>
+							{#snippet footer()}{@render deliveryFooter(`experience:${item.id}`)}{/snippet}
+						</ExperienceBlock>
+					{/each}
+					{#each pendingExperience as item, i (i)}
+						{#if item.type === 'professional'}
+							<ExperienceBlock
+								title={item.title}
+								subtitle={item.institution}
+								description={item.description}
+								dateLabel="{item.from}{item.to ? `–${item.to}` : ''}"
+								unsaved
+								pending
+								onRemove={() => removeExperience(i)}
+							/>
+						{/if}
+					{/each}
+				</ul>
+			{/if}
+
+			{#if visibleExperience.some((e) => e.type === 'education') || pendingExperience.some((e) => e.type === 'education')}
+				<h4 class="mt-3 text-xs font-semibold tracking-wide text-muted uppercase">Education</h4>
+				<ul class="mt-2 space-y-2">
+					{#each visibleExperience.filter((e) => e.type === 'education') as item (item.id)}
+						<ExperienceBlock
+							title={item.title}
+							subtitle={item.institution}
+							description={item.description}
+							dateLabel="{item.from}{item.to ? `–${item.to}` : ''}"
+							onRemove={() => removeExistingExperience(item.id)}
+						>
+							{#snippet footer()}{@render deliveryFooter(`experience:${item.id}`)}{/snippet}
+						</ExperienceBlock>
+					{/each}
+					{#each pendingExperience as item, i (i)}
+						{#if item.type === 'education'}
+							<ExperienceBlock
+								title={item.title}
+								subtitle={item.institution}
+								description={item.description}
+								dateLabel="{item.from}{item.to ? `–${item.to}` : ''}"
+								unsaved
+								pending
+								onRemove={() => removeExperience(i)}
+							/>
+						{/if}
+					{/each}
+				</ul>
+			{/if}
+
+			<div class="mt-3 flex flex-wrap gap-2">
+				<button
+					type="button"
+					onclick={() => toggleAdding('leadership')}
+					class="rounded-full border px-4 py-2 text-sm font-semibold transition {adding === 'leadership'
+						? 'border-primary bg-primary text-on-primary'
+						: 'border-border bg-surface text-heading hover:bg-surface-2'}"
+				>
+					+ Elected
+				</button>
+				<button
+					type="button"
+					onclick={() => toggleAdding('professional')}
+					class="rounded-full border px-4 py-2 text-sm font-semibold transition {adding === 'professional'
+						? 'border-primary bg-primary text-on-primary'
+						: 'border-border bg-surface text-heading hover:bg-surface-2'}"
+				>
+					+ Professional
+				</button>
+				<button
+					type="button"
+					onclick={() => toggleAdding('education')}
+					class="rounded-full border px-4 py-2 text-sm font-semibold transition {adding === 'education'
+						? 'border-primary bg-primary text-on-primary'
+						: 'border-border bg-surface text-heading hover:bg-surface-2'}"
+				>
+					+ Education
+				</button>
+			</div>
+
+			{#if adding === 'leadership'}
+				{#key leadResetKey}
+					<div class="mt-4 space-y-4 rounded-xl border border-border bg-surface-2 p-4">
+						<PositionSelector
+							positions={data.positions}
+							verified={false}
+							initialPositionId={null}
+							label="Position held"
+							required={false}
+							bind:value={leadPositionId}
+						/>
+						{#if data.parties}
+							<label class="block">
+								<span class="text-sm font-medium text-heading">Party held under</span>
+								<select
+									bind:value={leadPartyId}
+									class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+								>
+									<option value="">Independent (no party)</option>
+									{#each data.parties as party (party.id)}
+										<option value={party.id}>{party.name}</option>
+									{/each}
+								</select>
+							</label>
+						{/if}
+						<label class="block">
+							<span class="text-sm font-medium text-heading">Description</span>
+							<input
+								type="text"
+								bind:value={leadDescription}
+								maxlength="255"
+								placeholder="Optional"
+								class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+							/>
+						</label>
+						<div class="grid grid-cols-2 gap-3">
+							<label class="block">
+								<span class="text-sm font-medium text-heading">From</span>
+								<select
+									bind:value={leadFrom}
+									class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+								>
+									<option value="">Year</option>
+									{#each years as year (year)}
+										<option value={year}>{year}</option>
+									{/each}
+								</select>
+							</label>
+							<label class="block">
+								<span class="text-sm font-medium text-heading">To (optional)</span>
+								<select
+									bind:value={leadTo}
+									class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+								>
+									<option value="">Ongoing</option>
+									{#each leadToYears as year (year)}
+										<option value={year}>{year}</option>
+									{/each}
+								</select>
+							</label>
+						</div>
+						{#if leadDateInvalid}
+							<p class="text-sm font-medium text-heading">"To" can't be before "From".</p>
+						{/if}
+						<button
+							type="button"
+							onclick={addLeadership}
+							disabled={!leadPositionId || !leadFrom || leadDateInvalid}
+							class="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95 disabled:opacity-60"
+						>
+							Add elected role
+						</button>
+					</div>
+				{/key}
+			{:else if adding === 'professional' || adding === 'education'}
+				<div class="mt-4 space-y-4 rounded-xl border border-border bg-surface-2 p-4">
+					<label class="block">
+						<span class="text-sm font-medium text-heading">Title</span>
+						<input
+							type="text"
+							bind:value={expTitle}
+							placeholder={adding === 'education' ? 'Bachelor of Laws (LL.B.)' : 'Minister for Agriculture'}
+							class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+						/>
+					</label>
+					<label class="block">
+						<span class="text-sm font-medium text-heading">Institution</span>
+						<input
+							type="text"
+							bind:value={expInstitution}
+							placeholder={adding === 'education' ? 'University of Nairobi' : 'Government of Kenya'}
+							class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+						/>
+					</label>
+					<label class="block">
+						<span class="text-sm font-medium text-heading">Description</span>
+						<textarea
+							bind:value={expDescription}
+							maxlength="500"
+							rows="3"
+							placeholder="Optional: what the role or study involved and achieved"
+							class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+						></textarea>
+					</label>
+					<div class="grid grid-cols-2 gap-3">
+						<label class="block">
+							<span class="text-sm font-medium text-heading">From</span>
+							<select
+								bind:value={expFrom}
+								class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+							>
+								<option value="">Year</option>
+								{#each years as year (year)}
+									<option value={year}>{year}</option>
+								{/each}
+							</select>
+						</label>
+						<label class="block">
+							<span class="text-sm font-medium text-heading">To (optional)</span>
+							<select
+								bind:value={expTo}
+								class="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+							>
+								<option value="">Ongoing</option>
+								{#each expToYears as year (year)}
+									<option value={year}>{year}</option>
+								{/each}
+							</select>
+						</label>
+					</div>
+					{#if expDateInvalid}
+						<p class="text-sm font-medium text-heading">"To" can't be before "From".</p>
+					{/if}
+					<button
+						type="button"
+						onclick={addExperience}
+						disabled={!expTitle.trim() || !expInstitution.trim() || !expFrom || expDateInvalid}
+						class="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95 disabled:opacity-60"
+					>
+						Add {adding}
+					</button>
+				</div>
+			{/if}
+		</div>
+	{/if}
+
+	<div class="mt-5 border-t border-border pt-6">
+		<button
+			type="submit"
+			form="profile-form"
+			disabled={saving || (claimAttestation && !attested)}
+			class="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-95 disabled:opacity-60"
+		>
+			{saving ? 'Saving…' : 'Save profile'}
+		</button>
+	</div>
 
 	{#if !data.form.hasLeader}
 		<p class="mt-8 border-t border-border pt-5 text-sm text-muted">
@@ -659,6 +701,95 @@
 		</p>
 	{/if}
 </div>
+
+<!-- Deliveries under one experience item (target = "leader:<id>" / "experience:<id>").
+Standalone POST forms — outside #profile-form — so each saves immediately. -->
+{#snippet deliveryFooter(target: string)}
+	<div class="mt-2 border-t border-border/60 pt-2">
+		{#if deliveriesFor(target).length > 0}
+			<ul class="space-y-1">
+				{#each deliveriesFor(target) as d (d.id)}
+					<li class="flex items-start gap-2 text-xs">
+						<span class="flex-1 text-heading">
+							{d.title}{#if d.description} <span class="text-muted">— {d.description}</span>{/if}
+						</span>
+						<form method="post" action="?/togglePinDelivery" use:enhance>
+							<input type="hidden" name="id" value={d.id} />
+							<button
+								type="submit"
+								aria-label={d.pinned ? 'Unpin from public profile' : 'Pin to public profile'}
+								title={d.pinned ? 'Pinned — shows on public profile' : 'Pin to public profile'}
+								class="{d.pinned ? 'text-primary' : 'text-muted'} hover:text-primary"
+							>
+								<svg viewBox="0 0 24 24" class="size-4" fill={d.pinned ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="1.5">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M9 4h6l-1 6 3 3v2h-5v5l-1 1-1-1v-5H4v-2l3-3-1-6z" />
+								</svg>
+							</button>
+						</form>
+						<form
+							method="post"
+							action="?/removeDelivery"
+							use:enhance={({ cancel }) => {
+								if (!confirm(`Delete "${d.title}"?`)) {
+									cancel();
+									return;
+								}
+								return async ({ update }) => await update({ reset: false });
+							}}
+						>
+							<input type="hidden" name="id" value={d.id} />
+							<button type="submit" aria-label="Delete delivery" class="text-muted hover:text-red-600">✕</button>
+						</form>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+
+		<div class="mt-1 flex justify-end">
+			<button type="button" onclick={() => toggleDelivery(target)} class="text-xs font-semibold text-primary hover:underline">
+				{openDelivery === target ? 'Cancel' : '+ Delivered'}
+			</button>
+		</div>
+
+		{#if openDelivery === target}
+			<form
+				method="post"
+				action="?/addDelivery"
+				class="mt-1 space-y-2"
+				use:enhance={() => {
+					return async ({ result, update }) => {
+						await update({ reset: false });
+						if (result.type === 'success') {
+							delTitle = '';
+							delDescription = '';
+							openDelivery = null;
+						}
+					};
+				}}
+			>
+				<input type="hidden" name="target" value={target} />
+				<input
+					type="text"
+					name="title"
+					required
+					bind:value={delTitle}
+					placeholder="What was delivered"
+					class="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:outline-none"
+				/>
+				<input
+					type="text"
+					name="description"
+					bind:value={delDescription}
+					placeholder="Optional detail or proof link"
+					class="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:outline-none"
+				/>
+				<button type="submit" class="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-on-primary transition hover:brightness-95">
+					Add delivery
+				</button>
+			</form>
+		{/if}
+	</div>
+{/snippet}
 
 {#if cropping}
 	<!-- Leader photo crops to a square (1:1). -->

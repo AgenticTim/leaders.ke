@@ -118,7 +118,6 @@
 					{ href: `${base}/team`, label: 'Team' },
 					{ href: `${base}/followers`, label: 'Followers' },
 					{ href: `${base}/mobilization`, label: 'Mobilization' },
-					{ href: `${base}/delivery`, label: 'Delivered' },
 					{ href: `${base}/campaign`, label: 'Campaign' },
 					{ href: `${base}/posts`, label: 'News' },
 					{ href: `${base}/broadcasts`, label: 'Broadcasts' },
@@ -126,6 +125,7 @@
 					{ href: `${base}/chats`, label: 'Chats' },
 					{ href: `${base}/fundraising`, label: 'Fundraising' },
 					{ href: `${base}/competitors`, label: 'Competition' },
+					{ href: `${base}/upgrade`, label: 'Plan' },
 					// Exception to "every listed tab is always reachable": the AI Chat
 					// feature only ever answers on the public profile, which itself only
 					// exists once verified — so this tab stays hidden, not just disabled,

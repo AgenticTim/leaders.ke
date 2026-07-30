@@ -9,6 +9,14 @@ import { getRouteLeaderContext, requireDashboardUser } from '$lib/server/dashboa
 import { ACTIVE_CYCLE, createPhantomUser, getApplicationChecklist, isSlugAvailable, slugify } from '$lib/server/leader';
 import { saveLeaderDocument } from '$lib/server/storage';
 import { notifyAdminsOfVerificationRequest } from '$lib/server/profiles';
+import {
+	addDelivery,
+	listDeliveriesByTarget,
+	MAX_PINNED_DELIVERIES,
+	pinnedDeliveryCount,
+	removeDelivery,
+	togglePinDelivery
+} from '$lib/server/deliveries';
 import type { Actions, PageServerLoad } from './$types';
 
 // The photo rides the ?/save submit itself (multipart) and lands on the PERSON
@@ -59,7 +67,21 @@ export const load: PageServerLoad = async (event) => {
 			])
 		: [[], []];
 
+	// Deliveries hang off each held term / experience item (merged into this tab),
+	// keyed by "leader:<id>" / "experience:<id>" so the client lists them under the
+	// matching card.
+	const deliveriesByTarget = ctx
+		? await listDeliveriesByTarget(
+				otherLeadershipRows.map((l) => l.id),
+				existingExperience.map((e) => e.id)
+			)
+		: {};
+	const pinnedCount = ctx ? await pinnedDeliveryCount(subject.id) : 0;
+
 	return {
+		deliveriesByTarget,
+		pinnedCount,
+		maxPinned: MAX_PINNED_DELIVERIES,
 		positions: positionRows.map((p) => ({
 			id: p.id,
 			title: p.title,
@@ -268,6 +290,38 @@ export const actions: Actions = {
 		}
 
 		return { saved: true };
+	},
+
+	// Deliveries (merged in from the old Delivery tab): each saves immediately,
+	// scoped to a term/experience the person actually owns (checked in the module).
+	addDelivery: async (event) => {
+		const { domainUser } = await requireDashboardUser(event);
+		const ctx = await getRouteLeaderContext(event, domainUser.id);
+		if (!ctx) return fail(400, { deliveryError: 'Save the profile first.' });
+		const form = await event.request.formData();
+		const result = await addDelivery(ctx.profileUser.id, String(form.get('target') ?? ''), String(form.get('title') ?? ''), String(form.get('description') ?? ''));
+		if (!result.ok) return fail(400, { deliveryError: result.error });
+		return { deliverySaved: true };
+	},
+
+	removeDelivery: async (event) => {
+		const { domainUser } = await requireDashboardUser(event);
+		const ctx = await getRouteLeaderContext(event, domainUser.id);
+		if (!ctx) return fail(400, { deliveryError: 'Nothing to remove.' });
+		const form = await event.request.formData();
+		const result = await removeDelivery(ctx.profileUser.id, Number(form.get('id') ?? 0));
+		if (!result.ok) return fail(400, { deliveryError: result.error });
+		return { deliverySaved: true };
+	},
+
+	togglePinDelivery: async (event) => {
+		const { domainUser } = await requireDashboardUser(event);
+		const ctx = await getRouteLeaderContext(event, domainUser.id);
+		if (!ctx) return fail(400, { deliveryError: 'Nothing to pin.' });
+		const form = await event.request.formData();
+		const result = await togglePinDelivery(ctx.profileUser.id, Number(form.get('id') ?? 0));
+		if (!result.ok) return fail(400, { deliveryError: result.error });
+		return { deliverySaved: true };
 	},
 
 	// "Just testing" escape hatch (mirrors the claim form's Delete): soft-deletes
