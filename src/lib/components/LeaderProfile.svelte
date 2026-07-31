@@ -289,8 +289,8 @@
 										: 'Matched from campaign material.'}
 								</p>
 							{:else}
-								<p class="mt-2 text-sm leading-relaxed">
-									Thanks for your question — the team has received it and will get back to you soon.
+								<p class="mt-2 text-xs text-muted italic leading-relaxed">
+									This profile has insufficient credit AI responses. The team will get back to you soon.
 								</p>
 							{/if}
 						</div>
