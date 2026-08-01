@@ -17,8 +17,10 @@ import { answerConstituentQuestion, PlatformOutOfCreditsError } from '$lib/serve
 import { enforceAskRateLimit } from '$lib/server/aiRateLimit';
 import { enforceRateLimit, ipBucket } from '$lib/server/rateLimit';
 import { getGroundingExtras } from '$lib/server/knowledge';
+import { getOrMintAnonId } from '$lib/server/anonId';
 import {
 	getOrCreateWebConversation,
+	getWebThread,
 	recordAiAnswer,
 	recordQuestion,
 	routeQuestionToTeam
@@ -60,7 +62,12 @@ export const load: PageServerLoad = async ({ params, locals, cookies }) => {
 		isPledged = !!existingPledge;
 	}
 
-	return { ...data, isPledged };
+	// The viewer's own chat history with this person (questions, AI answers,
+	// team replies), keyed by account or the guest's anon_id — so refreshing
+	// never loses the thread and team replies actually reach the citizen.
+	const chatThread = await getWebThread(data.subjectId, viewer?.id ?? null, anonId);
+
+	return { ...data, isPledged, chatThread };
 };
 
 // Resolves a slug to its public review target: the person id, the lead campaign
@@ -211,8 +218,13 @@ export const actions: Actions = {
 
 		// Every question is captured as a durable thread regardless of credit (the
 		// team answers the uncredited ones from the dashboard Chats tab), so nothing
-		// a citizen asks is ever lost.
-		const conversationId = await getOrCreateWebConversation(lead.subjectId, viewer?.id ?? null);
+		// a citizen asks is ever lost. Guests key on the anon_id device cookie
+		// (minted here if needed) so their thread survives refresh.
+		const conversationId = await getOrCreateWebConversation(
+			lead.subjectId,
+			viewer?.id ?? null,
+			getOrMintAnonId(event.cookies)
+		);
 
 		// Profile-scoped wallet gate (subjectId), not campaignId: the knowledgebase
 		// a wallet pays to query is one per person, not per run. With no credit the

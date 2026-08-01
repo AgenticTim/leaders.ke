@@ -7,23 +7,17 @@
 // instead, tracked against their own account rather than a spoofable cookie.
 // Both limits are admin-editable (platformSettings.guestAskLifetimeLimit /
 // userAskDailyLimit — Settings → AI Chat), not hardcoded.
-import { randomBytes } from 'node:crypto';
 import { and, count, eq, gte } from 'drizzle-orm';
 import type { RequestEvent } from '@sveltejs/kit';
+import { getOrMintAnonId } from '$lib/server/anonId';
 import { db } from '$lib/server/db';
 import { aiAskEvents } from '$lib/server/db/schema';
 import { getPlatformSettings } from '$lib/server/settings';
-
-const ANON_ID_COOKIE = 'anon_id'; // shared with the homepage ballot booth's device cookie — one id per visitor across features
 
 function startOfToday(): Date {
 	const d = new Date();
 	d.setHours(0, 0, 0, 0);
 	return d;
-}
-
-function anonDeviceId(): string {
-	return randomBytes(16).toString('hex'); // matches the homepage ballot booth's anonDeviceId — 32 hex chars
 }
 
 type RateLimitResult = { ok: true } | { ok: false; error: string; requiresLogin?: boolean };
@@ -50,11 +44,7 @@ async function enforceUserAskLimit(domainUserId: number, dailyLimit: number): Pr
  * alone doesn't help dodge the other. Mints the anon_id cookie if missing.
  * Records this attempt on success. */
 async function enforceGuestAskLimit(event: RequestEvent, lifetimeLimit: number): Promise<RateLimitResult> {
-	let anonId = event.cookies.get(ANON_ID_COOKIE) ?? null;
-	if (!anonId) {
-		anonId = anonDeviceId();
-		event.cookies.set(ANON_ID_COOKIE, anonId, { path: '/', httpOnly: true, maxAge: 60 * 60 * 24 * 365 });
-	}
+	const anonId = getOrMintAnonId(event.cookies);
 
 	let ip: string | null = null;
 	try {

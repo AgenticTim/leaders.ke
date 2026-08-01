@@ -4,21 +4,41 @@
 // question is answered immediately (an `ai` message); when it doesn't, the
 // question is still captured and routed to the team, who reply from the
 // dashboard Chats tab — so no citizen question is ever silently dropped.
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { conversations, messages, users } from '$lib/server/db/schema';
 import { fullName } from '$lib/server/leader';
 
+/** Login linkage: every guest thread carrying this device's anon_id cookie is
+ * adopted onto the now-signed-in citizen's account (across all leaders), so
+ * chats started as a guest follow them into their account permanently. */
+export async function adoptGuestConversations(viewerId: number, anonId: string): Promise<void> {
+	await db
+		.update(conversations)
+		.set({ userId: viewerId })
+		.where(and(eq(conversations.anonId, anonId), isNull(conversations.userId)));
+}
+
 /** The latest open web thread for this (person, viewer), or a fresh one. A
- * signed-in citizen's follow-ups build one thread the team can read in order;
- * anonymous visitors (no userId) always get a new thread since there's no
- * stable identity to group by. Scope 'leader' keys on the PERSON (users.id),
- * matching how reviews.ts and the RAG scopes key conversations. */
+ * viewer's follow-ups build one thread per LEADER the team can read in order —
+ * signed-in citizens key on userId, guests on their anon_id device cookie (the
+ * same thread on the profile and campaign pages, since both key on the person,
+ * and never mixed across leaders, since scopeId differs). Scope 'leader' keys
+ * on the PERSON (users.id), matching how reviews.ts and the RAG scopes key
+ * conversations. */
 export async function getOrCreateWebConversation(
 	personId: number,
-	viewerId: number | null
+	viewerId: number | null,
+	anonId: string | null
 ): Promise<number> {
-	if (viewerId !== null) {
+	if (viewerId !== null && anonId) await adoptGuestConversations(viewerId, anonId);
+	const identity =
+		viewerId !== null
+			? eq(conversations.userId, viewerId)
+			: anonId
+				? and(eq(conversations.anonId, anonId), isNull(conversations.userId))
+				: null;
+	if (identity) {
 		const [existing] = await db
 			.select({ id: conversations.id })
 			.from(conversations)
@@ -26,8 +46,8 @@ export async function getOrCreateWebConversation(
 				and(
 					eq(conversations.scope, 'leader'),
 					eq(conversations.scopeId, personId),
-					eq(conversations.userId, viewerId),
-					eq(conversations.channel, 'web')
+					eq(conversations.channel, 'web'),
+					identity
 				)
 			)
 			.orderBy(desc(conversations.updatedAt))
@@ -36,9 +56,66 @@ export async function getOrCreateWebConversation(
 	}
 	const [created] = await db
 		.insert(conversations)
-		.values({ scope: 'leader', scopeId: personId, channel: 'web', userId: viewerId })
+		.values({ scope: 'leader', scopeId: personId, channel: 'web', userId: viewerId, anonId })
 		.returning({ id: conversations.id });
 	return created.id;
+}
+
+/** The viewer's own chat history with this person, for the public Ask block:
+ * every message across their threads for this leader (older threads included,
+ * e.g. pre-adoption guest ones), oldest first. Read-only — never creates a
+ * conversation, so plain page loads stay write-free (adoption is the one
+ * exception: linking guest threads to a fresh login IS the page-load moment). */
+export async function getWebThread(
+	personId: number,
+	viewerId: number | null,
+	anonId: string | null
+): Promise<{ messages: ChatMessage[]; awaitingReply: boolean }> {
+	if (viewerId !== null && anonId) await adoptGuestConversations(viewerId, anonId);
+	const identity =
+		viewerId !== null
+			? eq(conversations.userId, viewerId)
+			: anonId
+				? and(eq(conversations.anonId, anonId), isNull(conversations.userId))
+				: null;
+	if (!identity) return { messages: [], awaitingReply: false };
+
+	const convRows = await db
+		.select({ id: conversations.id })
+		.from(conversations)
+		.where(
+			and(
+				eq(conversations.scope, 'leader'),
+				eq(conversations.scopeId, personId),
+				eq(conversations.channel, 'web'),
+				identity
+			)
+		);
+	if (convRows.length === 0) return { messages: [], awaitingReply: false };
+
+	const msgRows = await db
+		.select({
+			id: messages.id,
+			sender: messages.sender,
+			body: messages.body,
+			createdAt: messages.createdAt
+		})
+		.from(messages)
+		.where(
+			inArray(
+				messages.conversationId,
+				convRows.map((c) => c.id)
+			)
+		)
+		.orderBy(asc(messages.createdAt));
+
+	const list = msgRows.map((m) => ({
+		id: m.id,
+		sender: m.sender,
+		body: m.body,
+		createdAt: m.createdAt.toISOString()
+	}));
+	return { messages: list, awaitingReply: list[list.length - 1]?.sender === 'follower' };
 }
 
 async function touchConversation(conversationId: number): Promise<void> {

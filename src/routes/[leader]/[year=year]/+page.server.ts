@@ -27,8 +27,10 @@ import { handleDeleteReviewAction, handleReviewAction } from '$lib/server/review
 import { answerConstituentQuestion, PlatformOutOfCreditsError } from '$lib/server/ai';
 import { enforceAskRateLimit } from '$lib/server/aiRateLimit';
 import { getGroundingExtras } from '$lib/server/knowledge';
+import { getOrMintAnonId } from '$lib/server/anonId';
 import {
 	getOrCreateWebConversation,
+	getWebThread,
 	recordAiAnswer,
 	recordQuestion,
 	routeQuestionToTeam
@@ -121,7 +123,13 @@ export const load: PageServerLoad = async ({ params, locals, cookies }) => {
 		: false;
 	const canEdit = !!viewer?.adminAt || viewerIsManager;
 
+	// The viewer's own chat history with this person — the same thread as the
+	// profile page's Ask block (both key on the person), by account or the
+	// guest's anon_id, so refreshes keep it and team replies reach the citizen.
+	const chatThread = await getWebThread(row.users.id, viewer?.id ?? null, anonId);
+
 	return {
+		chatThread,
 		year: Number(params.year),
 		recordPath,
 		currentPosition: row.currentPosition,
@@ -331,7 +339,11 @@ export const actions: Actions = {
 		// Every question is captured as a durable thread regardless of credit (the
 		// team answers the uncredited ones from the dashboard Chats tab), so nothing
 		// a citizen asks is ever lost.
-		const conversationId = await getOrCreateWebConversation(row.users.id, viewer?.id ?? null);
+		const conversationId = await getOrCreateWebConversation(
+			row.users.id,
+			viewer?.id ?? null,
+			getOrMintAnonId(event.cookies)
+		);
 
 		// Charged against the person's own wallet (docs/ai-chat-costs.md's PAYG
 		// price, admin-editable as platformSettings.aiChatCostCredits), checked up

@@ -953,11 +953,13 @@ export const conversations = pgTable('conversations', {
   scopeId: integer('scope_id'), // the position/campaign id, or the PERSON's users.id for scope 'leader'; null for platform-wide (home) chat
   channel: chatChannelEnum('channel').notNull(),
   userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }), // null for anonymous web visitors
+  anonId: varchar('anon_id', { length: 64 }), // guest device id (the shared anon_id cookie) — lets a guest's thread survive refresh and get adopted onto userId at login
   followerId: integer('follower_id').references(() => followers.id, { onDelete: 'set null' }), // set when a WhatsApp thread starts from a follow notification
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   index('conversations_scope_idx').on(t.scope, t.scopeId),
+  index('conversations_anon_idx').on(t.anonId),
 ]);
 
 // One message within a conversation, from a follower, the AI, or a team member.

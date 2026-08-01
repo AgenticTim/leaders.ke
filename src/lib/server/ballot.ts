@@ -4,15 +4,11 @@
 import { randomBytes } from 'node:crypto';
 import type { RequestEvent } from '@sveltejs/kit';
 import { and, eq, inArray, isNull, isNotNull } from 'drizzle-orm';
+import { getOrMintAnonId } from '$lib/server/anonId';
 import { db } from '$lib/server/db';
 import { ballotSimulations, campaigns, leaders, parties, positions, users } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, getDomainUser, leaderPath } from '$lib/server/leader';
 import type { County, Constituency, Ward } from '$lib/data/geo';
-
-/** Anonymous device id for the long-lived 'anon_id' cookie: 32 hex chars. */
-function anonDeviceId(): string {
-	return randomBytes(16).toString('hex');
-}
 
 /** A fresh /ballot/[publicId] slug. */
 export function newBallotPublicId(): string {
@@ -29,14 +25,7 @@ export async function resolveVoterIdentity(
 	event: RequestEvent
 ): Promise<{ domainUser: Awaited<ReturnType<typeof getDomainUser>> | undefined; anonId: string | null; ip: string | null }> {
 	const domainUser = event.locals.user ? await getDomainUser(event.locals.user.id) : undefined;
-	let anonId: string | null = null;
-	if (!domainUser) {
-		anonId = event.cookies.get('anon_id') ?? null;
-		if (!anonId) {
-			anonId = anonDeviceId();
-			event.cookies.set('anon_id', anonId, { path: '/', httpOnly: true, maxAge: 60 * 60 * 24 * 365 });
-		}
-	}
+	const anonId: string | null = domainUser ? null : getOrMintAnonId(event.cookies);
 	let ip: string | null = null;
 	try {
 		ip = event.getClientAddress();

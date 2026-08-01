@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Avatar from '$lib/components/Avatar.svelte';
+	import ChatThread from '$lib/components/ChatThread.svelte';
 	import VerifiedIcon from './svgs/VerifiedIcon.svelte';
 	import { enhance } from '$app/forms';
 	import Reviews from '$lib/components/Reviews.svelte';
@@ -220,23 +221,15 @@
 				<p class="mt-1 text-sm text-muted">
 					Answers come from the manifesto and public updates, instantly.
 				</p>
-				{#if form?.asked}
-					<div class="mt-3 rounded-2xl bg-surface-2 p-4">
-						<p class="text-xs font-semibold text-muted">You: {form.question}</p>
-						{#if form.answered}
-							<p class="mt-2 text-sm leading-relaxed whitespace-pre-line">{form.answer}</p>
-							<p class="mt-2 text-xs text-muted">
-								{form.answerSource === 'ai'
-									? 'AI answer, grounded in campaign material.'
-									: 'Matched from campaign material.'}
-							</p>
-						{:else}
-							<p class="mt-2 text-sm leading-relaxed">
-								Thanks for your question. The team has received it and will get back to you soon.
-							</p>
-						{/if}
-					</div>
-				{:else if form?.error}
+				<!-- The whole persisted thread (data.chatThread reloads after each ask
+				via enhance's update()), not just the last form result — history
+				survives refreshes and team replies show up here. -->
+				<ChatThread
+					messages={data.chatThread?.messages ?? []}
+					awaitingReply={data.chatThread?.awaitingReply ?? false}
+					leaderFirstName={leader.name.split(' ')[0]}
+				/>
+				{#if form?.error}
 					<div
 						class="mt-3 rounded-2xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading"
 					>

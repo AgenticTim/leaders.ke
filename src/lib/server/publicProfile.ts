@@ -305,6 +305,8 @@ export async function loadPublicProfileData(
 		},
 		// Not rendered by the public page — exposed so admin previews (verification/
 		// claim) can pull the run's iebcCertificateUrl without a second resolve.
-		leadCampaignId
+		leadCampaignId,
+		// The person behind the profile (users.id) — chat threads key on this.
+		subjectId: row.users.id
 	};
 }
