@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Avatar from '$lib/components/Avatar.svelte';
-	import ChatThread from '$lib/components/ChatThread.svelte';
+	import ChatThread, { signalTyping } from '$lib/components/ChatThread.svelte';
 	import VerifiedIcon from './svgs/VerifiedIcon.svelte';
 	import { enhance } from '$app/forms';
 	import Reviews from '$lib/components/Reviews.svelte';
@@ -257,6 +257,7 @@
 						rows="2"
 						required
 						placeholder="e.g. What is the plan for water in my ward?"
+						oninput={() => signalTyping(data.subjectId)}
 						onkeydown={(e) => {
 							if (e.key === 'Enter' && !e.shiftKey) {
 								e.preventDefault();

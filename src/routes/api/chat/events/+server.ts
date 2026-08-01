@@ -73,6 +73,12 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 						(viewer === null && anonId !== null && e.anonId === anonId);
 					if (!mine) return;
 				}
+				if (e.kind === 'typing') {
+					// Only the OTHER side's keyboard matters — no echo of your own.
+					if (team ? e.from !== 'citizen' : e.from !== 'team') return;
+					send(`event: typing\ndata: ${e.conversationId}\n\n`);
+					return;
+				}
 				send('data: bump\n\n');
 			});
 			// Comment-only keepalive so idle proxies don't cut the stream.

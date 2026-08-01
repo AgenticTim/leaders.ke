@@ -4,6 +4,8 @@
 	import ReviewFilter from '$lib/components/ReviewFilter.svelte';
 	import Pagination from '$lib/components/admin/Pagination.svelte';
 	import { filterAndSortReviews } from '$lib/reviewFilter';
+	import TypingDots from '$lib/components/TypingDots.svelte';
+	import { formatChatTime } from '$lib/utils/chatTime';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -12,12 +14,39 @@
 
 	// Live updates: the team-scoped SSE stream pings on every new message in
 	// any of this leader's threads, and the loader re-fetches — so a citizen's
-	// question (or an AI answer) lands in the list without a refresh.
+	// question (or an AI answer) lands in the list without a refresh. The same
+	// stream carries transient `typing` events (data = conversation id) when a
+	// citizen is typing in a thread's Ask box.
+	let typingThreads = $state<Record<number, boolean>>({});
+	const typingTimers: Record<number, ReturnType<typeof setTimeout>> = {};
 	$effect(() => {
 		const source = new EventSource(`/api/chat/events?person=${data.chatPersonId}&role=team`);
 		source.onmessage = () => invalidate('chat:thread');
-		return () => source.close();
+		source.addEventListener('typing', (e) => {
+			const threadId = Number(e.data);
+			typingThreads[threadId] = true;
+			clearTimeout(typingTimers[threadId]);
+			typingTimers[threadId] = setTimeout(() => (typingThreads[threadId] = false), 4000);
+		});
+		return () => {
+			source.close();
+			Object.values(typingTimers).forEach(clearTimeout);
+		};
 	});
+
+	// Throttled "team is typing" signal from the reply box, mirrored on the
+	// citizen's own page.
+	let lastTypingSentAt = 0;
+	function signalTeamTyping(conversationId: number) {
+		const now = Date.now();
+		if (now - lastTypingSentAt < 2000) return;
+		lastTypingSentAt = now;
+		void fetch('/api/chat/typing', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ person: data.chatPersonId, conversationId })
+		});
+	}
 
 	const fmt = new Intl.NumberFormat('en-KE');
 	const dateFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' });
@@ -94,18 +123,28 @@
 								{#each thread.messages as message (message.id)}
 									{@const mine = message.sender !== 'follower'}
 									<div class="flex {mine ? 'justify-end' : 'justify-start'}">
-										<div class="max-w-[85%] rounded-2xl px-3 py-2 text-sm {mine ? 'bg-primary-soft text-on-primary' : 'bg-surface-2 text-heading'}">
-											<p class="text-xs font-semibold opacity-70">{senderLabel(message.sender)}</p>
+										<div class="max-w-[85%] min-w-32 rounded-2xl px-3 py-2 text-sm {mine ? 'bg-primary-soft text-on-primary' : 'bg-surface-2 text-heading'}">
+											<p class="flex items-baseline justify-between gap-3 text-xs">
+												<span class="font-semibold opacity-70">{senderLabel(message.sender)}</span>
+												<span class="opacity-60">{formatChatTime(message.createdAt)}</span>
+											</p>
 											<p class="mt-0.5 leading-relaxed whitespace-pre-line">{message.body}</p>
 										</div>
 									</div>
 								{/each}
+								{#if typingThreads[thread.id]}
+									<div class="flex justify-start">
+										<div class="rounded-2xl bg-surface-2 px-3 py-2 text-sm text-muted">
+											{thread.citizenName} is typing<TypingDots />
+										</div>
+									</div>
+								{/if}
 							</div>
 
 							{#if replyingTo === thread.id}
 								<form method="post" action="?/reply" class="mt-4 space-y-2" use:enhance={() => async ({ update }) => { await update(); replyingTo = null; }}>
 									<input type="hidden" name="conversationId" value={thread.id} />
-									<textarea name="body" rows="2" required placeholder="Write your reply" class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"></textarea>
+									<textarea name="body" rows="2" required placeholder="Write your reply" oninput={() => signalTeamTyping(thread.id)} class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"></textarea>
 									<div class="flex gap-2">
 										<button type="submit" class="rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-on-primary transition hover:brightness-95">Send reply</button>
 										<button type="button" onclick={() => (replyingTo = null)} class="rounded-full px-4 py-1.5 text-sm font-medium text-muted transition hover:text-heading">Cancel</button>

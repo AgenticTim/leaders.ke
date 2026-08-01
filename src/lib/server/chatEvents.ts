@@ -10,28 +10,52 @@ import { db } from '$lib/server/db';
 import { conversations } from '$lib/server/db/schema';
 
 export type ChatEvent = {
+	kind: 'message' | 'typing';
 	personId: number; // the leader (conversations.scopeId) this thread belongs to
 	conversationId: number;
 	userId: number | null; // thread owner, for citizen-side filtering
 	anonId: string | null;
+	from: 'citizen' | 'team'; // typing only: which side's keyboard is active
 };
 
 const emitter = new EventEmitter();
 emitter.setMaxListeners(0); // one listener per open SSE connection
 
-/** Announces a new message in a conversation to every subscribed connection.
- * Looks the thread's identity up itself so callers only need the id. */
-export async function emitChatEvent(conversationId: number): Promise<void> {
+async function threadIdentity(conversationId: number) {
 	const [conv] = await db
 		.select({ scopeId: conversations.scopeId, userId: conversations.userId, anonId: conversations.anonId })
 		.from(conversations)
 		.where(eq(conversations.id, conversationId));
-	if (!conv || conv.scopeId === null) return;
+	return conv && conv.scopeId !== null ? conv : null;
+}
+
+/** Announces a new message in a conversation to every subscribed connection.
+ * Looks the thread's identity up itself so callers only need the id. */
+export async function emitChatEvent(conversationId: number): Promise<void> {
+	const conv = await threadIdentity(conversationId);
+	if (!conv) return;
 	emitter.emit('message', {
-		personId: conv.scopeId,
+		kind: 'message',
+		personId: conv.scopeId!,
 		conversationId,
 		userId: conv.userId,
-		anonId: conv.anonId
+		anonId: conv.anonId,
+		from: 'citizen'
+	} satisfies ChatEvent);
+}
+
+/** Transient "someone is typing" signal (never stored) — the other side shows
+ * a typing indicator for a few seconds. */
+export async function emitTypingEvent(conversationId: number, from: 'citizen' | 'team'): Promise<void> {
+	const conv = await threadIdentity(conversationId);
+	if (!conv) return;
+	emitter.emit('message', {
+		kind: 'typing',
+		personId: conv.scopeId!,
+		conversationId,
+		userId: conv.userId,
+		anonId: conv.anonId,
+		from
 	} satisfies ChatEvent);
 }
 
