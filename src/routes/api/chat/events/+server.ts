@@ -1,12 +1,13 @@
 // Live chat pings (SSE): a connection per open chat view. When a message
-// lands in a matching thread the client gets a "bump" and re-fetches its own
-// thread data (invalidate('chat:thread')) — the stream carries no message
-// content, so there's nothing to leak and auth stays with the loaders.
+// lands in a matching thread the client gets a ping (data = conversation id)
+// and re-fetches its own thread data (invalidate('chat:thread')) — the stream
+// carries no message content, so there's nothing to leak and auth stays with
+// the loaders.
 //
 //   ?person=<users.id>              citizen view: pings only for the viewer's
 //                                   own thread with that leader (session user
 //                                   or anon_id device cookie)
-//   ?person=<users.id>&role=team    team view (Respond tab): pings for every
+//   ?person=<users.id>&role=team    team view (Inbox): pings for every
 //                                   thread of that leader — admin or active
 //                                   manager only
 import { error } from '@sveltejs/kit';
@@ -79,7 +80,9 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 					send(`event: typing\ndata: ${e.conversationId}\n\n`);
 					return;
 				}
-				send('data: bump\n\n');
+				// Data is the conversation id, so the Inbox can clear that thread's
+				// typing indicator the moment the announced message lands.
+				send(`data: ${e.conversationId}\n\n`);
 			});
 			// Comment-only keepalive so idle proxies don't cut the stream.
 			const heartbeat = setInterval(() => send(': keepalive\n\n'), 25000);

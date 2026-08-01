@@ -3,7 +3,7 @@
 // of being a stateless single-shot. When the profile has AI Chat credit the
 // question is answered immediately (an `ai` message); when it doesn't, the
 // question is still captured and routed to the team, who reply from the
-// dashboard Chats tab — so no citizen question is ever silently dropped.
+// dashboard Inbox — so no citizen question is ever silently dropped.
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { emitChatEvent } from '$lib/server/chatEvents';
 import { db } from '$lib/server/db';
@@ -128,7 +128,7 @@ async function touchConversation(conversationId: number): Promise<void> {
 
 /** Records a citizen's question, returning the new message id. `awaitingTeam` =
  * true when no AI answer will follow (out of credit): the message is targeted
- * at the team so the Chats tab surfaces it as needing a human reply. */
+ * at the team so the Inbox surfaces it as needing a human reply. */
 export async function recordQuestion(
 	conversationId: number,
 	viewerId: number | null,
@@ -172,7 +172,7 @@ export type ChatThread = {
 };
 
 /** Every citizen chat thread for this person (across seats), newest activity
- * first, each with its full message list — the dashboard Chats tab reads this.
+ * first, each with its full message list — the dashboard Inbox reads this.
  * A thread needs attention when its last message came from the citizen. */
 export async function listLeaderChats(
 	personId: number,

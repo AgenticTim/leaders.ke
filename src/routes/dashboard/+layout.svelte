@@ -121,7 +121,7 @@
 					{ href: `${base}/campaign`, label: 'Campaign' },
 					{ href: `${base}/posts`, label: 'News' },
 					{ href: `${base}/broadcasts`, label: 'Broadcasts' },
-					{ href: `${base}/respond`, label: 'Respond' },
+					{ href: `${base}/inbox`, label: 'Inbox' },
 					{ href: `${base}/fundraising`, label: 'Fundraising' },
 					{ href: `${base}/competitors`, label: 'Competition' },
 					{ href: `${base}/upgrade`, label: 'Plan' },

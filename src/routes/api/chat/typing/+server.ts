@@ -5,7 +5,7 @@
 //
 //   POST { person }                  citizen typing in the Ask box — the
 //                                    thread is resolved from their identity
-//   POST { person, conversationId }  team typing a reply (Respond tab) —
+//   POST { person, conversationId }  team typing a reply (Inbox) —
 //                                    admin or active manager only
 import { error, json } from '@sveltejs/kit';
 import { and, desc, eq, isNull } from 'drizzle-orm';

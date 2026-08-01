@@ -1,6 +1,6 @@
 // Live chat delivery: a tiny in-process pubsub bridging message writes
 // (chat.ts) to the open SSE connections (/api/chat/events), so a team reply
-// shows up on the citizen's page — and a citizen question on the Respond tab —
+// shows up on the citizen's page — and a citizen question on the Inbox —
 // without a refresh. In-process matches how this app already runs its timers
 // (hooks.server.ts) on the single PM2 fork; going multi-process would need
 // Postgres LISTEN/NOTIFY here instead.

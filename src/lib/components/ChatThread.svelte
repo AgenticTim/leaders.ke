@@ -60,7 +60,7 @@
 
 <script lang="ts" module>
 	/** Throttled "I'm typing" signal for the Ask textarea (oninput) — at most
-	 * one POST every 2s; the team's Respond tab shows the indicator. */
+	 * one POST every 2s; the team's Inbox shows the indicator. */
 	let lastTypingSentAt = 0;
 	export function signalTyping(personId: number, conversationId?: number) {
 		const now = Date.now();
