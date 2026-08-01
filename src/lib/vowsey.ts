@@ -11,6 +11,9 @@ export type InitOptions = {
 	host: string;
 	/** Record rrweb session replays (default true). Pageviews are always sent. */
 	recordReplay?: boolean;
+	/** Mask everything typed into inputs in replays (default true). Opt out only
+	 * when replays must show form contents and the forms hold nothing sensitive. */
+	maskInputs?: boolean;
 };
 
 const VISITOR_KEY = 'rt_vid';
@@ -51,11 +54,15 @@ export function init(opts: InitOptions): void {
 	const visitorId = persistentId(localStorage, VISITOR_KEY);
 	const sessionId = persistentId(sessionStorage, SESSION_KEY);
 
-	// ── Pageview: send once now, and again on exit with time-on-page. Both beacons
-	// share one viewId so the server upserts a single row per view. ──
-	const enteredAt = Date.now();
-	const viewId = crypto.randomUUID();
-	const sendView = (durationMs: number | null, beacon = false) =>
+	// ── Pageviews: one row per viewed page, SPA navigations included. Each view
+	// gets its own viewId; the entry beacon inserts the row and the exit beacon
+	// (route change or pagehide) updates it with time-on-page — the server upserts
+	// on (project, viewId), so a view never counts twice. ──
+	let viewId = '';
+	let viewPage = '';
+	let enteredAt = 0;
+
+	const sendView = (referrer: string | null, durationMs: number | null, beacon = false) =>
 		post(
 			`${host}/api/ingest`,
 			{
@@ -63,15 +70,44 @@ export function init(opts: InitOptions): void {
 				visitorId,
 				sessionId,
 				viewId,
-				page: location.href,
-				referrer: document.referrer || null,
+				page: viewPage,
+				referrer,
 				screenRes: `${screen.width}x${screen.height}`,
 				durationMs
 			},
 			beacon
 		);
-	sendView(null);
-	window.addEventListener('pagehide', () => sendView(Date.now() - enteredAt, true));
+
+	const startView = () => {
+		// In-app navigations inherit the previous page as referrer; the first view
+		// uses the real document referrer.
+		const referrer = viewPage || document.referrer || null;
+		viewId = crypto.randomUUID();
+		viewPage = location.href;
+		enteredAt = Date.now();
+		sendView(referrer, null);
+	};
+	const endView = (beacon = false) => sendView(null, Date.now() - enteredAt, beacon);
+
+	// SPA route changes: history API patch + popstate. replaceState fires for
+	// scroll/state bookkeeping in most frameworks, so only an actual URL change
+	// closes the current view.
+	const onRouteChange = () => {
+		if (location.href === viewPage) return;
+		endView();
+		startView();
+	};
+	for (const m of ['pushState', 'replaceState'] as const) {
+		const orig = history[m].bind(history);
+		history[m] = (...args: Parameters<History['pushState']>) => {
+			orig(...args);
+			onRouteChange();
+		};
+	}
+	window.addEventListener('popstate', onRouteChange);
+
+	startView();
+	window.addEventListener('pagehide', () => endView(true));
 
 	// ── Session replay (rrweb, dynamically imported so it never blocks page load) ──
 	if (opts.recordReplay === false) return;
@@ -86,7 +122,7 @@ export function init(opts: InitOptions): void {
 
 	import('rrweb')
 		.then(({ record }) => {
-			record({ emit: (e) => buffer.push(e), maskAllInputs: false });
+			record({ emit: (e) => buffer.push(e), maskAllInputs: opts.maskInputs !== false });
 			flush(); // ship the initial snapshot immediately so short sessions still replay
 			setInterval(() => flush(), FLUSH_MS);
 			window.addEventListener('pagehide', () => flush(true));
