@@ -208,8 +208,7 @@ export const actions: Actions = {
 
 		const viewer = event.locals.user ? await getDomainUser(event.locals.user.id) : null;
 		const rateLimit = await enforceAskRateLimit(event, viewer?.id ?? null);
-		if (!rateLimit.ok)
-			return fail(429, { error: rateLimit.error, requiresLogin: rateLimit.requiresLogin });
+		if (!rateLimit.ok) return fail(429, { error: rateLimit.error });
 
 		const lead = await publicLead(event.params.leader);
 		if (!lead) return fail(404, { error: 'Leader not found.' });
@@ -227,6 +226,13 @@ export const actions: Actions = {
 			viewer?.id ?? null,
 			getOrMintAnonId(event.cookies)
 		);
+
+		// Free AI answers exhausted (guest): the question still lands, routed to
+		// the team — never a "log in to keep asking" dead end.
+		if (rateLimit.teamOnly) {
+			await recordQuestion(conversationId, viewer?.id ?? null, question, true);
+			return { asked: true, answered: false, question };
+		}
 
 		// Profile-scoped wallet gate (subjectId), not campaignId: the knowledgebase
 		// a wallet pays to query is one per person, not per run. With no credit the

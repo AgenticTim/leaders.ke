@@ -100,7 +100,7 @@
 			</div>
 		{:else if awaitingReply}
 			<p class="text-center text-xs text-muted">
-				The team has your question and will get back to you here.
+				The team will get back to you soon.
 			</p>
 		{/if}
 	</div>

@@ -29,7 +29,10 @@
 	} = $props();
 
 	const leader = $derived(data.leader);
-	const firstName = leader.name.split(' ')[0];
+	// Derived, not a one-shot const: client-side navigation between leader pages
+	// reuses this component, so a plain const would keep the previous leader's
+	// name in the Ask heading and team labels.
+	const firstName = $derived(leader.name.split(' ')[0]);
 
 	// A pure aspirant doesn't currently hold ANY electoral seat, so there's no
 	// accurate "Current X" to state — the whole card (heading + contestants link)
@@ -293,9 +296,6 @@
 							class="mt-3 rounded-2xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading"
 						>
 							{form.error}
-							{#if form.requiresLogin}
-								<a href="/login" class="ml-1 font-semibold text-primary hover:underline">Log in</a>
-							{/if}
 						</div>
 					{/if}
 					<form

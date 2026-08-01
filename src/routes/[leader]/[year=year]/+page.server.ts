@@ -334,8 +334,7 @@ export const actions: Actions = {
 
 		const viewer = event.locals.user ? await getDomainUser(event.locals.user.id) : null;
 		const rateLimit = await enforceAskRateLimit(event, viewer?.id ?? null);
-		if (!rateLimit.ok)
-			return fail(429, { error: rateLimit.error, requiresLogin: rateLimit.requiresLogin });
+		if (!rateLimit.ok) return fail(429, { error: rateLimit.error });
 
 		const row = await resolveCampaignRun(event.params.leader);
 		if (!row) return fail(404, { error: 'Campaign not found.' });
@@ -348,6 +347,13 @@ export const actions: Actions = {
 			viewer?.id ?? null,
 			getOrMintAnonId(event.cookies)
 		);
+
+		// Free AI answers exhausted (guest): the question still lands, routed to
+		// the team — never a "log in to keep asking" dead end.
+		if (rateLimit.teamOnly) {
+			await recordQuestion(conversationId, viewer?.id ?? null, question, true);
+			return { asked: true, answered: false, question };
+		}
 
 		// Charged against the person's own wallet (docs/ai-chat-costs.md's PAYG
 		// price, admin-editable as platformSettings.aiChatCostCredits), checked up

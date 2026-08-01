@@ -110,11 +110,12 @@
 		return 'Team';
 	};
 
-	/** One-line list preview: who spoke last + what they said. */
+	/** One-line list preview: who spoke last + the first 30 chars of what they said. */
 	const preview = (thread: (typeof data.threads)[number]) => {
 		const last = thread.messages[thread.messages.length - 1];
 		if (!last) return '';
-		return `${last.sender === 'follower' ? '' : 'You: '}${last.body}`;
+		const snippet = last.body.length > 30 ? `${last.body.slice(0, 30)}…` : last.body;
+		return `${last.sender === 'follower' ? '' : 'You: '}${snippet}`;
 	};
 </script>
 

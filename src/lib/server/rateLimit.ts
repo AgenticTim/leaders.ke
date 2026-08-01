@@ -9,7 +9,7 @@ import { db } from '$lib/server/db';
 import { rateEvents } from '$lib/server/db/schema';
 import type { RequestEvent } from '@sveltejs/kit';
 
-export type RateAction = 'follow' | 'pledge' | 'endorse' | 'donate';
+export type RateAction = 'follow' | 'pledge' | 'endorse' | 'donate' | 'ask';
 
 // Per-action window and max accepted submissions per bucket within it. Deliberately
 // generous: these stop scripted floods, not a person clicking twice.
@@ -17,7 +17,9 @@ const LIMITS: Record<RateAction, { windowMs: number; max: number }> = {
 	follow: { windowMs: 60_000, max: 5 },
 	pledge: { windowMs: 60_000, max: 5 },
 	endorse: { windowMs: 60_000, max: 5 },
-	donate: { windowMs: 60_000, max: 10 }
+	donate: { windowMs: 60_000, max: 10 },
+	// Team-routed guest questions (free AI answers exhausted) — see aiRateLimit.ts.
+	ask: { windowMs: 60_000, max: 5 }
 };
 
 /** The caller's IP as a rate-limit bucket, or a stable fallback when unavailable. */
