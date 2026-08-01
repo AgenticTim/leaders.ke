@@ -73,7 +73,7 @@
 	$effect(() => {
 		const q = query.trim();
 		clearTimeout(timer);
-		if (q.length < 2) {
+		if (q.length < 1) {
 			dbGroups = { executive: [], parliament: [], mcas: [], parties: [], news: [], tags: [] };
 			return;
 		}

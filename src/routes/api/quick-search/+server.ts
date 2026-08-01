@@ -21,7 +21,7 @@ const GROUP_BY_TITLE: Record<string, 'executive' | 'parliament' | 'mcas'> = {
 
 export const GET: RequestHandler = async ({ url }) => {
 	const q = (url.searchParams.get('q') ?? '').trim();
-	if (q.length < 2) return json({ executive: [], parliament: [], mcas: [], parties: [], news: [], tags: [] });
+	if (q.length < 1) return json({ executive: [], parliament: [], mcas: [], parties: [], news: [], tags: [] });
 	const like = `%${q}%`;
 
 	const nameMatch = or(ilike(users.firstName, like), ilike(users.otherNames, like), ilike(sql`${users.firstName} || ' ' || ${users.otherNames}`, like));
