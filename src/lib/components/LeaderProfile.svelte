@@ -286,6 +286,7 @@
 						messages={data.chatThread?.messages ?? []}
 						awaitingReply={data.chatThread?.awaitingReply ?? false}
 						leaderFirstName={firstName}
+						personId={data.subjectId}
 					/>
 					{#if form?.error}
 						<div

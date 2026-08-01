@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { invalidate } from '$app/navigation';
 	import ReviewFilter from '$lib/components/ReviewFilter.svelte';
 	import Pagination from '$lib/components/admin/Pagination.svelte';
 	import { filterAndSortReviews } from '$lib/reviewFilter';
@@ -8,6 +9,15 @@
 	let { data, form }: PageProps = $props();
 
 	const awaitingChats = $derived(data.threads.filter((t) => t.awaitingReply).length);
+
+	// Live updates: the team-scoped SSE stream pings on every new message in
+	// any of this leader's threads, and the loader re-fetches — so a citizen's
+	// question (or an AI answer) lands in the list without a refresh.
+	$effect(() => {
+		const source = new EventSource(`/api/chat/events?person=${data.chatPersonId}&role=team`);
+		source.onmessage = () => invalidate('chat:thread');
+		return () => source.close();
+	});
 
 	const fmt = new Intl.NumberFormat('en-KE');
 	const dateFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' });

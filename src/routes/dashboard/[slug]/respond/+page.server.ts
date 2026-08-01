@@ -18,6 +18,9 @@ import type { Actions, PageServerLoad } from './$types';
 // its own page cursor (chatsPage / reviewsPage) so paging one never resets the
 // other.
 export const load: PageServerLoad = async (event) => {
+	// Re-run on invalidate('chat:thread') — the SSE ping's refresh hook, so a
+	// citizen's new question appears in the Chats list without a refresh.
+	event.depends('chat:thread');
 	const { ctx } = await requireLeader(event);
 	const pageSize = await getPageSize();
 	const reviewsPage = Math.max(1, Number(event.url.searchParams.get('reviewsPage') ?? 1));
@@ -40,7 +43,9 @@ export const load: PageServerLoad = async (event) => {
 		threads,
 		chatTotal,
 		chatsPage,
-		pageSize
+		pageSize,
+		// The person whose chats these are (users.id) — the SSE stream keys on this.
+		chatPersonId: ctx.profileUser.id
 	};
 };
 

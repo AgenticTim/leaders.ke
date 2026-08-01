@@ -33,7 +33,9 @@ import type { Actions, PageServerLoad } from './$types';
 // and a pointer to the active campaign workspace at /[leader]/[year]. The bulk
 // of the data-loading lives in $lib/server/publicProfile so admin previews
 // (a pending application, a pending claim) can render the exact same shape.
-export const load: PageServerLoad = async ({ params, locals, cookies }) => {
+export const load: PageServerLoad = async ({ params, locals, cookies, depends }) => {
+	// Re-run on invalidate('chat:thread') — the SSE ping's refresh hook.
+	depends('chat:thread');
 	const viewer = locals.user ? await getDomainUser(locals.user.id) : null;
 
 	const data = await loadPublicProfileData(params.leader, {

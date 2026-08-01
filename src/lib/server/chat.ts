@@ -5,6 +5,7 @@
 // question is still captured and routed to the team, who reply from the
 // dashboard Chats tab — so no citizen question is ever silently dropped.
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { emitChatEvent } from '$lib/server/chatEvents';
 import { db } from '$lib/server/db';
 import { conversations, messages, users } from '$lib/server/db/schema';
 import { fullName } from '$lib/server/leader';
@@ -145,6 +146,7 @@ export async function recordQuestion(
 		})
 		.returning({ id: messages.id });
 	await touchConversation(conversationId);
+	await emitChatEvent(conversationId);
 	return msg.id;
 }
 
@@ -157,6 +159,7 @@ export async function routeQuestionToTeam(messageId: number): Promise<void> {
 export async function recordAiAnswer(conversationId: number, body: string): Promise<void> {
 	await db.insert(messages).values({ conversationId, sender: 'ai', body });
 	await touchConversation(conversationId);
+	await emitChatEvent(conversationId);
 }
 
 export type ChatMessage = { id: number; sender: string; body: string; createdAt: string };
@@ -268,5 +271,6 @@ export async function replyToChat(
 
 	await db.insert(messages).values({ conversationId, sender, senderId, body });
 	await touchConversation(conversationId);
+	await emitChatEvent(conversationId);
 	return true;
 }

@@ -228,6 +228,7 @@
 					messages={data.chatThread?.messages ?? []}
 					awaitingReply={data.chatThread?.awaitingReply ?? false}
 					leaderFirstName={leader.name.split(' ')[0]}
+					personId={data.subjectId}
 				/>
 				{#if form?.error}
 					<div

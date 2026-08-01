@@ -71,7 +71,9 @@ async function viewerPhone(userId: number): Promise<string | null> {
 // constituent chat. Only the active cycle has a workspace; other years bounce
 // to the permanent record. Public as soon as the run exists — verifiedAt is a
 // "Verified" badge only (see docs/URLDiscovery.md), not a visibility gate.
-export const load: PageServerLoad = async ({ params, locals, cookies }) => {
+export const load: PageServerLoad = async ({ params, locals, cookies, depends }) => {
+	// Re-run on invalidate('chat:thread') — the SSE ping's refresh hook.
+	depends('chat:thread');
 	const recordPath = leaderPath({ slug: params.leader });
 	if (Number(params.year) !== ACTIVE_CYCLE) redirect(302, recordPath);
 
@@ -130,6 +132,8 @@ export const load: PageServerLoad = async ({ params, locals, cookies }) => {
 
 	return {
 		chatThread,
+		// The person behind the run (users.id) — the chat SSE stream keys on this.
+		subjectId: row.users.id,
 		year: Number(params.year),
 		recordPath,
 		currentPosition: row.currentPosition,
