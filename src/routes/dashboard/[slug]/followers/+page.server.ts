@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { and, desc, eq, gte, isNull, count } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { followers, pledges, users } from '$lib/server/db/schema';
+import { followers, pledges, positions, users } from '$lib/server/db/schema';
 import { requireLeader } from '$lib/server/dashboard';
 import { createInvite, getPersonTier, listOpenInvites } from '$lib/server/invites';
 import { getPackageFeatures } from '$lib/server/packages';
@@ -116,6 +116,16 @@ export const load: PageServerLoad = async (event) => {
 	const heatmapUnlocked = !!(await getPackageFeatures(tier))?.voterHeatmap;
 	const campaign = await getRunCampaign(ctx.profileUser.id);
 
+	// The pledge/follower analytics below are about the 2027 RUN specifically,
+	// never the held office — ctx.position prefers a held term over the run
+	// (see leader.ts buildContext), so a sitting Senator running for President
+	// would otherwise get their Senate seat's geography here. Falls back to
+	// ctx.position only for an incumbent with no declared 2027 run yet.
+	const runPosition = campaign
+		? (await db.select().from(positions).where(eq(positions.id, campaign.positionId)))[0]
+		: null;
+	const analyticsPosition = runPosition ?? ctx.position;
+
 	const [rows, [weekRow], [totalRow], wardRows, openInvites, [pledgeCountRow], heatmap] = await Promise.all([
 		db
 			.select()
@@ -136,7 +146,12 @@ export const load: PageServerLoad = async (event) => {
 
 	// Seat-scoped analytics (Dominate): ward penetration, opportunity ranking,
 	// and the votes-to-win benchmark — all against the seat's OWN electorate.
-	const scope = heatmapUnlocked && ctx.position ? seatWardScope(ctx.position.region) : null;
+	// National seats (President) get null here, so the county-wide heatmap
+	// below is what renders for them, not one held/other seat's wards.
+	const scope =
+		heatmapUnlocked && analyticsPosition && analyticsPosition.boundary !== 'Country'
+			? seatWardScope(analyticsPosition.region)
+			: null;
 	const wardHeat = scope ? await wardHeatmap(campaign?.id ?? null, scope) : null;
 	const electorate = scope ? scope.electorate : counties.reduce((sum, c) => sum + c.voters, 0);
 	const pledgeCount = pledgeCountRow?.n ?? 0;

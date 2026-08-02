@@ -176,7 +176,7 @@ the Competitors tab's Sentiment Intelligence Suite banner. -->
 		<!-- Opportunity ranking: the biggest pools of voters not yet reached. -->
 		{#if data.opportunities.length > 0}
 			<div class="mt-4">
-				<p class="text-sm font-semibold text-heading">Campaign next</p>
+				<p class="text-sm font-semibold text-heading">Where to take your next campaign</p>
 				<ol class="mt-2 space-y-1.5">
 					{#each data.opportunities as opp, i (opp.area)}
 						<li class="flex items-baseline justify-between gap-3 text-sm">
