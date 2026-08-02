@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	import { enhance } from '$app/forms';
 	import ContactIcon from '$lib/components/contact/ContactIcon.svelte';
 	import { PLATFORMS, stripPrefix, socialsToLinks, type SocialLink } from '$lib/components/contact/socials';
@@ -167,7 +168,7 @@
 						onclick={() => toggleSocial(p.kind)}
 						aria-pressed={isSocialActive(p.kind)}
 						aria-label={p.label}
-						title={p.label}
+						use:tooltip={p.label}
 						class="grid h-10 w-10 place-items-center rounded-xl border transition-colors {isSocialActive(p.kind)
 							? 'border-primary text-primary'
 							: 'border-border bg-surface text-muted hover:text-heading'}"

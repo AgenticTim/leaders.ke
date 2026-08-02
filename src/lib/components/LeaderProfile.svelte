@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	import { enhance } from '$app/forms';
 	import Avatar from '$lib/components/Avatar.svelte';
 	import ChatThread, { signalTyping } from '$lib/components/ChatThread.svelte';
@@ -107,7 +108,7 @@
 							{leader.name}
 							<!-- A badge only: every profile is public regardless (see docs/URLDiscovery.md). -->
 							<span
-								title="An admin has manually confirmed the facts on this seat/candidacy (see docs/URLDiscovery.md)."
+								use:tooltip={'An admin has manually confirmed the facts on this seat/candidacy (see docs/URLDiscovery.md)'}
 								class="inline-flex items-center gap-1 rounded-full {leader.verified
 									? 'bg-primary-soft text-on-primary'
 									: 'bg-surface-3 text-on-mute'} px-2.5 py-1 text-xs font-semibold"

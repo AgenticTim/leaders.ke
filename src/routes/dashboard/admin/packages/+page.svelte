@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	// pricing-v2: one flat rate card for every office — a single table, no more
 	// one-per-seat-band split. Mirrors the public pricing page's "Features per
 	// package" layout: tiers as columns, a row per price or cap. Every cell saves
@@ -95,7 +96,7 @@
 				max="100"
 				value={data.creditRates.downgradeFeePercent}
 				onchange={submitOnChange}
-				title="Withheld from the credits a downgrade returns to the wallet. 0 disables it."
+				use:tooltip={'Withheld from the credits a downgrade returns to the wallet. 0 disables it.'}
 				class="mt-1 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm tabular-nums text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
 			/>
 		</label>

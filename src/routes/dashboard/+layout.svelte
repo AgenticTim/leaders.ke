@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
@@ -303,7 +304,7 @@
 					<!-- nothing — the name carries the badge -->
 				{:else if data.verificationRequestedAt}
 					<span
-						title="Submitted {new Date(data.verificationRequestedAt).toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' })} — an admin has been notified."
+						use:tooltip={`Submitted ${new Date(data.verificationRequestedAt).toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' })} — an admin has been notified.`}
 						class="shrink-0 cursor-help rounded-full border border-border bg-surface-2 px-4 py-1.5 text-xs font-semibold text-muted"
 					>
 						Pending review
@@ -335,7 +336,7 @@
 		<div class="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface-2 px-3 py-2">
 			<span class="text-xs font-semibold text-muted">Admin</span>
 			<span
-				title="How the profile came to exist: has a claim → claimed; else has an active manager → applied; else → seeded."
+				use:tooltip={'How the profile came to exist: has a claim → claimed; else has an active manager → applied; else → seeded.'}
 				class="cursor-help rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize {ac.source === 'applied' ? 'bg-primary-soft text-on-primary' : ac.source === 'claimed' ? 'bg-surface text-heading' : 'border border-border text-muted'}"
 			>{ac.source}</span>
 			<!-- Who applied/claimed + how to reach them. A pending claim (ac.claim) names the
@@ -347,7 +348,7 @@
 				<span class="text-xs text-muted">by <span class="font-medium text-heading">{ac.application.applicantName}</span>{#if ac.application.email} · {ac.application.email}{/if}{#if ac.application.phone} · {ac.application.phone}{/if}</span>
 			{/if}
 			<span
-				title="Review-workflow state: seeded → —; claimed → latest claim outcome; applied → run verified/latest request; soft-deleted → deleted."
+				use:tooltip={'Review-workflow state: seeded → —; claimed → latest claim outcome; applied → run verified/latest request; soft-deleted → deleted.'}
 				class="cursor-help rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize {ac.verified === 'approved' ? 'bg-primary-soft text-on-primary' : ac.verified === 'pending' ? 'border border-primary text-primary' : 'border border-border text-muted'}"
 			>{ac.verified ?? '—'}</span>
 			<!-- An approved claim granted access immediately at payment time (see onboard.ts),
@@ -401,7 +402,7 @@
 				completeness only. Either actionable state goes through the same confirm modal. -->
 				{#if !ac.profileVerified && !ac.profileSubmitted}
 					<span
-						title="The owner hasn't submitted this profile for verification yet — nothing to review."
+						use:tooltip={"The owner hasn't submitted this profile for verification yet — nothing to review."}
 						class="cursor-help rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted"
 					>Unsubmitted</span>
 				{:else}
@@ -484,7 +485,7 @@
 					>
 						{section.label}{#if tabIncomplete(section.href)}<span
 								class="ml-0.5 text-red-500"
-								title="This tab has missing required fields">*</span
+								use:tooltip={'This tab has missing required fields'}>*</span
 							>{/if}
 					</a>
 				{/each}

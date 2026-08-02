@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	import { enhance } from '$app/forms';
 	import PhoneInput from '$lib/components/contact/PhoneInput.svelte';
 	import EmailInput from '$lib/components/contact/EmailInput.svelte';
@@ -108,7 +109,7 @@
 				<EmailInput bind:value={email} verified={verified.email} verifiedValues={data.ownVerified.email} onVerify={openVerify('email')} />
 			</div>
 			<label
-					title={verified.email ? '' : 'Verify this email to enable notifications on it.'}
+					use:tooltip={verified.email ? '' : 'Verify this email to enable notifications on it.'}
 					class="flex items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm font-medium text-muted transition select-none has-checked:border-primary has-checked:text-primary hover:bg-surface-2 {verified.email ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}"
 				>
 				<input type="checkbox" name="notifyEmail" bind:checked={notifyEmail} disabled={!verified.email} class="sr-only" />
@@ -125,7 +126,7 @@
 				<input type="hidden" name="smsPhone" value={smsPhone} />
 			</div>
 			<label
-					title={verified.sms ? '' : 'Verify this number to enable SMS notifications.'}
+					use:tooltip={verified.sms ? '' : 'Verify this number to enable SMS notifications.'}
 					class="flex items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm font-medium text-muted transition select-none has-checked:border-primary has-checked:text-primary hover:bg-surface-2 {verified.sms ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}"
 				>
 				<input type="checkbox" name="notifySms" bind:checked={notifySms} disabled={!verified.sms} class="sr-only" />
@@ -142,7 +143,7 @@
 				<input type="hidden" name="whatsappPhone" value={whatsappPhone} />
 			</div>
 			<label
-					title={verified.whatsapp ? '' : 'Verify this number to enable WhatsApp notifications.'}
+					use:tooltip={verified.whatsapp ? '' : 'Verify this number to enable WhatsApp notifications.'}
 					class="flex items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm font-medium text-muted transition select-none has-checked:border-primary has-checked:text-primary hover:bg-surface-2 {verified.whatsapp ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}"
 				>
 				<input type="checkbox" name="notifyWhatsapp" bind:checked={notifyWhatsapp} disabled={!verified.whatsapp} class="sr-only" />

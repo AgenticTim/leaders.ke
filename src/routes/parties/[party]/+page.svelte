@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	import LeaderCard from '$lib/components/LeaderCard.svelte';
 	import type { PageProps } from './$types';
 
@@ -23,12 +24,12 @@
 			{#if data.party.abbreviation}<span class="text-muted">({data.party.abbreviation})</span>{/if}
 			{#if data.party.verified}
 				<span
-					title="An admin has manually confirmed this party's ORPP listing."
+					use:tooltip={"An admin has manually confirmed this party's ORPP listing."}
 					class="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-on-primary"
 				>✓ Verified</span>
 			{:else}
 				<span
-					title="An admin has manually confirmed this party's ORPP listing."
+					use:tooltip={"An admin has manually confirmed this party's ORPP listing."}
 					class="rounded-full bg-surface-3 px-2.5 py-1 text-xs font-semibold text-on-mute"
 				>✗ Unverified</span>
 			{/if}

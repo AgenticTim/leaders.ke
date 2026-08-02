@@ -1,4 +1,5 @@
 <script module lang="ts">
+	import { tooltip } from '$lib/effects';
 	// Editor for a provider's entire "Contacts" tab: location, address, map pin, phone,
 	// email, website, and social links. Depends on LocationPicker + PhoneInput (outside
 	// this folder) in addition to ContactIcon.svelte alongside it.
@@ -179,7 +180,7 @@
 				onclick={() => toggleSocial(p.kind)}
 				aria-pressed={isActive(p.kind)}
 				aria-label={p.label}
-				title={p.label}
+				use:tooltip={p.label}
 				class="grid h-9 w-9 place-items-center transition-colors {isActive(p.kind) ? 'text-gold' : 'text-ink-secondary hover:text-ink-primary'}"
 			>
 				<ContactIcon kind={p.kind} size={24} />

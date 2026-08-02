@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import Avatar from '$lib/components/Avatar.svelte';
@@ -139,7 +140,7 @@
 					<td class="px-4 py-2.5 text-muted">{party.certifiedAt ? dateFmt.format(new Date(party.certifiedAt)) : '—'}</td>
 					<td class="px-4 py-2.5">
 						<span
-							title="Confirms the party's ORPP listing was manually checked. A badge only, never a visibility gate."
+							use:tooltip={"Confirms the party's ORPP listing was manually checked. A badge only, never a visibility gate."}
 							class="cursor-help rounded-full px-2.5 py-0.5 text-xs font-semibold {party.verifiedAt
 								? 'bg-primary-soft text-on-primary'
 								: 'border border-border text-muted'}"

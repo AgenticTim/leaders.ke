@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -1041,7 +1042,7 @@ Standalone POST forms — outside #profile-form — so each saves immediately. -
 							<button
 								type="submit"
 								aria-label={d.pinned ? 'Unpin from public profile' : 'Pin to public profile'}
-								title={d.pinned ? 'Pinned — shows on public profile' : 'Pin to public profile'}
+								use:tooltip={d.pinned ? 'Pinned — shows on public profile' : 'Pin to public profile'}
 								class="{d.pinned ? 'text-primary' : 'text-muted'} hover:text-primary"
 							>
 								<svg

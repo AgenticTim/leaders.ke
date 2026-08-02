@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	import CheckIcon from '../svgs/CheckIcon.svelte';
 	import EmailIcon from '../svgs/EmailIcon.svelte';
 	import FacebookIcon from '../svgs/FacebookIcon.svelte';
@@ -54,7 +55,7 @@
 
 {#if kind === 'share'}
 	<!-- Self-contained share button (native share sheet, or copy-link fallback). -->
-	<button type="button" onclick={share} aria-label={label} title={copied ? 'Link copied' : label} class={className}>
+	<button type="button" onclick={share} aria-label={label} use:tooltip={copied ? 'Link copied' : label} class={className}>
 		{#if text}
 			{copied ? 'Link copied!' : text}
 		{:else if copied}

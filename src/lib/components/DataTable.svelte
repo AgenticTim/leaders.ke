@@ -1,4 +1,5 @@
 <script module lang="ts">
+	import { tooltip } from '$lib/effects';
 	export type Column<R> = {
 		key: string;
 		label: string;
@@ -172,7 +173,7 @@
 						{:else if column.editable && onedit}
 							<td
 								class="cursor-pointer px-4 py-3 text-sm text-heading hover:bg-surface-2"
-								title="Click to edit"
+								use:tooltip={'Click to edit'}
 								onclick={() => startEdit(row, column)}
 							>
 								{text(row, column)}

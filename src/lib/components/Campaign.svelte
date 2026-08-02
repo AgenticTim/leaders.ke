@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	import Avatar from '$lib/components/Avatar.svelte';
 	import ChatThread, { signalTyping } from '$lib/components/ChatThread.svelte';
 	import VerifiedIcon from './svgs/VerifiedIcon.svelte';
@@ -73,7 +74,7 @@
 							{leader.campaignTitle || leader.name}
 							{#if leader.verified}
 								<span
-									title="An admin has manually confirmed this candidacy's IEBC certificate (see docs/URLDiscovery.md)."
+									use:tooltip={"An admin has manually confirmed this candidacy's IEBC certificate (see docs/URLDiscovery.md)."}
 									class="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-xs font-semibold text-on-primary"
 								>
 									<VerifiedIcon />
@@ -81,7 +82,7 @@
 								</span>
 							{:else}
 								<span
-									title="No IEBC certificate on file yet — the campaign is still public and fully interactive."
+									use:tooltip={'No IEBC certificate on file yet — the campaign is still public and fully interactive.'}
 									class="inline-flex items-center rounded-full border border-border bg-surface-2 px-2.5 py-1 text-xs font-semibold text-muted"
 								>
 									Unverified

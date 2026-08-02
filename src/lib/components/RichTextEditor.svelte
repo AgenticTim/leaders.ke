@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	// Simple rich-text editing over a plain <textarea>: toolbar buttons write the
 	// markdown-lite markers renderRichText understands, so what's stored stays
 	// human-readable text and the public page renders it formatted. A Preview
@@ -113,19 +114,19 @@
 
 <div class="rounded-xl border bg-surface {invalidClass || 'border-border'} focus-within:border-primary">
 	<div class="flex items-center gap-1.5 border-b border-border px-2 py-1.5">
-		<button type="button" onclick={() => wrapSelection('**')} title="Bold" aria-label="Bold" class="{buttonClass} font-bold">
+		<button type="button" onclick={() => wrapSelection('**')} use:tooltip={'Bold'} aria-label="Bold" class="{buttonClass} font-bold">
 			B
 		</button>
-		<button type="button" onclick={() => wrapSelection('*')} title="Italic" aria-label="Italic" class="{buttonClass} italic">
+		<button type="button" onclick={() => wrapSelection('*')} use:tooltip={'Italic'} aria-label="Italic" class="{buttonClass} italic">
 			I
 		</button>
-		<button type="button" onclick={() => prefixLines(() => '- ')} title="Bullet list" aria-label="Bullet list" class={buttonClass}>
+		<button type="button" onclick={() => prefixLines(() => '- ')} use:tooltip={'Bullet list'} aria-label="Bullet list" class={buttonClass}>
 			•≡
 		</button>
 		<button
 			type="button"
 			onclick={() => prefixLines((i) => `${i + 1}. `)}
-			title="Numbered list"
+			use:tooltip={'Numbered list'}
 			aria-label="Numbered list"
 			class={buttonClass}
 		>

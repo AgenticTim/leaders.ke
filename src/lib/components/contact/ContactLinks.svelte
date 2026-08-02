@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	// Read-only, public-facing row of contact/social icon links. Copy-drop footprint:
 	// this file + ContactIcon.svelte.
 	//
@@ -52,7 +53,7 @@
 				target={link.external ? '_blank' : undefined}
 				rel={link.external ? 'noreferrer' : undefined}
 				aria-label={link.label}
-				title={link.label}
+				use:tooltip={link.label}
 				class="grid h-11 w-11 place-items-center rounded-xl border border-border bg-surface text-muted transition-colors hover:border-primary/50 hover:text-primary"
 			>
 				<ContactIcon kind={link.kind} size={20} />

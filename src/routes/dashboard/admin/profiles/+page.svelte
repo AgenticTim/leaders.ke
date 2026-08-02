@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	import { enhance } from '$app/forms';
 	import Pagination from '$lib/components/admin/Pagination.svelte';
 	import type { PageProps } from './$types';
@@ -115,7 +116,7 @@
 			<table class="w-full min-w-240 border-collapse text-left whitespace-nowrap">
 				<thead>
 					<tr class="bg-surface-2">
-						<th title="The account controlling the profile: the claimant or the applicant (blank for a seeded profile with neither)." class="cursor-help px-4 py-3 text-sm font-semibold text-heading">Manager</th>
+						<th use:tooltip={'The account controlling the profile: the claimant or the applicant (blank for a seeded profile with neither).'} class="cursor-help px-4 py-3 text-sm font-semibold text-heading">Manager</th>
 						{#snippet sortable(col: string, label: string)}
 							<th class="px-4 py-3 text-sm font-semibold text-heading">
 								<a href={sortHref(col)} class="inline-flex items-center gap-1 hover:text-primary" class:text-primary={data.sort === col}>
@@ -166,10 +167,10 @@
 							</td>
 							<td class="px-4 py-3 text-sm capitalize text-muted">{p.status}</td>
 							<td class="px-4 py-3 text-sm">
-								<span title={SOURCE_HELP} class="cursor-help rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize {sourceClass[p.source]}">{p.source}</span>
+								<span use:tooltip={SOURCE_HELP} class="cursor-help rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize {sourceClass[p.source]}">{p.source}</span>
 							</td>
 							<td class="px-4 py-3 text-sm">
-								<span title={VERIFIED_HELP} class="cursor-help rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize {verifiedClass(p.verified)}">{p.verified ?? '—'}</span>
+								<span use:tooltip={VERIFIED_HELP} class="cursor-help rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize {verifiedClass(p.verified)}">{p.verified ?? '—'}</span>
 							</td>
 							<td class="px-4 py-3 text-sm text-muted" onclick={(e) => e.stopPropagation()}>
 								<div class="flex flex-col gap-2">

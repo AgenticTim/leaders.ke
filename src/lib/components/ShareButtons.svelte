@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	// One-click cross-posting via the networks' share intents: opens X's or
 	// Facebook's composer prefilled with the text + link — no API keys, no
 	// OAuth, works for any signed-in browser session. A future real connector
@@ -17,7 +18,7 @@
 	href={xHref}
 	target="_blank"
 	rel="noopener"
-	title="Post on X"
+	use:tooltip={'Post on X'}
 	class="rounded-full border border-border px-3.5 py-1.5 text-xs font-semibold text-heading transition hover:bg-surface-2"
 >
 	𝕏 Post
@@ -26,7 +27,7 @@
 	href={fbHref}
 	target="_blank"
 	rel="noopener"
-	title="Share on Facebook"
+	use:tooltip={'Share on Facebook'}
 	class="rounded-full border border-border px-3.5 py-1.5 text-xs font-semibold text-heading transition hover:bg-surface-2"
 >
 	f Share

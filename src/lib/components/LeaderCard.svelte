@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	import { goto } from '$app/navigation';
 	import Avatar from '$lib/components/Avatar.svelte';
 	import VerifiedIcon from '$lib/components/svgs/VerifiedIcon.svelte';
@@ -71,7 +72,7 @@ whole card is clickable, while the party name stays its own separate link on top
 	<button
 		type="button"
 		onclick={onCompareClick}
-		title={isSelected
+		use:tooltip={isSelected
 			? 'Unselect from comparison'
 			: otherSelected
 				? `Compare with ${compareSelection.name}`

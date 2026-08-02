@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	import { goto } from '$app/navigation';
 	import type { PageProps } from './$types';
 
@@ -107,7 +108,7 @@
 		<p class="mt-1 text-sm text-muted">{data.censusYear} census population by five-year band.</p>
 		<div class="mt-5 space-y-1.5">
 			{#each data.ageBands as row (row.band)}
-				<div class="flex items-center gap-3" title="{row.band}: {fmt.format(row.count)} ({pct(row.share)})">
+				<div class="flex items-center gap-3" use:tooltip={`${row.band}: ${fmt.format(row.count)} (${pct(row.share)})`}>
 					<span class="w-12 shrink-0 text-right text-xs tabular-nums text-muted">{row.band}</span>
 					<div class="h-4 flex-1 overflow-hidden rounded-r bg-surface-2">
 						<div class="h-full rounded-r bg-primary" style="width: {(row.share / maxBandShare) * 100}%"></div>
@@ -203,7 +204,7 @@
 		<ul class="mt-2 list-disc space-y-1 pl-5">
 			<li>
 				Age structure: {data.source}, from the {data.censusYear} census county tables
-				(<a href="https://data.humdata.org/dataset/cod-ps-ken" target="_blank" rel="noopener" class="underline hover:text-heading" title="United Nations Office for the Coordination of Humanitarian Affairs">KNBS via OCHA</a>).
+				(<a href="https://data.humdata.org/dataset/cod-ps-ken" target="_blank" rel="noopener" class="underline hover:text-heading" use:tooltip={'United Nations Office for the Coordination of Humanitarian Affairs'}>KNBS via OCHA</a>).
 			</li>
 			<li>Registered voters: IEBC 2022 General Election register (per ward), the same figures behind every seat page here.</li>
 			<li>2027 projections age the census cohorts forward to August 2027 (whoever was N years old in 2019 is N+8), ignoring mortality and migration; treat them as estimates.</li>

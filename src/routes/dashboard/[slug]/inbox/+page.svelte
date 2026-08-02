@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	import { enhance } from '$app/forms';
 	import { invalidate } from '$app/navigation';
 	import ReviewFilter from '$lib/components/ReviewFilter.svelte';
@@ -160,7 +161,7 @@
 								<span class="flex shrink-0 flex-col items-end gap-1">
 									<span class="text-xs text-muted">{formatChatTime(thread.lastActivity)}</span>
 									{#if thread.awaitingReply}
-										<span class="size-2 rounded-full bg-primary" title="Awaiting reply"></span>
+										<span class="size-2 rounded-full bg-primary" use:tooltip={'Awaiting reply'}></span>
 									{/if}
 								</span>
 							</button>

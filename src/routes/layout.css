@@ -102,3 +102,20 @@ h4 {
 		transition-duration: 0.01ms !important;
 	}
 }
+
+/* Hover tooltip popups created by the use:tooltip action (src/lib/effects.ts),
+   the app-wide replacement for title-attribute tooltips. Fixed-position, so
+   z-index only competes with modals (z-50): keep it above them. */
+.tooltip-popup {
+	z-index: 60;
+	max-width: 20rem;
+	pointer-events: none;
+	border-radius: 0.5rem;
+	border: 1px solid var(--border);
+	background: var(--heading);
+	color: var(--surface);
+	padding: 0.375rem 0.625rem;
+	font-size: 0.75rem;
+	line-height: 1.4;
+	box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+}

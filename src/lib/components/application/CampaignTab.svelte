@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	import { enhance } from '$app/forms';
 	import { goto, invalidateAll } from '$app/navigation';
 	import PositionSelector from '$lib/components/PositionSelector.svelte';
@@ -166,7 +167,7 @@
 					: 'border-border text-heading hover:bg-surface-2'}"
 			>
 				{c.label}
-				{#if c.verified}<span title="Verified">✓</span>{/if}
+				{#if c.verified}<span use:tooltip={'Verified'}>✓</span>{/if}
 			</a>
 		{/each}
 		{#if data.canAddCampaign}
@@ -450,7 +451,7 @@
 											<span
 												class="shrink-0 cursor-grab select-none text-muted"
 												aria-hidden="true"
-												title="Drag to reorder"
+												use:tooltip={'Drag to reorder'}
 											>⠿</span>
 										{/if}
 									</div>
