@@ -4,6 +4,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import Header from '$lib/components/Header.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import { FlatToast, ToastContainer } from 'svelte-toasts';
 	import type { LayoutData } from './$types';
 
 	let { children, data }: { children: import('svelte').Snippet; data: LayoutData } = $props();
@@ -49,3 +50,9 @@
 	</main>
 	<Footer />
 </div>
+
+<!-- Global toast host (toast.ts wraps svelte-toasts) — mounted once here so any
+page/component can call toast.info/success/warn/error without its own container. -->
+<ToastContainer let:data={data} showProgress={true} duration={5000}>
+	<FlatToast {data} />
+</ToastContainer>

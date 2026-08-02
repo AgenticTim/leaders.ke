@@ -1,3 +1,5 @@
+import { toast } from '$lib/stores/toast';
+
 type TooltipArg = string | { tip: string; side?: 'top' | 'bottom' };
 
 /** Styled hover tooltip (`.tooltip-popup` in layout.css) — the app-wide
@@ -51,6 +53,7 @@ export function copy(node: HTMLElement, text: string) {
     await navigator.clipboard.writeText(text);
     node.classList.add('success');
     setTimeout(() => node.classList.remove('success'), dur);
+    toast.info(`Copied to clipboard: "${text}"`);
   }
 
   node.addEventListener('click', handleClick);
