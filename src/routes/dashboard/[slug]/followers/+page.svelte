@@ -11,17 +11,22 @@
 	const publicPath = $derived(page.data.leaderContext?.publicPath ?? '/presidents');
 	const county = $derived(page.data.leaderContext?.region ?? null);
 
-	// Bar length is relative to the county with the most pledges (a raw-count
+	// Bar length is relative to the area with the most pledges (a raw-count
 	// "where the volume is" read); color intensity is relative to pledge RATE
-	// against that county's real 2022 electorate (a "how deep does it run"
+	// against that area's real 2022 electorate (a "how deep does it run"
 	// read) — the two together are what "graphically show pledges/potential
-	// voters per region" actually needs, not just a bare number list.
-	const maxPledges = $derived(Math.max(1, ...data.heatmap.map((r) => r.pledges)));
-	const maxRate = $derived(Math.max(0.0001, ...data.heatmap.map((r) => (r.registeredVoters ? r.pledges / r.registeredVoters : 0))));
-	function barWidth(row: (typeof data.heatmap)[number]): number {
+	// voters per region" actually needs, not just a bare number list. The
+	// rows are the seat's own wards when the seat sits within one county
+	// (data.wardHeat), else the national county map.
+	const heatRows = $derived(
+		data.wardHeat ?? data.heatmap.map((r) => ({ area: r.county, pledges: r.pledges, registeredVoters: r.registeredVoters }))
+	);
+	const maxPledges = $derived(Math.max(1, ...heatRows.map((r) => r.pledges)));
+	const maxRate = $derived(Math.max(0.0001, ...heatRows.map((r) => (r.registeredVoters ? r.pledges / r.registeredVoters : 0))));
+	function barWidth(row: (typeof heatRows)[number]): number {
 		return Math.round((row.pledges / maxPledges) * 100);
 	}
-	function heatOpacity(row: (typeof data.heatmap)[number]): number {
+	function heatOpacity(row: (typeof heatRows)[number]): number {
 		const rate = row.registeredVoters ? row.pledges / row.registeredVoters : 0;
 		return 0.25 + 0.75 * (rate / maxRate);
 	}
@@ -137,20 +142,65 @@ the Competitors tab's Sentiment Intelligence Suite banner. -->
 		Voter heatmap <span class="text-sm font-normal text-muted">({data.pledgeCount} pledge{data.pledgeCount === 1 ? '' : 's'})</span>
 	</p>
 	{#if data.heatmapUnlocked}
-		<p class="mt-1 text-sm text-muted">Where your vote pledges concentrate, against each county's 2022 electorate.</p>
-		<!-- One bar per county (all 47, real 2022 electorate — even at 0
-		pledges, so the map reads as "here's the ground, here's how much of it
-		you've reached" from day one). Bar LENGTH is this county's share of
-		pledges relative to your top county (where the raw volume is); bar
-		COLOR intensity is pledge rate against that county's registered voters
-		(how deep it runs there) — a county can be short-but-dark (few pledges,
-		high rate in a small electorate) or long-but-pale (many pledges, thin
+		<p class="mt-1 text-sm text-muted">
+			{#if data.wardHeat}
+				Where your vote pledges concentrate, ward by ward across your seat's own ground in {data.wardScopeCounty}.
+			{:else}
+				Where your vote pledges concentrate, against each county's 2022 electorate.
+			{/if}
+		</p>
+
+		<!-- Votes-to-win benchmark (rough by design: ~65% turnout, two-horse
+		split — the label says so) plus penetration against the seat's own
+		electorate. -->
+		{#if data.seatStats}
+			<div class="mt-4 grid grid-cols-3 gap-3">
+				<div class="rounded-2xl bg-surface-2 p-3">
+					<p class="text-xs text-muted">Seat electorate (2022)</p>
+					<p class="mt-0.5 text-lg font-extrabold tabular-nums text-heading">{numFmt.format(data.seatStats.electorate)}</p>
+				</div>
+				<div class="rounded-2xl bg-surface-2 p-3">
+					<p class="text-xs text-muted">Votes to win (est.)</p>
+					<p class="mt-0.5 text-lg font-extrabold tabular-nums text-heading">{numFmt.format(data.seatStats.votesToWin)}</p>
+				</div>
+				<div class="rounded-2xl bg-surface-2 p-3">
+					<p class="text-xs text-muted">Pledge coverage</p>
+					<p class="mt-0.5 text-lg font-extrabold tabular-nums text-primary">{pctFmt.format(data.seatStats.coverage)}</p>
+				</div>
+			</div>
+			<p class="mt-1.5 text-xs text-muted">
+				"Votes to win" assumes ~{Math.round(data.seatStats.turnoutAssumption * 100)}% turnout and a two-way race — a planning benchmark, not a prediction.
+			</p>
+		{/if}
+
+		<!-- Opportunity ranking: the biggest pools of voters not yet reached. -->
+		{#if data.opportunities.length > 0}
+			<div class="mt-4">
+				<p class="text-sm font-semibold text-heading">Campaign next</p>
+				<ol class="mt-2 space-y-1.5">
+					{#each data.opportunities as opp, i (opp.area)}
+						<li class="flex items-baseline justify-between gap-3 text-sm">
+							<span><span class="mr-1.5 text-xs font-bold text-primary">{i + 1}</span>{opp.area}</span>
+							<span class="shrink-0 text-xs tabular-nums text-muted">{numFmt.format(opp.untapped)} voters untapped · {numFmt.format(opp.pledges)} pledge{opp.pledges === 1 ? '' : 's'}</span>
+						</li>
+					{/each}
+				</ol>
+			</div>
+		{/if}
+
+		<!-- One bar per area (the seat's wards, or all 47 counties nationally —
+		even at 0 pledges, so the map reads as "here's the ground, here's how
+		much of it you've reached" from day one). Bar LENGTH is this area's
+		share of pledges relative to your top area (where the raw volume is);
+		bar COLOR intensity is pledge rate against its registered voters (how
+		deep it runs there) — an area can be short-but-dark (few pledges, high
+		rate in a small electorate) or long-but-pale (many pledges, thin
 		against a big one). -->
 		<ul class="mt-4 max-h-100 space-y-2.5 overflow-y-auto pr-1">
-			{#each data.heatmap as row (row.county)}
+			{#each heatRows as row (row.area)}
 				<li>
 					<div class="flex items-baseline justify-between gap-3 text-sm">
-						<span class="font-medium text-heading">{row.county}</span>
+						<span class="font-medium text-heading">{row.area}</span>
 						<span class="shrink-0 text-xs text-muted">
 							{numFmt.format(row.pledges)} pledge{row.pledges === 1 ? '' : 's'}
 							{#if row.registeredVoters}

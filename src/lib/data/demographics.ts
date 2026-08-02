@@ -66,3 +66,15 @@ export function genZShare2027(bands: BandCounts): number {
 export function estimateFromRegistered(registeredVoters: number, share: number): number {
 	return Math.round(registeredVoters * share);
 }
+
+/** 2022 General Election presidential turnout: 14,213,137 votes cast of
+ * 22,120,458 registered (IEBC). The planning assumption below rounds it up a
+ * touch for 2027 benchmarks. */
+export const TURNOUT_2022 = 0.6425;
+export const ASSUMED_TURNOUT_2027 = 0.65;
+
+/** Rough "winning tally" benchmark for a seat: half of expected turnout plus
+ * one — a two-horse-race simplification, labeled as such wherever shown. */
+export function votesToWin(registeredVoters: number): number {
+	return Math.round(registeredVoters * ASSUMED_TURNOUT_2027 * 0.5) + 1;
+}
