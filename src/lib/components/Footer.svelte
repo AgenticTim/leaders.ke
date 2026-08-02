@@ -5,10 +5,11 @@
 	// the brand blurb and the compliance line the old two-line footer carried.
 	const groups = [
 		{
-			title: 'For voters',
+			title: 'Voters',
 			links: [
 				{ href: '/', label: 'My 2027 Ballot' },
 				{ href: '/education', label: 'Voter Education' },
+				{ href: '/demographics', label: 'Voter Demographics' },
 				{ href: '/dates', label: 'Key Dates' },
 				{ href: '/drives', label: 'Registration Drives' },
 				{ href: '/verify-registration', label: 'Verify Registration' }
@@ -25,7 +26,7 @@
 			]
 		},
 		{
-			title: 'For leaders',
+			title: 'Leaders',
 			links: [
 				{ href: '/for-leaders', label: 'Run Your Campaign' },
 				{ href: '/onboard/profile', label: 'Get Onboard' },
