@@ -7,6 +7,29 @@
 	import type { LayoutData } from './$types';
 
 	let { children, data }: { children: import('svelte').Snippet; data: LayoutData } = $props();
+
+	// Tie Vowsey events to the signed-in account (window.vowsey comes from the
+	// script tag above), so Analytics can show identified users/conversion and
+	// replays attribute to the account instead of just an anonymous visitor id.
+	// The SDK loads async (defer) and data.user changes on login/logout without a
+	// full reload, so this retries briefly until the SDK is ready and re-applies
+	// whenever the signed-in id changes.
+	$effect(() => {
+		const userId = data.user?.id ?? null;
+		if (typeof window === 'undefined') return;
+		let cancelled = false;
+		let attempts = 0;
+		const apply = () => {
+			if (cancelled) return;
+			const vowsey = (window as unknown as { vowsey?: { identify: (id: string | null) => void } }).vowsey;
+			if (vowsey) vowsey.identify(userId);
+			else if (attempts++ < 20) setTimeout(apply, 250);
+		};
+		apply();
+		return () => {
+			cancelled = true;
+		};
+	});
 </script>
 
 <svelte:head>
