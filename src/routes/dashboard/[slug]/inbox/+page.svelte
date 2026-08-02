@@ -137,7 +137,7 @@
 		<p class="mt-1 text-sm text-muted">Questions from your campaign and record pages. Ones the AI couldn't answer (no credit) are waiting for your reply.</p>
 
 		{#if data.threads.length > 0}
-			<div class="mt-4 grid gap-4 lg:grid-cols-[2fr_3fr]">
+			<div class="mt-4 grid gap-4 lg:grid-cols-[2fr_5fr]">
 				<!-- Chat list -->
 				<div class={selectedId !== null ? 'hidden lg:block' : ''}>
 					<div class="overflow-hidden rounded-2xl border border-border bg-surface">

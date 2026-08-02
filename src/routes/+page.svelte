@@ -196,12 +196,12 @@
 	const LG_CARD = 'lg:w-auto lg:basis-60 lg:max-w-90 lg:grow lg:p-4 lg:text-center lg:text-sm';
 	function candidateLayout(n: number) {
 		if (n === 1)
-			return { container: `flex justify-center ${LG_CONTAINER}`, card: `w-64 p-4 text-sm lg:grow-0 ${LG_CARD}`, avatar: 'size-32' };
+			return { container: `flex justify-center ${LG_CONTAINER}`, card: `w-64 p-4 text-sm lg:grow-0 ${LG_CARD}`, avatar: 'size-28' };
 		if (n === 2)
-			return { container: `flex justify-center gap-2 sm:gap-3 ${LG_CONTAINER}`, card: `w-[calc(50%-0.25rem)] max-w-56 p-3 text-xs sm:text-sm ${LG_CARD}`, avatar: 'size-20 lg:size-32' };
+			return { container: `flex justify-center gap-2 sm:gap-3 ${LG_CONTAINER}`, card: `w-[calc(50%-0.25rem)] max-w-56 p-3 text-xs sm:text-sm ${LG_CARD}`, avatar: 'size-20 lg:size-28' };
 		if (n === 3)
-			return { container: `mx-auto flex w-full max-w-md flex-col gap-2 ${LG_CONTAINER}`, card: `w-full p-3 text-xs sm:text-sm ${LG_CARD}`, avatar: 'size-20 lg:size-32' };
-		return { container: `mx-auto flex w-full max-w-2xl flex-wrap justify-center gap-2 ${LG_CONTAINER}`, card: `basis-[calc(50%-0.25rem)] max-w-[calc(50%-0.25rem)] p-3 text-xs sm:text-sm ${LG_CARD}`, avatar: 'size-16 lg:size-32' };
+			return { container: `mx-auto flex w-full max-w-md flex-col gap-2 ${LG_CONTAINER}`, card: `w-full p-3 text-xs sm:text-sm ${LG_CARD}`, avatar: 'size-20 lg:size-28' };
+		return { container: `mx-auto flex w-full max-w-2xl flex-wrap justify-center gap-2 ${LG_CONTAINER}`, card: `basis-[calc(50%-0.25rem)] max-w-[calc(50%-0.25rem)] p-3 text-xs sm:text-sm ${LG_CARD}`, avatar: 'size-16 lg:size-28' };
 	}
 	// The region step a seat depends on — the escape hatch when a seat step is
 	// reached while its geography is unset (possible via the GeoSelect bar).
@@ -314,7 +314,7 @@ row pushes the booth down transiently, which is fine. -->
 		{#key stepIndex}
 			<div
 				in:fly={{ x: 240, duration: 250 }}
-				class="mx-auto flex h-full w-full max-w-7xl flex-col pt-4 sm:pt-8 lg:pt-12 px-4 sm:px-6"
+				class="mx-auto flex h-full w-full max-w-7xl flex-col pt-4 sm:pt-8 px-4 sm:px-6"
 			>
 				{#if step.kind === 'seat'}
 					{@const candidates = candidatesFor(step.level)}
@@ -322,7 +322,7 @@ row pushes the booth down transiently, which is fine. -->
 						{LEVEL_HEADING[step.level]}
 					</h1>
 					{#if levelRegion(step.level)}
-						<p class="shrink-0 pt-1 sm:pt-2 lg:pt-4 text-center text-sm text-muted">{levelRegion(step.level)}</p>
+						<p class="shrink-0 pt-1 sm:pt-2 lg:pt-2 text-center text-sm text-muted">{levelRegion(step.level)}</p>
 					{/if}
 
 					{#if candidates === null}

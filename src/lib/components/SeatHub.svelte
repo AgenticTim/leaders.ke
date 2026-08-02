@@ -1,6 +1,7 @@
 <script lang="ts">
 	import DeliveryScore from '$lib/components/DeliveryScore.svelte';
 	import LeaderCard from '$lib/components/LeaderCard.svelte';
+	import SeatJD from '$lib/components/jd/SeatJD.svelte';
 	import RegimeLinks from '$lib/components/RegimeLinks.svelte';
 	import type { SeatHubData } from '$lib/server/seatHub';
 
@@ -96,9 +97,13 @@
 			{/if}
 		</div>
 
-		<!-- SRC compensation: gross monthly pay SRC gazettes for this seat. -->
+		<!-- SRC compensation: gross monthly pay SRC gazettes for this seat, with
+		the seat's full job description a modal away. -->
 		<div class="flex flex-1 flex-col">
-			<h2 class="text-xl font-bold text-heading">Salary</h2>
+			<div class="flex items-center justify-between gap-2">
+				<h2 class="text-xl font-bold text-heading">Salary</h2>
+				<SeatJD title={data.positionTitle} />
+			</div>
 			{#if data.pay}
 				<div class="mt-4 flex grow flex-col rounded-3xl border border-border bg-surface-2 p-5">
 					<p class="text-3xl font-extrabold tracking-tight text-heading">
@@ -107,7 +112,7 @@
 					<p class="mt-1 text-base text-muted">KSh {fmt.format(data.pay.monthlyGross * 12)} a year, gross.</p>
 					<p class="mt-auto pt-3 text-base leading-relaxed text-muted font-bold">Salaries and Remuneration Commission (SRC)</p>
 					<p class="mt-auto pt-3 text-sm leading-relaxed text-muted">
-						Gross monthly pay for this seat effective {data.pay.source}.<br/>
+						Gross monthly pay for this seat, {data.pay.source}.<br/>
 						Excludes the perks SRC sets separately (mileage, car grant, house or car loans, sitting allowances).
 					</p>
 				</div>

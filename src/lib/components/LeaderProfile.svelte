@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import Avatar from '$lib/components/Avatar.svelte';
 	import ChatThread, { signalTyping } from '$lib/components/ChatThread.svelte';
+	import SeatJD from '$lib/components/jd/SeatJD.svelte';
 	import DeliveryScore from '$lib/components/DeliveryScore.svelte';
 	import ExperienceBlock from '$lib/components/ExperienceBlock.svelte';
 	import Reviews from '$lib/components/Reviews.svelte';
@@ -140,6 +141,8 @@
 						<div class="mt-2 flex flex-col sm:flex-row text-center justify-between text-sm">
 							<p class="font-medium text-heading">
 								{fmt.format(leader.followers)} followers · {fmt.format(data.pledgeCount)} vote pledges
+								<!-- Constitutional job description for this seat, in a modal. -->
+								· <SeatJD title={leader.positionTitle} triggerClass="text-sm text-primary hover:underline" />
 							</p>
 						</div>
 					</div>
@@ -253,17 +256,17 @@
 			{#if data.isVying}
 				<div class="rounded-3xl border border-border bg-surface p-6 flex flex-col gap-3">
 					<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">
-						{data.campaign?.year ?? 2027} Campaign
+						Running for {data.campaign.positionTitle}{data.campaign.regionLabel &&
+							data.campaign.regionLabel !== 'Kenya'
+								? `, ${data.campaign.regionLabel}`
+								: ''} in {data.campaign?.year ?? 2027} 
 					</h2>
 					{#if data.campaign?.positionTitle}
 						<a
 							href={data.campaign.path}
 							class="block w-full border border-primary rounded-full px-4 py-2 text-lg text-primary text-center font-semibold transition hover:brightness-95 disabled:opacity-60"
 						>
-							🚀 Running for {data.campaign.positionTitle}{data.campaign.regionLabel &&
-							data.campaign.regionLabel !== 'Kenya'
-								? `, ${data.campaign.regionLabel}`
-								: ''}
+							Visit the Campaign Page
 						</a>
 					{:else}
 						<p

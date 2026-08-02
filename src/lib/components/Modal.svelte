@@ -7,11 +7,14 @@
 	let {
 		open = $bindable(false),
 		title,
+		maxWidthClass = 'max-w-md',
 		onclose,
 		children
 	}: {
 		open?: boolean;
 		title: string;
+		/** Card width cap — widen for content-heavy dialogs (e.g. the seat JD). */
+		maxWidthClass?: string;
 		/** Runs whenever the modal is dismissed (✕, escape, backdrop click). */
 		onclose?: () => void;
 		children: Snippet;
@@ -41,7 +44,7 @@
 			role="dialog"
 			aria-modal="true"
 			aria-label={title}
-			class="my-auto w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-lg sm:p-8 text-left"
+			class="my-auto w-full {maxWidthClass} rounded-2xl border border-border bg-surface p-6 shadow-lg sm:p-8 text-left"
 		>
 			<div class="flex items-start justify-between gap-3">
 				<h2 class="text-xl font-bold text-heading">{title}</h2>

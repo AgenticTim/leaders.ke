@@ -205,13 +205,13 @@
 		<div class="space-y-6">
 			<div class="rounded-3xl border border-border bg-surface p-6 flex flex-col gap-3">
 				<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">
-					{data.currentPosition ? 'Current Position' : 'Full Profile'}
+					{data.currentPosition ? data.currentPosition : leader.name}
 				</h2>
 				<a
 					href={data.recordPath}
 					class="block w-full border border-primary rounded-full px-4 py-2 text-lg text-primary text-center font-semibold transition hover:brightness-95 disabled:opacity-60"
 				>
-					{data.currentPosition ? data.currentPosition : leader.name}
+					Visit the Full Profile
 				</a>
 			</div>
 

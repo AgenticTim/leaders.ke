@@ -5,6 +5,7 @@
 	import PositionBadges from '$lib/components/PositionBadges.svelte';
 	import RegimeLinks from '$lib/components/RegimeLinks.svelte';
 	import SearchFilter from '$lib/components/SearchFilter.svelte';
+	import SeatJD from '$lib/components/jd/SeatJD.svelte';
 	import { pluralPositionTitle, POSITION_SLUG_BY_TITLE } from '$lib/utils/seat';
 	import type { PageProps } from './$types';
 
@@ -88,6 +89,7 @@ server-paginated. On single-region seats (President) it sits below the hub. -->
 	<div class="border-t border-border pt-10">
 		<div class="mt-4 flex flex-col sm:flex-row justify-between gap-2 items-start">
 			<h1 class="text-3xl font-extrabold tracking-tight w-fit text-balance">{pluralPositionTitle(data.positionTitle)}</h1>
+			<!-- Constitutional job description for this seat, in a modal. -->
 			<PositionBadges positions={PILL_TITLES} value={data.positionTitle} {hrefFor} />
 		</div>
 		<div class="mt-4 flex flex-col flex-wrap sm:flex-row justify-between gap-2 items-start">
@@ -131,9 +133,13 @@ server-paginated. On single-region seats (President) it sits below the hub. -->
 		{/key}
 	</div>
 
-	<p class="mt-6 text-sm text-muted">
-		{data.directory.total} leader{data.directory.total === 1 ? '' : 's'}
-	</p>
+	<div class="flex justify-between items-center mt-4">
+		<p class="text-sm text-muted">
+			{data.directory.total} leader{data.directory.total === 1 ? '' : 's'}
+		</p>
+		<SeatJD title={data.positionTitle} />
+	</div>
+
 
 	<div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 		{#each data.directory.leaders as leader (leader.path)}
