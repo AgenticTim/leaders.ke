@@ -46,6 +46,7 @@
 		form: {
 			firstName: string;
 			otherNames: string;
+			age: number | null;
 			bio: string;
 			positionId: number | null;
 			slug: string | null;
@@ -584,6 +585,17 @@
 							name="otherNames"
 							required
 							value={data.form.otherNames}
+							class="mt-1.5 w-full rounded-xl border bg-surface px-4 py-2.5 text-sm text-heading focus:ring-0 focus:outline-none {errorClass()}"
+						/>
+					</label>
+					<label class="w-20">
+						<span class="text-sm font-medium text-heading">Age</span>
+						<input
+							type="number"
+							name="age"
+							min="18"
+							max="100"
+							value={data.form.age ?? ''}
 							class="mt-1.5 w-full rounded-xl border bg-surface px-4 py-2.5 text-sm text-heading focus:ring-0 focus:outline-none {errorClass()}"
 						/>
 					</label>

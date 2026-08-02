@@ -54,6 +54,7 @@ export const users = pgTable('users', {
   authUserId: text('auth_user_id').references(() => user.id, { onDelete: 'cascade' }).notNull().unique(),
   firstName: varchar('first_name', { length: 50 }).notNull(), // single word, no spaces (enforced at signup)
   otherNames: varchar('other_names', { length: 100 }).notNull(), // surname + any middle names, e.g. "Van Der Berg"
+  age: integer('age'), // optional, self-declared on the leader Profile tab
   bio: text('bio'),
   address: varchar('address', { length: 200 }),
   // Where this PERSON lives — set on their own /dashboard/account, same

@@ -135,6 +135,7 @@ export const load: PageServerLoad = async (event) => {
 		form: {
 			firstName: subject.firstName,
 			otherNames: subject.otherNames,
+			age: subject.age,
 			bio: subject.bio ?? '',
 			positionId: ctx?.position?.id ?? null,
 			slug: subject.slug ?? null,
@@ -189,6 +190,12 @@ export const actions: Actions = {
 		const form = await event.request.formData();
 		const firstName = String(form.get('firstName') ?? '').trim();
 		const otherNames = String(form.get('otherNames') ?? '').trim();
+		// Optional; blank clears it. Bounds keep obvious typos out.
+		const ageRaw = String(form.get('age') ?? '').trim();
+		const age = ageRaw ? Number(ageRaw) : null;
+		if (age !== null && (!Number.isInteger(age) || age < 18 || age > 120)) {
+			return fail(400, { error: 'Enter a valid age (18-120), or leave it blank.' });
+		}
 		const bio = String(form.get('bio') ?? '').trim();
 		const slugInput = slugify(String(form.get('slug') ?? '').trim());
 
@@ -316,7 +323,7 @@ export const actions: Actions = {
 			// The person the profile is about: the leader's own (phantom) user row —
 			// separate from whichever citizen account is editing it.
 			subjectId = ctx.profileUser.id;
-			await db.update(users).set({ firstName, otherNames, bio }).where(eq(users.id, subjectId));
+			await db.update(users).set({ firstName, otherNames, age, bio }).where(eq(users.id, subjectId));
 
 			// The slug is this person's permanent URL, editable but unique; every one
 			// of their leaders rows (Track Record entries) shares it since it lives on `users`.
@@ -334,7 +341,7 @@ export const actions: Actions = {
 			// already sets both up before anyone reaches this route.
 			const phantom = await createPhantomUser(firstName, otherNames);
 			subjectId = phantom.id;
-			await db.update(users).set({ bio }).where(eq(users.id, subjectId));
+			await db.update(users).set({ age, bio }).where(eq(users.id, subjectId));
 
 			// onboarding.md: the creator is the campaign's first manager, with admin
 			// permissions (invite/remove team, fundraising, delete campaign) — "leader"
