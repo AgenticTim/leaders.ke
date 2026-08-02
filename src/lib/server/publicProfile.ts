@@ -11,6 +11,7 @@ import { ACTIVE_CYCLE, campaignPath, fullName, resolveCurrentTerm, resolveCurren
 import { positionSlug, SINGULAR_SLUG_BY_TITLE } from '$lib/utils/seat';
 import { getFlaggedReviewCounts, getMyReview, listApprovedReviews, listReviewPillarOptions } from '$lib/server/reviews';
 import { isFollowingAsAccount } from '$lib/server/follow';
+import { decodeHtmlEntities } from '$lib/utils/entities';
 
 export type PublicProfileData = NonNullable<Awaited<ReturnType<typeof loadPublicProfileData>>>;
 
@@ -295,7 +296,9 @@ export async function loadPublicProfileData(
 		// citizen-facing "Is this you?" claim flow.
 		canEdit: !!opts.isAdmin || viewerIsManager,
 		signedIn: !!opts.viewerId,
-		news: mentionRows.map((m) => ({ id: m.id, title: m.title, summary: m.summary ?? m.body.slice(0, 160), createdAt: m.createdAt.toISOString() })),
+		// Entities decoded on the way out: older ingested mentions carry literal
+		// `&nbsp;`/`&#039;` from before the ingester decoded fully.
+		news: mentionRows.map((m) => ({ id: m.id, title: decodeHtmlEntities(m.title), summary: decodeHtmlEntities(m.summary ?? m.body.slice(0, 160)), createdAt: m.createdAt.toISOString() })),
 		breadcrumb: {
 			positionTitle: leadPosition.title,
 			regionLabel: leadPosition.boundary === 'Country' ? null : leadPosition.region,

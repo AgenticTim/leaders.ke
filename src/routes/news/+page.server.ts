@@ -6,6 +6,7 @@ import { listFollowedAuthors } from '$lib/server/citizen';
 import { findCountyBySlug, findConstituencyBySlug, findWardBySlug } from '$lib/data/geo';
 import { plainText } from '$lib/utils/richtext';
 import { getPageSize } from '$lib/server/settings';
+import { decodeHtmlEntities } from '$lib/utils/entities';
 import type { PageServerLoad } from './$types';
 
 const initialsOf = (name: string) =>
@@ -216,7 +217,7 @@ export const load: PageServerLoad = async (event) => {
 			return {
 				kind: 'post' as const,
 				id: r.post.id,
-				title: r.post.title,
+				title: decodeHtmlEntities(r.post.title),
 				excerpt: excerpt.length > 250 ? `${excerpt.slice(0, 250)}…` : excerpt,
 				tags: r.post.tags ?? [],
 				mentions: inlineMentionsByPostId.get(r.post.id) ?? [],
@@ -239,7 +240,7 @@ export const load: PageServerLoad = async (event) => {
 			return {
 				kind: 'mention' as const,
 				id: post.id,
-				title: post.title,
+				title: decodeHtmlEntities(post.title),
 				excerpt: excerpt.length > 250 ? `${excerpt.slice(0, 250)}…` : excerpt,
 				tags: post.tags ?? [],
 				mentions: rest.map((u) => ({ slug: u.slug as string, name: fullName(u) })),

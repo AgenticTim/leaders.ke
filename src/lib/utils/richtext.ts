@@ -3,6 +3,7 @@
 // and this renders them to HTML. Input is HTML-escaped FIRST, so stored text can
 // never inject markup ({@html} stays safe); links are restricted to http(s) or a
 // same-site absolute path (e.g. an inline @mention linking to /some-leader).
+import { decodeHtmlEntities } from '$lib/utils/entities';
 const escapeHtml = (s: string) =>
 	s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -45,7 +46,9 @@ export function renderRichText(input: string): string {
 /** Strips the markers for plain-text surfaces (card excerpts, compare snippets). */
 export function plainText(input: string): string {
 	if (!input) return '';
-	return input
+	// Belt for already-stored ingested text: decode any HTML entities that
+	// leaked in before the ingester learned to (news excerpts especially).
+	return decodeHtmlEntities(input)
 		.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|\/[^\s)]+)\)/g, (_match, label) => stripMentionAt(label))
 		.replace(/\*\*([^*]+)\*\*/g, '$1')
 		.replace(/\*([^*]+)\*/g, '$1')

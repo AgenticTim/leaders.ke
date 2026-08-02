@@ -15,6 +15,7 @@ import { campaigns, leaders, platformSettings, posts, tags, users } from '$lib/s
 import { ACTIVE_CYCLE, fullName } from '$lib/server/leader';
 import { classifyMentionSentiment } from '$lib/server/ai';
 import { getPlatformSettings } from '$lib/server/settings';
+import { decodeHtmlEntities } from '$lib/utils/entities';
 
 const MAX_ITEMS_PER_PERSON = 5; // newest few per run — a daily cadence never needs more
 const MAX_ITEMS_PER_SITE_FEED = 60; // a whole-site feed's newest items checked against every leader
@@ -51,7 +52,7 @@ function parseRss(xml: string): FeedItem[] {
 	for (const block of itemBlocks) {
 		const pick = (tag: string) => {
 			const m = block.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`));
-			return m ? decodeXml(m[1].replace(/^<!\[CDATA\[([\s\S]*?)\]\]>$/, '$1')).trim() : '';
+			return m ? decodeHtmlEntities(m[1].replace(/^<!\[CDATA\[([\s\S]*?)\]\]>$/, '$1')).trim() : '';
 		};
 		const title = pick('title');
 		const link = pick('link');
@@ -67,17 +68,15 @@ function parseRss(xml: string): FeedItem[] {
 	return items;
 }
 
-function decodeXml(s: string): string {
-	return s
-		.replace(/&lt;/g, '<')
-		.replace(/&gt;/g, '>')
-		.replace(/&quot;/g, '"')
-		.replace(/&#39;|&apos;/g, "'")
-		.replace(/&amp;/g, '&');
-}
-
+// Entity decoding is decodeHtmlEntities (entities.ts): feeds double-encode, so
+// a single XML-level pass used to leave literal `&nbsp;`/`&#039;` in stored
+// excerpts — the shared util loops until stable. Strip tags between decodes:
+// the first pass materializes any encoded markup, the second cleans what the
+// markup itself carried.
 function stripHtml(s: string): string {
-	return decodeXml(s).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+	return decodeHtmlEntities(decodeHtmlEntities(s).replace(/<[^>]+>/g, ' '))
+		.replace(/\s+/g, ' ')
+		.trim();
 }
 
 type VerifiedPerson = { userId: number; name: string; allowlist: string[] | null };
