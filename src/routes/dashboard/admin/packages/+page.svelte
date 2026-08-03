@@ -6,10 +6,22 @@
 	// on change; an empty cap means unlimited. Seed values come from
 	// src/lib/data/packages.json (bun run db:seed -- --packages).
 	import { enhance } from '$app/forms';
+	import { toast } from '$lib/stores/toast';
 	import packageData from '$lib/data/packages.json';
 	import type { PageProps } from './$types';
 
-	let { data, form }: PageProps = $props();
+	let { data }: PageProps = $props();
+
+	// Shared by every autosave form below (rate/feature/perk cells, invite
+	// limits, credit rates): one toast per submit instead of repeating the
+	// same result-handling in each of the ~20 near-identical forms.
+	function enhanceWithToast() {
+		return async ({ result, update }: { result: { type: string; data?: Record<string, unknown> }; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+			if (result.type === 'failure') toast.error(String(result.data?.error ?? 'Could not save.'));
+			else if (result.type === 'success') toast.success('Saved.');
+			await update({ reset: false });
+		};
+	}
 
 	const TIERS = ['kickstart', 'mobilize', 'dominate'] as const;
 	const CYCLES = ['monthly', 'annual'] as const;
@@ -52,18 +64,6 @@
 		you leave a field; an empty cap means unlimited. Rate changes never touch existing
 		subscriptions, they only apply going forward.
 	</p>
-
-	{#if form?.error}
-		<div
-			class="mt-4 rounded-2xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading"
-		>
-			{form.error}
-		</div>
-	{:else if form?.updated}
-		<div class="mt-4 rounded-2xl bg-primary-soft p-4 text-sm font-medium text-on-primary">
-			Saved.
-		</div>
-	{/if}
 
 	<!-- PAYG credit rates: the /pricing Credits table, charged by broadcast.ts and
 	the AI ask. Inputs submit together via the #credit-rates form below. -->
@@ -160,7 +160,7 @@
 						{#each TIERS as tier (tier)}
 							{@const current = rate(tier, cycle)}
 							<td class="px-4 py-3">
-								<form method="post" action="?/setRate" use:enhance>
+								<form method="post" action="?/setRate" use:enhance={enhanceWithToast}>
 									<input type="hidden" name="tier" value={tier} />
 									<input type="hidden" name="billingCycle" value={cycle} />
 									<input
@@ -184,7 +184,7 @@
 						{#each TIERS as tier (tier)}
 							{@const features = pkg(tier)?.features}
 							<td class="px-4 py-3">
-								<form method="post" action="?/setFeature" use:enhance>
+								<form method="post" action="?/setFeature" use:enhance={enhanceWithToast}>
 									<input type="hidden" name="tier" value={tier} />
 									<input type="hidden" name="key" value={feature.key} />
 									<input
@@ -230,7 +230,7 @@
 								<form
 									method="post"
 									action="?/setPerk"
-									use:enhance
+									use:enhance={enhanceWithToast}
 									onchange={(e) => (e.currentTarget as HTMLFormElement).requestSubmit()}
 								>
 									<input type="hidden" name="tier" value={tier} />
@@ -262,7 +262,7 @@
 
 	<!-- Owns the invite-limit inputs above (via form="invite-limits") so the three
 	tier caps submit together as the single jsonb setting they are. -->
-	<form id="invite-limits" method="post" action="?/saveInviteLimits" use:enhance></form>
+	<form id="invite-limits" method="post" action="?/saveInviteLimits" use:enhance={enhanceWithToast}></form>
 	<!-- Owns the credit-rate inputs above (via form="credit-rates"). -->
-	<form id="credit-rates" method="post" action="?/saveCreditRates" use:enhance></form>
+	<form id="credit-rates" method="post" action="?/saveCreditRates" use:enhance={enhanceWithToast}></form>
 </div>

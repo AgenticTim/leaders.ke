@@ -1,10 +1,10 @@
-import { fail } from '@sveltejs/kit';
 import { and, eq, isNull, isNotNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { campaigns, leaders, parties } from '$lib/server/db/schema';
 import { requireAdmin } from '$lib/server/dashboard';
 import { slugify } from '$lib/server/leader';
 import { savePartyLogo } from '$lib/server/storage';
+import { adminActionFailed } from '$lib/server/notifications';
 import type { Actions, PageServerLoad } from './$types';
 
 const PARTY_STATUSES = ['full', 'provisional'] as const;
@@ -95,11 +95,11 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
 	create: async (event) => {
-		await requireAdmin(event);
+		const admin = await requireAdmin(event);
 		const form = await event.request.formData();
 		const { name, status, values } = readPartyForm(form);
 		const err = validateParty(name, status);
-		if (err) return fail(400, { error: err });
+		if (err) return adminActionFailed(admin.domainUser.id, 400, { error: err });
 
 		const [row] = await db.insert(parties).values(values).returning({ id: parties.id });
 
@@ -110,20 +110,20 @@ export const actions: Actions = {
 				const url = await savePartyLogo(row.id, logo);
 				await db.update(parties).set({ logo: url }).where(eq(parties.id, row.id));
 			} catch (e) {
-				return fail(400, { error: e instanceof Error ? e.message : 'Logo upload failed.' });
+				return adminActionFailed(admin.domainUser.id, 400, { error: e instanceof Error ? e.message : 'Logo upload failed.' });
 			}
 		}
 		return { saved: true };
 	},
 
 	edit: async (event) => {
-		await requireAdmin(event);
+		const admin = await requireAdmin(event);
 		const form = await event.request.formData();
 		const id = Number(form.get('partyId') ?? 0);
-		if (!id) return fail(400, { error: 'Party not found.' });
+		if (!id) return adminActionFailed(admin.domainUser.id, 400, { error: 'Party not found.' });
 		const { name, status, values } = readPartyForm(form);
 		const err = validateParty(name, status);
-		if (err) return fail(400, { error: err });
+		if (err) return adminActionFailed(admin.domainUser.id, 400, { error: err });
 
 		await db.update(parties).set({ ...values, updatedAt: new Date() }).where(eq(parties.id, id));
 
@@ -133,25 +133,25 @@ export const actions: Actions = {
 				const url = await savePartyLogo(id, logo);
 				await db.update(parties).set({ logo: url }).where(eq(parties.id, id));
 			} catch (e) {
-				return fail(400, { error: e instanceof Error ? e.message : 'Logo upload failed.' });
+				return adminActionFailed(admin.domainUser.id, 400, { error: e instanceof Error ? e.message : 'Logo upload failed.' });
 			}
 		}
 		return { saved: true };
 	},
 
 	verify: async (event) => {
-		await requireAdmin(event);
+		const admin = await requireAdmin(event);
 		const form = await event.request.formData();
 		const id = Number(form.get('partyId') ?? 0);
-		if (!id) return fail(400, { error: 'Party not found.' });
+		if (!id) return adminActionFailed(admin.domainUser.id, 400, { error: 'Party not found.' });
 		await db.update(parties).set({ verifiedAt: new Date() }).where(eq(parties.id, id));
 		return { saved: true };
 	},
 	unverify: async (event) => {
-		await requireAdmin(event);
+		const admin = await requireAdmin(event);
 		const form = await event.request.formData();
 		const id = Number(form.get('partyId') ?? 0);
-		if (!id) return fail(400, { error: 'Party not found.' });
+		if (!id) return adminActionFailed(admin.domainUser.id, 400, { error: 'Party not found.' });
 		await db.update(parties).set({ verifiedAt: null }).where(eq(parties.id, id));
 		return { saved: true };
 	}

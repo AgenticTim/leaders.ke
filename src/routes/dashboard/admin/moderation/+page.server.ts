@@ -1,7 +1,7 @@
-import { fail } from '@sveltejs/kit';
 import { requireAdmin } from '$lib/server/dashboard';
 import { listFlaggedReviews, unflagReview } from '$lib/server/moderation';
 import { getPageSize } from '$lib/server/settings';
+import { adminActionFailed } from '$lib/server/notifications';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
@@ -14,10 +14,10 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
 	unflag: async (event) => {
-		await requireAdmin(event);
+		const admin = await requireAdmin(event);
 		const form = await event.request.formData();
 		const reviewId = Number(form.get('reviewId') ?? 0);
-		if (!reviewId) return fail(400, { error: 'Invalid request.' });
+		if (!reviewId) return adminActionFailed(admin.domainUser.id, 400, { error: 'Invalid request.' });
 
 		await unflagReview(reviewId);
 		return { unflagged: true };

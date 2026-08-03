@@ -2,6 +2,7 @@
 	import { tooltip } from '$lib/effects';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
+	import { toast } from '$lib/stores/toast';
 	import Avatar from '$lib/components/Avatar.svelte';
 
 	type Party = {
@@ -23,9 +24,8 @@
 	let {
 		parties,
 		showActions = false,
-		error,
 		onEdit
-	}: { parties: Party[]; showActions?: boolean; error?: string; onEdit?: (id: number) => void } = $props();
+	}: { parties: Party[]; showActions?: boolean; onEdit?: (id: number) => void } = $props();
 
 	const dateFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' });
 	const initialsOf = (name: string) =>
@@ -82,10 +82,6 @@
 		})
 	);
 </script>
-
-{#if error}
-	<div class="mb-4 rounded-xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading">{error}</div>
-{/if}
 
 <div class="flex flex-wrap items-center justify-between gap-3">
 	<input
@@ -163,7 +159,18 @@
 										Edit
 									</button>
 								{/if}
-								<form method="post" action={party.verifiedAt ? '?/unverify' : '?/verify'} use:enhance>
+								<form
+									method="post"
+									action={party.verifiedAt ? '?/unverify' : '?/verify'}
+									use:enhance={() => {
+										const willVerify = !party.verifiedAt;
+										return async ({ result, update }) => {
+											if (result.type === 'success') toast.success(`${party.name} ${willVerify ? 'verified' : 'unverified'}.`);
+											else if (result.type === 'failure') toast.error(String((result.data as { error?: string })?.error ?? 'Could not update verification.'));
+											await update();
+										};
+									}}
+								>
 									<input type="hidden" name="partyId" value={party.id} />
 									<button
 										type="submit"

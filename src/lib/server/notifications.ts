@@ -5,6 +5,7 @@
 // transactional (it's about the recipient's own request), so it bypasses
 // notificationPrefs, which gates broadcast-style noise, not decisions on things
 // the user asked for.
+import { fail, type ActionFailure } from '@sveltejs/kit';
 import { and, count, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { notifications, users } from '$lib/server/db/schema';
@@ -19,6 +20,22 @@ export type NotificationInput = {
 	href?: string; // the primary action link (relative path)
 	linkLabel?: string; // anchor text for the auto-appended href link
 };
+
+/** Wraps fail() for an admin-console form action: records the same failure as
+ * a durable 'admin-error' notification for the admin who hit it, then returns
+ * the fail() the caller would have returned anyway — so a validation slip
+ * during a fast editing session (e.g. Packages' many autosave cells) isn't
+ * only a toast that can be missed, it's also sitting on /dashboard/notifications
+ * until dismissed. No email (unlike notifyUser): this is a same-session UI
+ * correction, not a decision that needs to reach the admin outside the tab. */
+export async function adminActionFailed<T extends { error: string }>(
+	adminUserId: number,
+	status: number,
+	data: T
+): Promise<ActionFailure<T>> {
+	await db.insert(notifications).values({ userId: adminUserId, kind: 'admin-error', title: 'Action failed', body: data.error });
+	return fail(status, data);
+}
 
 /** The recipient's login email (better-auth user bridged via users.authUserId). */
 async function emailFor(userId: number): Promise<string | null> {

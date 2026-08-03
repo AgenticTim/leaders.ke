@@ -1,9 +1,9 @@
-import { fail } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { platformSettings } from '$lib/server/db/schema';
 import { requireAdmin } from '$lib/server/dashboard';
 import { getPlatformSettings } from '$lib/server/settings';
+import { adminActionFailed } from '$lib/server/notifications';
 import {
 	BILLING_CYCLES,
 	listCurrentPricing,
@@ -41,7 +41,7 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
 	setRate: async (event) => {
-		await requireAdmin(event);
+		const admin = await requireAdmin(event);
 		const form = await event.request.formData();
 		const tier = String(form.get('tier') ?? '');
 		const billingCycle = String(form.get('billingCycle') ?? '');
@@ -51,10 +51,10 @@ export const actions: Actions = {
 			!SUBSCRIPTION_TIERS.includes(tier as (typeof SUBSCRIPTION_TIERS)[number]) ||
 			!BILLING_CYCLES.includes(billingCycle as (typeof BILLING_CYCLES)[number])
 		) {
-			return fail(400, { error: 'Invalid tier or billing cycle.' });
+			return adminActionFailed(admin.domainUser.id, 400, { error: 'Invalid tier or billing cycle.' });
 		}
 		if (!Number.isFinite(amount) || amount <= 0)
-			return fail(400, { error: 'Enter a valid amount in KES.' });
+			return adminActionFailed(admin.domainUser.id, 400, { error: 'Enter a valid amount in KES.' });
 
 		await setRate(
 			tier as (typeof SUBSCRIPTION_TIERS)[number],
@@ -66,7 +66,7 @@ export const actions: Actions = {
 
 	// One cap on one package; an emptied input means unlimited (null).
 	setFeature: async (event) => {
-		await requireAdmin(event);
+		const admin = await requireAdmin(event);
 		const form = await event.request.formData();
 		const tier = String(form.get('tier') ?? '');
 		const key = String(form.get('key') ?? '');
@@ -76,11 +76,11 @@ export const actions: Actions = {
 			!SUBSCRIPTION_TIERS.includes(tier as (typeof SUBSCRIPTION_TIERS)[number]) ||
 			!PACKAGE_FEATURE_KEYS.includes(key as PackageFeatureKey)
 		) {
-			return fail(400, { error: 'Invalid tier or feature.' });
+			return adminActionFailed(admin.domainUser.id, 400, { error: 'Invalid tier or feature.' });
 		}
 		const value = raw === '' ? null : Number(raw);
 		if (value !== null && (!Number.isInteger(value) || value < 0)) {
-			return fail(400, { error: 'Enter a whole number, or clear the field for unlimited.' });
+			return adminActionFailed(admin.domainUser.id, 400, { error: 'Enter a whole number, or clear the field for unlimited.' });
 		}
 
 		const result = await setPackageFeature(
@@ -88,7 +88,7 @@ export const actions: Actions = {
 			key as PackageFeatureKey,
 			value
 		);
-		if (!result.ok) return fail(400, { error: result.error });
+		if (!result.ok) return adminActionFailed(admin.domainUser.id, 400, { error: result.error });
 		return { updated: true };
 	},
 
@@ -97,7 +97,7 @@ export const actions: Actions = {
 	// checkbox posts its own onchange (always present) instead, carrying the
 	// new state explicitly.
 	setPerk: async (event) => {
-		await requireAdmin(event);
+		const admin = await requireAdmin(event);
 		const form = await event.request.formData();
 		const tier = String(form.get('tier') ?? '');
 		const key = String(form.get('key') ?? '');
@@ -107,7 +107,7 @@ export const actions: Actions = {
 			!SUBSCRIPTION_TIERS.includes(tier as (typeof SUBSCRIPTION_TIERS)[number]) ||
 			!PACKAGE_PERK_KEYS.includes(key as PackagePerkKey)
 		) {
-			return fail(400, { error: 'Invalid tier or perk.' });
+			return adminActionFailed(admin.domainUser.id, 400, { error: 'Invalid tier or perk.' });
 		}
 
 		const result = await setPackagePerk(
@@ -115,12 +115,12 @@ export const actions: Actions = {
 			key as PackagePerkKey,
 			value
 		);
-		if (!result.ok) return fail(400, { error: result.error });
+		if (!result.ok) return adminActionFailed(admin.domainUser.id, 400, { error: result.error });
 		return { updated: true };
 	},
 
 	saveInviteLimits: async (event) => {
-		await requireAdmin(event);
+		const admin = await requireAdmin(event);
 		const form = await event.request.formData();
 		const kickstart = Number(form.get('kickstart'));
 		const mobilize = Number(form.get('mobilize'));
@@ -132,7 +132,7 @@ export const actions: Actions = {
 			['Dominate limit', dominate]
 		] as const) {
 			if (!Number.isInteger(value) || value < 1)
-				return fail(400, { error: `${label} must be a whole number of at least 1.` });
+				return adminActionFailed(admin.domainUser.id, 400, { error: `${label} must be a whole number of at least 1.` });
 		}
 
 		await db
@@ -144,7 +144,7 @@ export const actions: Actions = {
 
 	// PAYG credit rates shown on /pricing and charged by broadcast.ts / the AI ask.
 	saveCreditRates: async (event) => {
-		await requireAdmin(event);
+		const admin = await requireAdmin(event);
 		const form = await event.request.formData();
 		const aiChatCostCredits = Number(form.get('aiChatCostCredits'));
 		const smsCostCredits = Number(form.get('smsCostCredits'));
@@ -157,7 +157,7 @@ export const actions: Actions = {
 			['WhatsApp credits', whatsappCostCredits]
 		] as const) {
 			if (!Number.isInteger(value) || value < 1)
-				return fail(400, { error: `${label} must be a whole number of at least 1.` });
+				return adminActionFailed(admin.domainUser.id, 400, { error: `${label} must be a whole number of at least 1.` });
 		}
 		// The downgrade fee is a percent and may be 0 (fee disabled).
 		if (
@@ -165,7 +165,7 @@ export const actions: Actions = {
 			downgradeFeePercent < 0 ||
 			downgradeFeePercent > 100
 		) {
-			return fail(400, { error: 'Downgrade fee must be a whole percent between 0 and 100.' });
+			return adminActionFailed(admin.domainUser.id, 400, { error: 'Downgrade fee must be a whole percent between 0 and 100.' });
 		}
 
 		await db

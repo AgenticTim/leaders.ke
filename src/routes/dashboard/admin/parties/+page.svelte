@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { toast } from '$lib/stores/toast';
 	import PartiesTable from '$lib/components/PartiesTable.svelte';
 	import Avatar from '$lib/components/Avatar.svelte';
 	import ImageCropper from '$lib/components/ImageCropper.svelte';
 	import type { PageProps } from './$types';
 
-	let { data, form }: PageProps = $props();
+	let { data }: PageProps = $props();
 
 	type Party = (typeof data.parties)[number];
 	let showForm = $state(false);
@@ -82,7 +83,7 @@
 </div>
 
 <div class="mt-6">
-	<PartiesTable parties={data.parties} showActions error={form?.error} onEdit={openEdit} />
+	<PartiesTable parties={data.parties} showActions onEdit={openEdit} />
 </div>
 
 {#if showForm}
@@ -95,10 +96,6 @@
 				<button type="button" onclick={close} aria-label="Close" class="text-muted hover:text-heading">✕</button>
 			</div>
 
-			{#if form?.error}
-				<div class="mt-4 rounded-xl border border-border bg-surface-2 p-3 text-sm font-medium text-heading">{form.error}</div>
-			{/if}
-
 			{#key editing?.id ?? 'new'}
 				<form
 					method="post"
@@ -110,7 +107,12 @@
 						return async ({ result, update }) => {
 							saving = false;
 							await update();
-							if (result.type === 'success') close();
+							if (result.type === 'success') {
+								toast.success(editing ? 'Party updated.' : 'Party created.');
+								close();
+							} else if (result.type === 'failure') {
+								toast.error(String((result.data as { error?: string })?.error ?? 'Could not save the party.'));
+							}
 						};
 					}}
 				>

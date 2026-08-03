@@ -1,8 +1,8 @@
-import { fail } from '@sveltejs/kit';
 import { and, desc, eq, isNull, or } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { creditTransactions, subscriptions, wallets } from '$lib/server/db/schema';
 import { requireAdmin } from '$lib/server/dashboard';
+import { adminActionFailed } from '$lib/server/notifications';
 import { listProfiles, type ProfileSort } from '$lib/server/profiles';
 import { SUBSCRIPTION_TIERS } from '$lib/server/packages';
 import { getPageSize } from '$lib/server/settings';
@@ -32,12 +32,13 @@ export const actions: Actions = {
 	// not campaign-scoped, so this works even before a run is declared) and logs
 	// the grant as a 'topup' transaction, same ledger the AI Chat spend writes to.
 	grantCredits: async (event) => {
-		await requireAdmin(event);
+		const admin = await requireAdmin(event);
 		const form = await event.request.formData();
 		const profileId = Number(form.get('profileId') ?? 0);
 		const amount = Number(form.get('amount') ?? 0);
-		if (!profileId) return fail(400, { error: 'Missing profile.' });
-		if (!Number.isInteger(amount) || amount <= 0) return fail(400, { error: 'Enter a whole number of credits greater than 0.' });
+		if (!profileId) return adminActionFailed(admin.domainUser.id, 400, { error: 'Missing profile.' });
+		if (!Number.isInteger(amount) || amount <= 0)
+			return adminActionFailed(admin.domainUser.id, 400, { error: 'Enter a whole number of credits greater than 0.' });
 
 		const [wallet] = await db.select().from(wallets).where(eq(wallets.subjectUserId, profileId));
 		const newBalance = (wallet?.balance ?? 0) + amount;
@@ -73,9 +74,9 @@ export const actions: Actions = {
 		const form = await event.request.formData();
 		const profileId = Number(form.get('profileId') ?? 0);
 		const tier = String(form.get('tier') ?? '');
-		if (!profileId) return fail(400, { error: 'Missing profile.' });
+		if (!profileId) return adminActionFailed(admin.domainUser.id, 400, { error: 'Missing profile.' });
 		if (!SUBSCRIPTION_TIERS.includes(tier as (typeof SUBSCRIPTION_TIERS)[number])) {
-			return fail(400, { error: 'Invalid package.' });
+			return adminActionFailed(admin.domainUser.id, 400, { error: 'Invalid package.' });
 		}
 
 		const [current] = await db

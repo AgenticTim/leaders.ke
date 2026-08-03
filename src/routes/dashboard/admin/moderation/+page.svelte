@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { toast } from '$lib/stores/toast';
 	import Pagination from '$lib/components/admin/Pagination.svelte';
 	import type { PageProps } from './$types';
 
-	let { data, form }: PageProps = $props();
+	let { data }: PageProps = $props();
 
 	const dateFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium', timeStyle: 'short' });
 	const totalPages = $derived(Math.max(1, Math.ceil(data.total / data.pageSize)));
@@ -17,12 +18,6 @@
 		Reviews flagged by a leader or manager, across every profile. Unflagging restores a review to
 		public view.
 	</p>
-
-	{#if form?.error}
-		<div class="mt-4 rounded-2xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading">
-			{form.error}
-		</div>
-	{/if}
 
 	{#if data.flagged.length > 0}
 		<ul class="mt-6 space-y-3">
@@ -41,7 +36,18 @@
 						</span>
 					</div>
 					<p class="mt-3 text-sm leading-relaxed text-muted">{review.message}</p>
-					<form method="post" action="?/unflag" class="mt-3" use:enhance>
+					<form
+						method="post"
+						action="?/unflag"
+						class="mt-3"
+						use:enhance={() => {
+							return async ({ result, update }) => {
+								if (result.type === 'success') toast.success('Review unflagged.');
+								else if (result.type === 'failure') toast.error(String((result.data as { error?: string })?.error ?? 'Could not unflag review.'));
+								await update();
+							};
+						}}
+					>
 						<input type="hidden" name="reviewId" value={review.reviewId} />
 						<button
 							type="submit"

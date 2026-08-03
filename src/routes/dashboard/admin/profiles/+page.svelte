@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { tooltip } from '$lib/effects';
 	import { enhance } from '$app/forms';
+	import { toast } from '$lib/stores/toast';
 	import Pagination from '$lib/components/admin/Pagination.svelte';
 	import type { PageProps } from './$types';
 
-	let { data, form }: PageProps = $props();
+	let { data }: PageProps = $props();
 
 	const totalPages = $derived(Math.max(1, Math.ceil(data.total / data.pageSize)));
 	const dateFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium', timeStyle: 'short' });
@@ -179,8 +180,12 @@
 										action="?/setSubscription"
 										use:enhance={() => {
 											switchingId = p.profileId;
-											return async ({ update }) => {
+											return async ({ result, update }) => {
 												switchingId = null;
+												if (result.type === 'failure') toast.error(String((result.data as { error?: string })?.error ?? 'Could not update package.'));
+												else if (result.type === 'success' && (result.data as { tier?: string } | undefined)?.tier) {
+													toast.success(`${p.profileName}'s package set to ${(result.data as { tier: string }).tier}.`);
+												}
 												await update();
 											};
 										}}
@@ -344,9 +349,6 @@
 			<button type="button" aria-label="Cancel" onclick={() => (grantingFor = null)} class="absolute inset-0 bg-black/70"></button>
 			<div role="dialog" aria-modal="true" aria-label="Grant credits" class="relative w-full max-w-sm rounded-2xl bg-surface p-6">
 				<p class="font-semibold text-heading">Grant credits to {grantingFor.profileName}</p>
-				{#if form?.error}
-					<p class="mt-2 text-sm font-medium text-red-600">{form.error}</p>
-				{/if}
 				<form
 					method="post"
 					action="?/grantCredits"
@@ -355,7 +357,12 @@
 						granting = true;
 						return async ({ result, update }) => {
 							granting = false;
-							if (result.type === 'success') grantingFor = null;
+							if (result.type === 'success') {
+								toast.success(`Granted ${grantAmount} credit${grantAmount === 1 ? '' : 's'} to ${grantingFor?.profileName}.`);
+								grantingFor = null;
+							} else if (result.type === 'failure') {
+								toast.error(String((result.data as { error?: string })?.error ?? 'Could not grant credits.'));
+							}
 							await update();
 						};
 					}}

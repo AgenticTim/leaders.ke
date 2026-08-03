@@ -16,5 +16,7 @@ export const toast = {
   info:    make('info'),
   success: make('success'),
   warn:    make('warning'),
-  error:   make('error'),
+  // 0 disables svelte-toasts' auto-dismiss timer: an error stays until the
+  // user closes it, since a 5s auto-dismiss risks it disappearing unread.
+  error:   make('error', 0),
 };

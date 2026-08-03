@@ -1,11 +1,24 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { toast } from '$lib/stores/toast';
 	import type { PageProps } from './$types';
 
-	let { data, form }: PageProps = $props();
+	let { data }: PageProps = $props();
 
 	let saving = $state(false);
 	let crawling = $state(false);
+
+	// Shared by the news-fetch-time and per-source forms below: one toast per
+	// submit instead of repeating the same result-handling in each.
+	function withToast(successMessage: string) {
+		return () => {
+			return async ({ result, update }: { result: { type: string; data?: Record<string, unknown> }; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+				if (result.type === 'failure') toast.error(String(result.data?.error ?? 'Could not save.'));
+				else if (result.type === 'success') toast.success(successMessage);
+				await update({ reset: false });
+			};
+		};
+	}
 </script>
 
 <svelte:head><title>Platform settings — vote.ke</title></svelte:head>
@@ -16,23 +29,6 @@
 		Anti-abuse thresholds, the application verification gate, and list pagination.
 	</p>
 
-	{#if form?.error}
-		<div
-			class="mt-4 rounded-xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading"
-		>
-			{form.error}
-		</div>
-	{:else if form?.crawled}
-		<div class="mt-4 rounded-xl bg-primary-soft p-4 text-sm font-medium text-on-primary">
-			Crawl done: {form.inserted} new mention{form.inserted === 1 ? '' : 's'} across {form.people} leaders
-			{#if form.failed}({form.failed} feed{form.failed === 1 ? '' : 's'} failed){/if}.
-		</div>
-	{:else if form?.saved}
-		<div class="mt-4 rounded-xl bg-primary-soft p-4 text-sm font-medium text-on-primary">
-			Saved.
-		</div>
-	{/if}
-
 	<!-- Daily crawl schedule + manual trigger (hooks.server.ts fires ingestNews()
 	once local time passes newsFetchTime, if it hasn't already run today). -->
 	<div class="mt-8 rounded-2xl border border-border bg-surface p-5">
@@ -41,7 +37,7 @@
 			What time of day the news crawl runs automatically, and a manual trigger.
 		</p>
 		<div class="mt-3 flex flex-wrap items-center gap-4">
-			<form method="post" action="?/saveNewsFetchTime" use:enhance>
+			<form method="post" action="?/saveNewsFetchTime" use:enhance={withToast('Crawl time updated.')}>
 				<label class="flex items-center gap-2 text-sm">
 					<span class="text-heading">Daily crawl time</span>
 					<input
@@ -59,8 +55,13 @@
 				action="?/runNewsIngestNow"
 				use:enhance={() => {
 					crawling = true;
-					return async ({ update }) => {
+					return async ({ result, update }) => {
 						crawling = false;
+						if (result.type === 'failure') toast.error(String((result.data as { error?: string })?.error ?? 'Crawl failed.'));
+						else if (result.type === 'success' && result.data) {
+							const d = result.data as { inserted: number; people: number; failed: number };
+							toast.success(`Crawl done: ${d.inserted} new mention${d.inserted === 1 ? '' : 's'} across ${d.people} leaders${d.failed ? ` (${d.failed} feed${d.failed === 1 ? '' : 's'} failed)` : ''}.`);
+						}
 						await update({ reset: false });
 					};
 				}}
@@ -98,7 +99,7 @@
 					<form
 						method="post"
 						action="?/saveNewsSources"
-						use:enhance
+						use:enhance={withToast(`${source.label} updated.`)}
 						onchange={(e) => (e.currentTarget as HTMLFormElement).requestSubmit()}
 					>
 						{#each Object.keys(data.newsSourceOptions) as otherId (otherId)}
@@ -141,8 +142,10 @@
 		class="mt-6 grid grid-cols-1 gap-5 md:grid-cols-3"
 		use:enhance={() => {
 			saving = true;
-			return async ({ update }) => {
+			return async ({ result, update }) => {
 				saving = false;
+				if (result.type === 'failure') toast.error(String((result.data as { error?: string })?.error ?? 'Could not save settings.'));
+				else if (result.type === 'success') toast.success('Settings saved.');
 				await update({ reset: false });
 			};
 		}}

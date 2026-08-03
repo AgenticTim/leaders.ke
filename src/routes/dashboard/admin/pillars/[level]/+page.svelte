@@ -1,11 +1,23 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { toast } from '$lib/stores/toast';
 	import type { PageProps } from './$types';
 
-	let { data, form }: PageProps = $props();
+	let { data }: PageProps = $props();
 
 	// One template is editable at a time; null means all rows show read-only.
 	let editingId = $state<number | null>(null);
+
+	// Shared by the add/update/remove forms below.
+	function withToast(successMessage: string) {
+		return () => {
+			return async ({ result, update }: { result: { type: string; data?: Record<string, unknown> }; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+				if (result.type === 'failure') toast.error(String(result.data?.error ?? 'Could not save.'));
+				else if (result.type === 'success') toast.success(successMessage);
+				await update();
+			};
+		};
+	}
 </script>
 
 <svelte:head><title>Pillars — Admin</title></svelte:head>
@@ -33,12 +45,6 @@
 		</div>
 	</div>
 
-	{#if form?.error}
-		<div class="mt-4 rounded-xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading">
-			{form.error}
-		</div>
-	{/if}
-
 	<ol class="mt-6 space-y-4">
 		{#each data.templates as template, i (template.id)}
 			<li class="rounded-2xl border border-border bg-surface p-5">
@@ -48,8 +54,12 @@
 						action="?/update"
 						class="space-y-3"
 						use:enhance={() => {
-							return async ({ update }) => {
-								editingId = null;
+							return async ({ result, update }) => {
+								if (result.type === 'failure') toast.error(String((result.data as { error?: string })?.error ?? 'Could not save pillar.'));
+								else if (result.type === 'success') {
+									toast.success('Pillar updated.');
+									editingId = null;
+								}
 								await update();
 							};
 						}}
@@ -104,7 +114,7 @@
 							>
 								Edit
 							</button>
-							<form method="post" action="?/remove" use:enhance>
+							<form method="post" action="?/remove" use:enhance={withToast('Pillar removed.')}>
 								<input type="hidden" name="id" value={template.id} />
 								<button
 									type="submit"
@@ -124,7 +134,7 @@
 		{/each}
 	</ol>
 
-	<form method="post" action="?/add" class="mt-8 rounded-2xl border border-border bg-surface-2 p-5" use:enhance>
+	<form method="post" action="?/add" class="mt-8 rounded-2xl border border-border bg-surface-2 p-5" use:enhance={withToast('Pillar added.')}>
 		<h3 class="font-semibold text-heading">Add a {data.levelTitle} pillar</h3>
 		<div class="mt-3 space-y-3">
 			<input

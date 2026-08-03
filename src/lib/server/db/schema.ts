@@ -478,7 +478,9 @@ export const profileClaims = pgTable('profile_claims', {
 // approved/rejected because …". Written alongside the matching email by notifyUser
 // ($lib/server/notifications) — the flash cookie can't carry these because the
 // decision happens in the ADMIN's session, not the applicant's. Unread rows banner
-// on the applicant's dashboard until dismissed.)
+// on the applicant's dashboard until dismissed. `kind: 'admin-error'` is the one
+// exception: adminActionFailed writes it to the ADMIN'S OWN notifications when one
+// of their own admin-console form actions fails, no email, self-notification only.)
 export const notifications = pgTable('notifications', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(), // the recipient
