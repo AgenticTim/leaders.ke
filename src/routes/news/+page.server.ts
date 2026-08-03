@@ -259,7 +259,11 @@ export const load: PageServerLoad = async (event) => {
 	const filtered = articles.filter((a) => {
 		if (activeTag && !a.tags.includes(activeTag)) return false;
 		if (activeMention) {
-			const matchesPrimary = a.kind === 'mention' && a.authorPath === `/${activeMention}`;
+			// Matches the person's own authored articles (team post or the primary
+			// subject of an aggregated mention) as well as inline @mentions in
+			// someone else's post — "news about this person", not just "news that
+			// name-drops them".
+			const matchesPrimary = a.authorPath === `/${activeMention}`;
 			const matchesTagged = a.mentions.some((m) => m.slug === activeMention);
 			if (!matchesPrimary && !matchesTagged) return false;
 		}

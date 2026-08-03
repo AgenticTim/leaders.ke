@@ -2,6 +2,7 @@
 	import Avatar from '$lib/components/Avatar.svelte';
 	import FollowCard from '$lib/components/FollowCard.svelte';
 	import GeoSelect from '$lib/components/GeoSelect.svelte';
+	import QuickSearch from '$lib/components/QuickSearch.svelte';
 	import Pagination from '$lib/components/admin/Pagination.svelte';
 	import { goto } from '$app/navigation';
 	import type { PageProps } from './$types';
@@ -210,6 +211,17 @@
 					{:else}
 						<p class="text-sm text-muted">No tags yet.</p>
 					{/each}
+				</div>
+			</div>
+			<div>
+				<p class="text-xs font-semibold tracking-wide text-muted uppercase">Find a profile</p>
+				<div class="mt-2">
+					<QuickSearch
+						include={['Executive', 'Parliament', 'MCAs']}
+						expand={false}
+						placeholder="Filter news by a leader or candidate…"
+						onPick={(item) => goto(mentionHref(item.path.slice(1)))}
+					/>
 				</div>
 			</div>
 			<div>
