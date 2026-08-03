@@ -79,7 +79,7 @@
 		<div class="rounded-3xl border border-border bg-surface p-5">
 			<p class="text-sm text-muted">Gen-z eligible 2027 <span class="text-xs">(est.)</span></p>
 			<p class="mt-1 text-2xl font-extrabold tabular-nums tracking-tight text-primary sm:text-3xl">{fmt.format(data.stats.genZEligible2027)}</p>
-			<p class="mt-1 text-xs text-muted">{pct(data.stats.genZShare2027)} of the 2027 voting-age population</p>
+			<p class="mt-1 text-xs text-muted">{pct(data.stats.genZShare2027)} of the 2027 voting-age est.</p>
 		</div>
 	</div>
 

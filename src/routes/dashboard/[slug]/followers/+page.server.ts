@@ -12,21 +12,26 @@ import { ASSUMED_TURNOUT_2027, votesToWin } from '$lib/data/demographics';
 import { getPageSize } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
 
-export type HeatmapRow = { county: string; pledges: number; registeredVoters: number };
-export type AreaRow = { area: string; pledges: number; registeredVoters: number };
+export type HeatmapRow = { county: string; slug: string; pledges: number; registeredVoters: number };
+export type AreaRow = { area: string; slug: string; pledges: number; registeredVoters: number };
 
 /** The seat's own patch, for ward-level penetration: a county seat (governor/
  * senator/woman rep) gets every ward in the county, an MP their constituency's
  * wards, an MCA just theirs — plus the county name that scopes pledger
  * accounts and the seat's own electorate. Null for national seats (the county
- * heatmap already covers those). */
-function seatWardScope(regionLabel: string): { countyName: string; wards: { name: string; voters: number }[]; electorate: number } | null {
+ * heatmap already covers those). `slug` is geoSlug(seatName), the same key
+ * build-ward-maps.ts uses for its SVG paths, so WardMap.svelte can match rows
+ * to shapes directly. */
+function seatWardScope(
+	regionLabel: string
+): { countyName: string; countySlug: string; wards: { name: string; slug: string; voters: number }[]; electorate: number } | null {
 	const slug = geoSlug(regionLabel);
 	const county = findCountyBySlug(slug);
 	if (county) {
 		return {
 			countyName: county.name,
-			wards: county.constituencies.flatMap((c) => c.wards.map((w) => ({ name: w.name, voters: w.voters }))),
+			countySlug: geoSlug(county.name),
+			wards: county.constituencies.flatMap((c) => c.wards.map((w) => ({ name: w.name, slug: geoSlug(w.seatName), voters: w.voters }))),
 			electorate: county.voters
 		};
 	}
@@ -35,13 +40,20 @@ function seatWardScope(regionLabel: string): { countyName: string; wards: { name
 		if (constituency) {
 			return {
 				countyName: c.name,
-				wards: constituency.wards.map((w) => ({ name: w.name, voters: w.voters })),
+				countySlug: geoSlug(c.name),
+				wards: constituency.wards.map((w) => ({ name: w.name, slug: geoSlug(w.seatName), voters: w.voters })),
 				electorate: constituency.voters
 			};
 		}
 		for (const k of c.constituencies) {
 			const ward = k.wards.find((w) => geoSlug(w.seatName) === slug);
-			if (ward) return { countyName: c.name, wards: [{ name: ward.name, voters: ward.voters }], electorate: ward.voters };
+			if (ward)
+				return {
+					countyName: c.name,
+					countySlug: geoSlug(c.name),
+					wards: [{ name: ward.name, slug: geoSlug(ward.seatName), voters: ward.voters }],
+					electorate: ward.voters
+				};
 		}
 	}
 	return null;
@@ -61,7 +73,7 @@ async function wardHeatmap(campaignId: number | null, scope: NonNullable<ReturnT
 		: [];
 	const byWard = new Map(rows.filter((r): r is { ward: string; n: number } => !!r.ward).map((r) => [r.ward, r.n]));
 	return scope.wards
-		.map((w) => ({ area: w.name, pledges: byWard.get(w.name) ?? 0, registeredVoters: w.voters }))
+		.map((w) => ({ area: w.name, slug: w.slug, pledges: byWard.get(w.name) ?? 0, registeredVoters: w.voters }))
 		.sort((a, b) => b.pledges - a.pledges || a.area.localeCompare(b.area));
 }
 
@@ -87,7 +99,7 @@ async function voterHeatmap(campaignId: number | null): Promise<HeatmapRow[]> {
 
 	const pledgesByCounty = new Map(rows.filter((r): r is { county: string; n: number } => !!r.county).map((r) => [r.county, r.n]));
 	return counties
-		.map((c) => ({ county: c.name, pledges: pledgesByCounty.get(c.name) ?? 0, registeredVoters: c.voters }))
+		.map((c) => ({ county: c.name, slug: geoSlug(c.name), pledges: pledgesByCounty.get(c.name) ?? 0, registeredVoters: c.voters }))
 		.sort((a, b) => b.pledges - a.pledges || a.county.localeCompare(b.county));
 }
 
@@ -157,7 +169,7 @@ export const load: PageServerLoad = async (event) => {
 	const pledgeCount = pledgeCountRow?.n ?? 0;
 	// "Campaign next": the biggest pools of voters you haven't reached, from
 	// the seat's own wards (or counties, for a national seat).
-	const opportunityRows: AreaRow[] = wardHeat ?? heatmap.map((r) => ({ area: r.county, pledges: r.pledges, registeredVoters: r.registeredVoters }));
+	const opportunityRows: AreaRow[] = wardHeat ?? heatmap.map((r) => ({ area: r.county, slug: r.slug, pledges: r.pledges, registeredVoters: r.registeredVoters }));
 	const opportunities = [...opportunityRows]
 		.sort((a, b) => (b.registeredVoters - b.pledges) - (a.registeredVoters - a.pledges))
 		.slice(0, 5)
@@ -188,6 +200,9 @@ export const load: PageServerLoad = async (event) => {
 		heatmap,
 		wardHeat,
 		wardScopeCounty: scope?.countyName ?? null,
+		// Which map JSON to lazy-load client-side (WardMap.svelte): the seat's own
+		// county for a ward-scoped seat, or 'national' for the county-outline map.
+		mapKey: scope ? scope.countySlug : 'national',
 		opportunities: heatmapUnlocked ? opportunities : [],
 		seatStats: heatmapUnlocked
 			? {

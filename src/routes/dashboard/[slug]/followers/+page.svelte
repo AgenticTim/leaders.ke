@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import FollowersTable from '$lib/components/FollowersTable.svelte';
+	import WardMap from '$lib/components/WardMap.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -19,8 +20,14 @@
 	// rows are the seat's own wards when the seat sits within one county
 	// (data.wardHeat), else the national county map.
 	const heatRows = $derived(
-		data.wardHeat ?? data.heatmap.map((r) => ({ area: r.county, pledges: r.pledges, registeredVoters: r.registeredVoters }))
+		data.wardHeat ?? data.heatmap.map((r) => ({ area: r.county, slug: r.slug, pledges: r.pledges, registeredVoters: r.registeredVoters }))
 	);
+	// Selecting a shape on the map highlights + scrolls to its row in the list,
+	// and vice versa — one shared selection between the two views of the same data.
+	let selectedSlug = $state<string | null>(null);
+	function selectArea(slug: string) {
+		selectedSlug = selectedSlug === slug ? null : slug;
+	}
 	const maxPledges = $derived(Math.max(1, ...heatRows.map((r) => r.pledges)));
 	const maxRate = $derived(Math.max(0.0001, ...heatRows.map((r) => (r.registeredVoters ? r.pledges / r.registeredVoters : 0))));
 	function barWidth(row: (typeof heatRows)[number]): number {
@@ -188,35 +195,50 @@ the Competitors tab's Sentiment Intelligence Suite banner. -->
 			</div>
 		{/if}
 
-		<!-- One bar per area (the seat's wards, or all 47 counties nationally —
-		even at 0 pledges, so the map reads as "here's the ground, here's how
-		much of it you've reached" from day one). Bar LENGTH is this area's
-		share of pledges relative to your top area (where the raw volume is);
-		bar COLOR intensity is pledge rate against its registered voters (how
-		deep it runs there) — an area can be short-but-dark (few pledges, high
-		rate in a small electorate) or long-but-pale (many pledges, thin
-		against a big one). -->
-		<ul class="mt-4 max-h-100 space-y-2.5 overflow-y-auto pr-1">
-			{#each heatRows as row (row.area)}
-				<li>
-					<div class="flex items-baseline justify-between gap-3 text-sm">
-						<span class="font-medium text-heading">{row.area}</span>
-						<span class="shrink-0 text-xs text-muted">
-							{numFmt.format(row.pledges)} pledge{row.pledges === 1 ? '' : 's'}
-							{#if row.registeredVoters}
-								<span class="text-muted"> · {pctFmt.format(row.pledges / row.registeredVoters)} of {numFmt.format(row.registeredVoters)} voters</span>
-							{/if}
-						</span>
-					</div>
-					<div class="mt-1 h-3 w-full overflow-hidden rounded-full bg-surface-2">
-						<div
-							class="h-full rounded-full bg-primary"
-							style="width: {barWidth(row)}%; opacity: {heatOpacity(row)}"
-						></div>
-					</div>
-				</li>
-			{/each}
-		</ul>
+		<!-- The map and the bar list are the same rows, two views: click either
+		to highlight the matching area in both. The map gives the geographic
+		read (where), the list gives the sortable/scannable read (how much). -->
+		<div class="mt-4 grid gap-5 lg:grid-cols-2">
+			<div class="mx-auto w-full max-w-100 lg:max-w-none">
+				<WardMap mapKey={data.mapKey} rows={heatRows} {selectedSlug} onSelect={selectArea} />
+			</div>
+
+			<!-- One bar per area (the seat's wards, or all 47 counties nationally —
+			even at 0 pledges, so the map reads as "here's the ground, here's how
+			much of it you've reached" from day one). Bar LENGTH is this area's
+			share of pledges relative to your top area (where the raw volume is);
+			bar COLOR intensity is pledge rate against its registered voters (how
+			deep it runs there) — an area can be short-but-dark (few pledges, high
+			rate in a small electorate) or long-but-pale (many pledges, thin
+			against a big one). -->
+			<ul class="max-h-100 space-y-2.5 overflow-y-auto pr-1">
+				{#each heatRows as row (row.area)}
+					<li>
+						<button
+							type="button"
+							onclick={() => selectArea(row.slug)}
+							class="w-full rounded-xl p-1 text-left transition {selectedSlug === row.slug ? 'bg-primary-soft' : ''}"
+						>
+							<div class="flex items-baseline justify-between gap-3 text-sm">
+								<span class="font-medium text-heading">{row.area}</span>
+								<span class="shrink-0 text-xs text-muted">
+									{numFmt.format(row.pledges)} pledge{row.pledges === 1 ? '' : 's'}
+									{#if row.registeredVoters}
+										<span class="text-muted"> · {pctFmt.format(row.pledges / row.registeredVoters)} of {numFmt.format(row.registeredVoters)} voters</span>
+									{/if}
+								</span>
+							</div>
+							<div class="mt-1 h-3 w-full overflow-hidden rounded-full bg-surface-2">
+								<div
+									class="h-full rounded-full bg-primary"
+									style="width: {barWidth(row)}%; opacity: {heatOpacity(row)}"
+								></div>
+							</div>
+						</button>
+					</li>
+				{/each}
+			</ul>
+		</div>
 	{:else}
 		<div class="mt-4 rounded-2xl border border-dashed border-border bg-surface p-4 text-sm text-muted">
 			<a href="/pricing" class="font-semibold font-medium text-primary hover:underline">Upgrade to the Dominate Package</a> to see
