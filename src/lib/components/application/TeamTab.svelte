@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { toast } from '$lib/stores/toast';
 	import SignoffTab from '$lib/components/application/SignoffTab.svelte';
 
 	// The campaign family's (/dashboard/[slug]/team) +page.server.ts shapes `data`
@@ -16,6 +17,27 @@
 	// gets a real link to the Change-plan page, so "Upgrade" is clickable rather
 	// than dead text. `../upgrade` resolves from /dashboard/[slug]/team.
 	const isCapError = $derived(/upgrade the package|invite limit/i.test(form?.error ?? ''));
+
+	// Shared by all six forms below (invite/revoke/remove x manager/ambassador):
+	// mirrors the inline banner copy above as a toast, so every submit gets one
+	// consistently without repeating this per form.
+	function toastResult({ result }: { result: { type: string; data?: Record<string, unknown> } }) {
+		if (result.type === 'failure') {
+			toast.error(String(result.data?.error ?? 'That action failed.'));
+		} else if (result.type === 'success' && result.data) {
+			const d = result.data;
+			if (d.granted) toast.success(`${(d.granted as { email: string }).email} now has access.`);
+			else if (d.invited) toast.success(`Invite sent to ${(d.invited as { email: string }).email}.`);
+			else if (d.removed) toast.success(`Removed ${(d.removed as { email: string }).email}.`);
+			else if (d.revoked) toast.success('Invite revoked.');
+		}
+	}
+	function enhanceWithToast() {
+		return async ({ result, update }: { result: { type: string; data?: Record<string, unknown> }; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+			toastResult({ result });
+			await update({ reset: false });
+		};
+	}
 </script>
 
 <svelte:head><title>Team — vote.ke</title></svelte:head>
@@ -62,7 +84,7 @@
 		</p>
 
 		{#if data.isAdmin}
-			<form method="post" action="?/inviteManager" class="mt-4 flex flex-wrap gap-2" use:enhance>
+			<form method="post" action="?/inviteManager" class="mt-4 flex flex-wrap gap-2" use:enhance={enhanceWithToast}>
 				<input
 					type="email"
 					name="email"
@@ -86,7 +108,7 @@
 						class="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-4 py-2.5 text-sm"
 					>
 						<span class="truncate text-muted">Invited: {invite.email}</span>
-						<form method="post" action="?/revokeInvite" use:enhance>
+						<form method="post" action="?/revokeInvite" use:enhance={enhanceWithToast}>
 							<input type="hidden" name="inviteId" value={invite.id} />
 							<input type="hidden" name="role" value="manager" />
 							{#if data.isAdmin}
@@ -122,7 +144,7 @@
 						</div>
 						{#if member.active}
 							{#if data.isAdmin}
-								<form method="post" action="?/removeManager" use:enhance>
+								<form method="post" action="?/removeManager" use:enhance={enhanceWithToast}>
 									<input type="hidden" name="memberId" value={member.id} />
 									<button
 										type="submit"
@@ -162,7 +184,7 @@
 			Ambassadors mobilize citizens on the ground and grow your follower base.
 		</p>
 
-		<form method="post" action="?/inviteAmbassador" class="mt-4 flex flex-wrap gap-2" use:enhance>
+		<form method="post" action="?/inviteAmbassador" class="mt-4 flex flex-wrap gap-2" use:enhance={enhanceWithToast}>
 			<input
 				type="email"
 				name="email"
@@ -185,7 +207,7 @@
 						class="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-4 py-2.5 text-sm"
 					>
 						<span class="truncate text-muted">Invited: {invite.email}</span>
-						<form method="post" action="?/revokeInvite" use:enhance>
+						<form method="post" action="?/revokeInvite" use:enhance={enhanceWithToast}>
 							<input type="hidden" name="inviteId" value={invite.id} />
 							<input type="hidden" name="role" value="ambassador" />
 							<button
@@ -210,7 +232,7 @@
 						<p class="truncate text-xs text-muted">{member.email}</p>
 					</div>
 					{#if member.active}
-						<form method="post" action="?/removeAmbassador" use:enhance>
+						<form method="post" action="?/removeAmbassador" use:enhance={enhanceWithToast}>
 							<input type="hidden" name="memberId" value={member.id} />
 							<button
 								type="submit"

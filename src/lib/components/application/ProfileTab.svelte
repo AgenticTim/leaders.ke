@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { toast } from '$lib/stores/toast';
 	import ExperienceBlock from '$lib/components/ExperienceBlock.svelte';
 	import ImageCropper from '$lib/components/ImageCropper.svelte';
 	import PositionSelector from '$lib/components/PositionSelector.svelte';
@@ -458,6 +459,7 @@
 			return async ({ result, update }) => {
 				saving = false;
 				if (result.type === 'success') {
+					toast.success('Profile saved.');
 					pendingExperience = [];
 					pendingLeadership = [];
 					removedExperienceIds = [];
@@ -474,6 +476,8 @@
 						await goto(page.url.pathname.replace(/\/profile$/, '/contacts'));
 						return;
 					}
+				} else if (result.type === 'failure') {
+					toast.error(String((result.data as { error?: string })?.error ?? 'Could not save profile.'));
 				}
 				await update({ reset: false });
 			};
@@ -596,6 +600,7 @@
 							name="age"
 							min="18"
 							max="100"
+							placeholder="00"
 							value={data.form.age ?? ''}
 							class="mt-1.5 w-full rounded-xl border bg-surface px-4 py-2.5 text-sm text-heading focus:ring-0 focus:outline-none {errorClass()}"
 						/>

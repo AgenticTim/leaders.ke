@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { tooltip } from '$lib/effects';
 	import { enhance } from '$app/forms';
+	import { toast } from '$lib/stores/toast';
 	import ContactIcon from '$lib/components/contact/ContactIcon.svelte';
 	import { PLATFORMS, stripPrefix, socialsToLinks, type SocialLink } from '$lib/components/contact/socials';
 	import PhoneInput from '$lib/components/contact/PhoneInput.svelte';
@@ -105,8 +106,12 @@
 		class="mt-6 space-y-5"
 		use:enhance={() => {
 			saving = true;
-			return async ({ update }) => {
+			return async ({ result, update }) => {
 				saving = false;
+				if (result.type === 'success') toast.success('Contacts saved.');
+				else if (result.type === 'failure') {
+					toast.error(String((result.data as { error?: string })?.error ?? 'Could not save contacts.'));
+				}
 				await update({ reset: false });
 			};
 		}}
