@@ -200,7 +200,13 @@ the Competitors tab's Sentiment Intelligence Suite banner. -->
 		read (where), the list gives the sortable/scannable read (how much). -->
 		<div class="mt-4 grid gap-5 lg:grid-cols-2">
 			<div class="mx-auto w-full max-w-100 lg:max-w-none">
-				<WardMap mapKey={data.mapKey} rows={heatRows} {selectedSlug} onSelect={selectArea} />
+				<WardMap
+					mapKey={data.mapKey}
+					rows={heatRows.map((r) => ({ slug: r.slug, value: r.pledges, total: r.registeredVoters }))}
+					unit="pledge"
+					{selectedSlug}
+					onSelect={selectArea}
+				/>
 			</div>
 
 			<!-- One bar per area (the seat's wards, or all 47 counties nationally —

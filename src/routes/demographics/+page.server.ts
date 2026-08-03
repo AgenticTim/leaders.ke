@@ -55,6 +55,8 @@ export const load: PageServerLoad = async ({ url }) => {
 		})),
 		// Seat-level gen-z estimates: the selected county's constituencies and
 		// wards (or per-county rollup nationally), registered voters × county share.
+		// `slug` is geoSlug(seatName), the key build-ward-maps.ts's ward shapes
+		// use, so WardMap.svelte can match rows to paths directly.
 		seats: county
 			? county.constituencies.map((constituency) => ({
 					name: constituency.name,
@@ -62,11 +64,15 @@ export const load: PageServerLoad = async ({ url }) => {
 					genZEst: estimateFromRegistered(constituency.voters, share),
 					wards: constituency.wards.map((w) => ({
 						name: w.name,
+						slug: geoSlug(w.seatName),
 						voters: w.voters,
 						genZEst: estimateFromRegistered(w.voters, share)
 					}))
 				}))
 			: null,
+		// The county's map key (for the ward choropleth), same slug the seat
+		// hub's boundaries/wardMaps files are named by.
+		wardMapKey: county ? geoSlug(county.name) : 'national',
 		countyRollup: county
 			? null
 			: counties
@@ -81,6 +87,30 @@ export const load: PageServerLoad = async ({ url }) => {
 							genZEst: estimateFromRegistered(c.voters, cShare)
 						};
 					})
-					.sort((a, b) => b.genZEst - a.genZEst)
+					.sort((a, b) => b.genZEst - a.genZEst),
+		// The choropleth's own metric: estimated 2027 voting-age POPULATION
+		// magnitude (not gen-z, not a rate) — how many people, not what share.
+		// National: votingAge2027 read straight off each county's own census
+		// bands, a real figure, no estimation. County/ward: no sub-county
+		// census exists, so the county's voting-age share of its OWN
+		// population is applied to each ward's registered voters, same
+		// proportional-estimate method the gen-z figures above use.
+		votingAgeMap: county
+			? {
+					scope: 'ward' as const,
+					rows: county.constituencies.flatMap((c) =>
+						c.wards.map((w) => {
+							const vaShareOfPopulation = population > 0 ? votingAge2027(bands) / population : 0;
+							return { slug: geoSlug(w.seatName), value: estimateFromRegistered(w.voters, vaShareOfPopulation), total: w.voters };
+						})
+					)
+				}
+			: {
+					scope: 'national' as const,
+					rows: counties.map((c) => {
+						const cBands = COUNTIES[c.code]?.bands;
+						return { slug: geoSlug(c.name), value: cBands ? votingAge2027(cBands) : 0, total: COUNTIES[c.code]?.total ?? 0 };
+					})
+				}
 	};
 };

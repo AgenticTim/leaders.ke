@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { tooltip } from '$lib/effects';
 	import { goto } from '$app/navigation';
+	import WardMap from '$lib/components/WardMap.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -19,6 +20,22 @@
 
 	// Constituency accordions (county view): open one at a time.
 	let openConstituency = $state<string | null>(null);
+
+	// Choropleth rows: 2027 voting-age population magnitude (data.votingAgeMap,
+	// built server-side), not gen-z — how many people, not what share.
+	const mapRows = $derived(data.votingAgeMap.rows);
+	let selectedSlug = $state<string | null>(null);
+	// Clicking a county on the national map navigates into it, same as the
+	// table row link. Clicking a ward on the county map just highlights (no
+	// natural "drill into a ward" destination) and opens its constituency.
+	function selectCounty(slug: string) {
+		goto(`?county=${slug}`);
+	}
+	function selectWard(slug: string) {
+		selectedSlug = selectedSlug === slug ? null : slug;
+		const parent = (data.seats ?? []).find((c) => c.wards.some((w) => w.slug === slug));
+		if (parent) openConstituency = parent.name;
+	}
 
 	// National totals for the Voters by county table; the share is weighted
 	// (total gen-z estimate over total register), not an average of shares.
@@ -122,53 +139,86 @@
 	{#if data.countyRollup}
 		<!-- National view: county leaderboard with gen-z share/estimate columns -->
 		<div class="mt-8 rounded-3xl border border-border bg-surface p-6">
-			<h2 class="text-xl font-bold text-heading">Voters by county</h2>
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				<h2 class="text-xl font-bold text-heading">Voters by county</h2>
+				{@render countySelect()}
+			</div>
 			<p class="mt-1 text-sm text-muted">
 				Each county's registered voters with the estimated gen-z among them (county age share × 2022 register), largest first.
 			</p>
-			<div class="mt-4 overflow-x-auto">
-				<table class="w-full min-w-120 text-sm">
-					<thead>
-						<tr class="border-b border-border text-left text-xs text-muted uppercase tracking-wide">
-							<th class="py-2 pr-3 font-semibold">County</th>
-							<th class="py-2 pr-3 text-right font-semibold">Registered (2022)</th>
-							<th class="py-2 pr-3 text-right font-semibold">Gen-z share</th>
-							<th class="py-2 text-right font-semibold">Gen-z est.</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each data.countyRollup as row (row.slug)}
-							<tr class="border-b border-border last:border-b-0">
-								<td class="py-2 pr-3"><a href="?county={row.slug}" class="font-medium text-heading hover:text-primary hover:underline">{row.name}</a></td>
-								<td class="py-2 pr-3 text-right tabular-nums">{fmt.format(row.voters)}</td>
-								<td class="py-2 pr-3 text-right tabular-nums">{pct(row.genZShare)}</td>
-								<td class="py-2 text-right font-semibold tabular-nums text-heading">{fmt.format(row.genZEst)}</td>
+			<!-- The table is gen-z; the map beside it is a different metric on
+			purpose (2027 voting-age population magnitude, not gen-z) — click
+			either to open that county. -->
+			<div class="mt-4 grid gap-5 lg:grid-cols-2">
+				<div>
+					<WardMap mapKey="national" rows={mapRows} unit="voting-age resident" totalLabel="population" colorBy="value" onSelect={selectCounty} />
+					<p class="mt-2 text-xs text-muted">
+						Estimated 2027 voting-age population by county. Darker = more voting-age residents.
+					</p>
+				</div>
+				<div class="overflow-x-auto">
+					<table class="w-full min-w-120 text-sm">
+						<thead>
+							<tr class="border-b border-border text-left text-xs text-muted uppercase tracking-wide">
+								<th class="py-2 pr-3 font-semibold">County</th>
+								<th class="py-2 pr-3 text-right font-semibold">Registered (2022)</th>
+								<th class="py-2 pr-3 text-right font-semibold">Gen-z share</th>
+								<th class="py-2 text-right font-semibold">Gen-z est.</th>
 							</tr>
-						{/each}
-					</tbody>
-					{#if countyTotals}
-						<tfoot>
-							<tr class="border-t-2 border-border">
-								<td class="py-2 pr-3 font-semibold text-heading">Kenya (total)</td>
-								<td class="py-2 pr-3 text-right font-semibold tabular-nums text-heading">{fmt.format(countyTotals.voters)}</td>
-								<td class="py-2 pr-3 text-right font-semibold tabular-nums text-heading">{pct(countyTotals.genZShare)}</td>
-								<td class="py-2 text-right font-semibold tabular-nums text-heading">{fmt.format(countyTotals.genZEst)}</td>
-							</tr>
-						</tfoot>
-					{/if}
-				</table>
+						</thead>
+						<tbody>
+							{#each data.countyRollup as row (row.slug)}
+								<tr class="border-b border-border last:border-b-0">
+									<td class="py-2 pr-3"><a href="?county={row.slug}" class="font-medium text-heading hover:text-primary hover:underline">{row.name}</a></td>
+									<td class="py-2 pr-3 text-right tabular-nums">{fmt.format(row.voters)}</td>
+									<td class="py-2 pr-3 text-right tabular-nums">{pct(row.genZShare)}</td>
+									<td class="py-2 text-right font-semibold tabular-nums text-heading">{fmt.format(row.genZEst)}</td>
+								</tr>
+							{/each}
+						</tbody>
+						{#if countyTotals}
+							<tfoot>
+								<tr class="border-t-2 border-border">
+									<td class="py-2 pr-3 font-semibold text-heading">Kenya (total)</td>
+									<td class="py-2 pr-3 text-right font-semibold tabular-nums text-heading">{fmt.format(countyTotals.voters)}</td>
+									<td class="py-2 pr-3 text-right font-semibold tabular-nums text-heading">{pct(countyTotals.genZShare)}</td>
+									<td class="py-2 text-right font-semibold tabular-nums text-heading">{fmt.format(countyTotals.genZEst)}</td>
+								</tr>
+							</tfoot>
+						{/if}
+					</table>
+				</div>
 			</div>
-		</div>
+	</div>
 	{/if}
 
 	{#if data.seats}
 		<!-- County view: constituency + ward estimates -->
 		<div class="mt-8 rounded-3xl border border-border bg-surface p-6">
-			<h2 class="text-xl font-bold text-heading">Voters by constituency and ward · {data.scope}</h2>
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				<h2 class="text-xl font-bold text-heading">Voters by constituency and ward · {data.scope}</h2>
+				{@render countySelect()}
+			</div>
 			<p class="mt-1 text-sm text-muted">
 				County age share ({pct(data.stats.genZShare2027)}) applied to each seat's 2022 registered voters, an estimate, since sub-county age data isn't published.
 			</p>
-			<div class="mt-4 space-y-2">
+			<!-- The accordion is gen-z; the map beside it is 2027 voting-age
+			population magnitude, not gen-z — click either to highlight/open.
+			colorBy="value": within one county the age share is a single
+			constant applied to every ward, so bucketing by RATE would color
+			wards by rounding noise, not real variation — the raw population
+			count (driven by ward size) is what actually differs ward to ward. -->
+			<div class="mt-4 grid gap-5 lg:grid-cols-2">
+				<div>
+					<!-- showRate=false: the ward-level "% of registered voters" is a
+					single county-wide constant repeated on every ward (see colorBy
+					note above) — not a per-ward stat, so it's dropped from the tooltip. -->
+					<WardMap mapKey={data.wardMapKey} rows={mapRows} unit="voting-age resident" colorBy="value" showRate={false} {selectedSlug} onSelect={selectWard} />
+					<p class="mt-2 text-xs text-muted">
+						Estimated 2027 voting-age population by ward (county age share × 2022 register). Darker = more voting-age residents.
+					</p>
+				</div>
+				<div class="space-y-2">
 				{#each data.seats as constituency (constituency.name)}
 					<div class="rounded-2xl border border-border">
 						<button
@@ -185,7 +235,7 @@
 						{#if openConstituency === constituency.name}
 							<div class="border-t border-border px-4 py-2">
 								{#each constituency.wards as ward (ward.name)}
-									<div class="flex items-center justify-between gap-3 border-b border-border py-2 text-sm last:border-b-0">
+									<div class="flex items-center justify-between gap-3 border-b border-border py-2 text-sm last:border-b-0 {selectedSlug === ward.slug ? 'bg-primary-soft -mx-4 px-4 rounded-lg' : ''}">
 										<span>{ward.name}</span>
 										<span class="tabular-nums text-muted">{fmt.format(ward.voters)} reg · <span class="font-medium text-heading">{fmt.format(ward.genZEst)}</span></span>
 									</div>
@@ -195,6 +245,7 @@
 					</div>
 				{/each}
 			</div>
+		</div>
 		</div>
 	{/if}
 
@@ -213,3 +264,20 @@
 		</ul>
 	</div>
 </section>
+
+<!-- Shared county switcher, reused beside both section headings (national
+"Voters by county" and the county-scoped "Voters by constituency and ward")
+so jumping to a different county never requires scrolling back to the top. -->
+{#snippet countySelect()}
+	<select
+		value={data.countySlug}
+		onchange={onCountyChange}
+		aria-label="Switch county"
+		class="rounded-full border border-border bg-surface px-3.5 py-1.5 text-sm text-heading focus:border-primary focus:ring-0 focus:outline-none"
+	>
+		<option value="">Kenya (national)</option>
+		{#each data.countyOptions as option (option.slug)}
+			<option value={option.slug}>{option.name}</option>
+		{/each}
+	</select>
+{/snippet}
