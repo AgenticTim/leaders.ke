@@ -18,6 +18,7 @@ import { ACTIVE_CYCLE, fullName, leaderPath } from '$lib/server/leader';
 import { counties } from '$lib/data/geo';
 import { SEAT_DUTIES_BY_TITLE } from '$lib/data/seatDuties';
 import { CENSUS_YEAR, DEMOGRAPHICS_SOURCE, NATIONAL, genZEligible2027, votingAge2027 } from '$lib/data/demographics';
+import datesData from '$lib/data/dates.json';
 import { listCurrentPricing, listPackages } from '$lib/server/packages';
 import { getPlatformSettings } from '$lib/server/settings';
 
@@ -483,6 +484,37 @@ async function leaderFactsSource(q: string): Promise<Source | null> {
 	};
 }
 
+// ── Election timeline: the same data /dates publishes ──────────────────────
+
+type KeyDate = { date: string; title: string; summary: string; expected: boolean; source: string };
+
+/** The 2027 electoral calendar, read from the SAME dates.json the /dates page
+ * renders — not copied into the corpus — so the page and the assistant can
+ * never disagree, and updating the file updates both.
+ *
+ * The expected/confirmed split is carried through deliberately: most IEBC
+ * operational dates aren't gazetted yet, and telling a citizen an unconfirmed
+ * date as settled fact is exactly the harm this platform exists to prevent. */
+function electionDatesSource(q: string): Source | null {
+	if (!has(q, 'when is', 'date', 'dates', 'timeline', 'deadline', 'election day', 'nomination', 'primaries', 'campaign period', 'registration close', 'poll')) {
+		return null;
+	}
+	const dates = datesData as KeyDate[];
+	if (dates.length === 0) return null;
+
+	const lines = dates.map(
+		(d) => `- ${d.date} — ${d.title}${d.expected ? ' [EXPECTED, not yet confirmed by the IEBC]' : ' [CONFIRMED]'}: ${d.summary}`
+	);
+	return {
+		label: 'vote.ke 2027 election timeline (same data as the /dates page)',
+		text: [
+			'Dates marked EXPECTED are vote.ke\'s projections from the electoral calendar and have NOT been gazetted by the IEBC. You must flag any expected date as not yet confirmed rather than stating it as settled fact. Dates marked CONFIRMED are fixed in law.',
+			lines.join('\n'),
+			'The full timeline is published at /dates.'
+		].join('\n\n')
+	};
+}
+
 // ── Civics corpus: curated, admin-editable reference text ──────────────────
 
 /** The public FAQ (platform_faqs) — the same answers /faq renders, scored by
@@ -574,6 +606,7 @@ export async function routePlatformQuestion(
 		civicsCorpusSource(q),
 		platformFaqSource(q)
 	]);
+	const dates = electionDatesSource(q);
 	const sources = [
 		directory,
 		seatDutiesSource(q),
@@ -584,7 +617,8 @@ export async function routePlatformQuestion(
 		race,
 		facts,
 		civics,
-		faq
+		faq,
+		dates
 	].filter((s): s is Source => s !== null);
 	const askedForRegion = regionsIn(q).length > 0;
 	const usedSavedLocation = !!directory && !askedForRegion && !!(location.county || location.constituency || location.ward);

@@ -53,6 +53,7 @@ import { seedCampaigns } from './lib/seed-campaigns';
 import { seedPillars } from './lib/seed-pillars';
 import { seedPillarTemplates } from './lib/seed-pillar-templates';
 import { seedPlatformFaqs } from './lib/seed-platform-faqs';
+import { seedPlatformDocs } from './lib/seed-platform-docs';
 import { seedIssues } from './lib/seed-issues';
 import { seedNews } from './lib/seed-news';
 import { seedPlatformSettings } from './lib/seed-platform-settings';
@@ -108,6 +109,7 @@ const { values } = parseArgs({
 		pillars: { type: 'boolean', default: false },
 		'pillar-templates': { type: 'boolean', default: false },
 		'platform-faqs': { type: 'boolean', default: false },
+		'platform-docs': { type: 'boolean', default: false },
 		issues: { type: 'boolean', default: false },
 		news: { type: 'boolean', default: false },
 		'platform-settings': { type: 'boolean', default: false },
@@ -164,6 +166,7 @@ if (runAll || values.campaigns) await seedCampaigns(db);
 if (runAll || values.pillars) await seedPillars(db);
 if (runAll || values['pillar-templates']) await seedPillarTemplates(db);
 if (runAll || values['platform-faqs']) await seedPlatformFaqs(db);
+if (runAll || values['platform-docs']) await seedPlatformDocs(db);
 if (runAll || values.issues) await seedIssues(db);
 if (runAll || values.news) await seedNews(db);
 if (runAll || values['admin-fixture']) await seedAdminFixture(db);
