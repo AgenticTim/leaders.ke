@@ -30,6 +30,10 @@ export const actions: Actions = {
 		const maxGroundingChars = Number(form.get('maxGroundingChars'));
 		const guestAskLifetimeLimit = Number(form.get('guestAskLifetimeLimit'));
 		const userAskDailyLimit = Number(form.get('userAskDailyLimit'));
+		const askMaxChars = Number(form.get('askMaxChars'));
+		// 0 is meaningful here (disables follow-up memory), so it's validated
+		// separately from the at-least-1 group below.
+		const askHistoryMessages = Number(form.get('askHistoryMessages'));
 		// Lifetime invite limits and PAYG credit rates live on the Packages page
 		// (part of what a package buys / the priced product).
 		for (const [label, value] of [
@@ -40,9 +44,13 @@ export const actions: Actions = {
 			['Sign-offs required', requiredSignoffs],
 			['Max grounding characters', maxGroundingChars],
 			['Guest AI Chat lifetime limit', guestAskLifetimeLimit],
-			['Signed-in AI Chat daily limit', userAskDailyLimit]
+			['Signed-in AI Chat daily limit', userAskDailyLimit],
+			['Max question length', askMaxChars]
 		] as const) {
 			if (!Number.isInteger(value) || value < 1) return adminActionFailed(admin.domainUser.id, 400, { error: `${label} must be a whole number of at least 1.` });
+		}
+		if (!Number.isInteger(askHistoryMessages) || askHistoryMessages < 0) {
+			return adminActionFailed(admin.domainUser.id, 400, { error: 'Conversation history must be a whole number of 0 or more.' });
 		}
 		if (!platformSystemPrompt) return adminActionFailed(admin.domainUser.id, 400, { error: 'The platform system prompt cannot be empty.' });
 		if (!leaderSystemPrompt) return adminActionFailed(admin.domainUser.id, 400, { error: 'The leader system prompt cannot be empty.' });
@@ -75,6 +83,8 @@ export const actions: Actions = {
 				maxGroundingChars,
 				guestAskLifetimeLimit,
 				userAskDailyLimit,
+				askMaxChars,
+				askHistoryMessages,
 				updatedAt: new Date()
 			})
 			.where(eq(platformSettings.id, 1));

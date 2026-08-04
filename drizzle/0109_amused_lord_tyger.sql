@@ -1,0 +1,1 @@
+ALTER TABLE "conversations" ADD COLUMN "ip_address" varchar(45);

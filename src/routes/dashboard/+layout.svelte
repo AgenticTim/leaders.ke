@@ -134,6 +134,7 @@
 				];
 			case 'admin':
 				return [
+					{ href: '/dashboard/admin/inbox', label: 'Inbox' },
 					{ href: '/dashboard/admin/profiles', label: 'Profiles' },
 					{ href: '/dashboard/admin/accounts', label: 'Accounts' },
 					{ href: '/dashboard/admin/parties', label: 'Parties' },

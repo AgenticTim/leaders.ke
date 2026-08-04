@@ -1,58 +1,14 @@
 <script lang="ts">
-	import { tooltip } from '$lib/effects';
 	import { enhance } from '$app/forms';
-	import { invalidate } from '$app/navigation';
+	import ChatInbox from '$lib/components/ChatInbox.svelte';
 	import ReviewFilter from '$lib/components/ReviewFilter.svelte';
 	import Pagination from '$lib/components/admin/Pagination.svelte';
 	import { filterAndSortReviews } from '$lib/reviewFilter';
-	import TypingDots from '$lib/components/TypingDots.svelte';
-	import { formatChatTime } from '$lib/utils/chatTime';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
 	const awaitingChats = $derived(data.threads.filter((t) => t.awaitingReply).length);
-
-	// Two-pane chats: the list on the left, the OPEN thread on the right.
-	// Below lg the panes swap instead of sitting side by side (list, then the
-	// opened thread with a back button). Desktop opens the first thread by
-	// default; mobile starts on the list.
-	let selectedId = $state<number | null>(null);
-	$effect(() => {
-		if (selectedId === null && data.threads.length > 0 && window.matchMedia('(min-width: 1024px)').matches) {
-			selectedId = data.threads[0].id;
-		}
-	});
-	const selectedThread = $derived(data.threads.find((t) => t.id === selectedId) ?? null);
-
-	// Live updates: the team-scoped SSE stream pings on every new message in
-	// any of this leader's threads, and the loader re-fetches — so a citizen's
-	// question (or an AI answer) lands in the list without a refresh. The same
-	// stream carries transient `typing` events (data = conversation id) when a
-	// citizen is typing in a thread's Ask box.
-	let typingThreads = $state<Record<number, boolean>>({});
-	const typingTimers: Record<number, ReturnType<typeof setTimeout>> = {};
-	$effect(() => {
-		const source = new EventSource(`/api/chat/events?person=${data.chatPersonId}&role=team`);
-		source.onmessage = (e) => {
-			// The message this typing announced has landed — stop the indicator now
-			// rather than waiting out its 4s decay.
-			const threadId = Number(e.data);
-			typingThreads[threadId] = false;
-			clearTimeout(typingTimers[threadId]);
-			invalidate('chat:thread');
-		};
-		source.addEventListener('typing', (e) => {
-			const threadId = Number(e.data);
-			typingThreads[threadId] = true;
-			clearTimeout(typingTimers[threadId]);
-			typingTimers[threadId] = setTimeout(() => (typingThreads[threadId] = false), 4000);
-		});
-		return () => {
-			source.close();
-			Object.values(typingTimers).forEach(clearTimeout);
-		};
-	});
 
 	// Throttled "team is typing" signal from the reply box, mirrored on the
 	// citizen's own page.
@@ -67,14 +23,6 @@
 			body: JSON.stringify({ person: data.chatPersonId, conversationId })
 		});
 	}
-
-	// The open thread scrolls to its newest message, like any chat.
-	let scroller: HTMLDivElement | undefined = $state();
-	$effect(() => {
-		void selectedThread?.messages.length;
-		void typingThreads[selectedId ?? 0];
-		if (scroller) scroller.scrollTop = scroller.scrollHeight;
-	});
 
 	const fmt = new Intl.NumberFormat('en-KE');
 	const dateFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' });
@@ -123,121 +71,27 @@
 <svelte:head><title>Inbox — Dashboard</title></svelte:head>
 
 <div>
-	<h1 class="text-xl font-bold text-heading">Inbox</h1>
-	<p class="mt-1 text-sm text-muted">Answer citizens directly: reply to the questions they asked, and moderate and respond to reviews.</p>
-
 	{#if form?.error}
 		<div class="mt-4 rounded-2xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading">{form.error}</div>
 	{/if}
 
-	<!-- Chats: list on the left, the open thread on the right -->
+	<!-- Chats: the shared two-pane inbox (ChatInbox), same component the admin
+	platform inbox renders — UI changes there land here too. -->
 	<section class="mt-6">
 		<h2 class="text-lg font-semibold text-heading">
 			Chats <span class="text-sm font-normal text-muted">({data.chatTotal}{#if awaitingChats > 0} · {awaitingChats} awaiting{/if})</span>
 		</h2>
 		<p class="mt-1 text-sm text-muted">Questions from your campaign and record pages. Ones the AI couldn't answer (no credit) are waiting for your reply.</p>
 
-		{#if data.threads.length > 0}
-			<div class="mt-4 grid gap-4 lg:grid-cols-[2fr_5fr]">
-				<!-- Chat list -->
-				<div class={selectedId !== null ? 'hidden lg:block' : ''}>
-					<div class="overflow-hidden rounded-2xl border border-border bg-surface">
-						{#each data.threads as thread (thread.id)}
-							<button
-								type="button"
-								onclick={() => (selectedId = thread.id)}
-								class="flex w-full items-start justify-between gap-3 border-b border-border px-4 py-3 text-left transition last:border-b-0 {selectedId === thread.id ? 'bg-primary-soft' : 'hover:bg-surface-2'}"
-							>
-								<span class="min-w-0">
-									<span class="block text-sm font-semibold text-heading">{thread.citizenName}</span>
-									<span class="mt-0.5 block truncate text-xs text-muted">
-										{#if typingThreads[thread.id]}
-											typing<TypingDots />
-										{:else}
-											{preview(thread)}
-										{/if}
-									</span>
-								</span>
-								<span class="flex shrink-0 flex-col items-end gap-1">
-									<span class="text-xs text-muted">{formatChatTime(thread.lastActivity)}</span>
-									{#if thread.awaitingReply}
-										<span class="size-2 rounded-full bg-primary" use:tooltip={'Awaiting reply'}></span>
-									{/if}
-								</span>
-							</button>
-						{/each}
-					</div>
-					<Pagination page={data.chatsPage} totalPages={chatPages} total={data.chatTotal} itemLabel="chats" href={chatHref} />
-				</div>
-
-				<!-- Open thread -->
-				<div class={selectedId === null ? 'hidden lg:block' : ''}>
-					{#if selectedThread}
-						<article class="flex h-full max-h-128 flex-col rounded-2xl border border-border bg-surface">
-							<div class="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-								<div class="flex items-center gap-2">
-									<button type="button" onclick={() => (selectedId = null)} class="rounded-full px-2 py-1 text-sm text-muted transition hover:text-heading lg:hidden" aria-label="Back to all chats">←</button>
-									<p class="text-sm font-semibold text-heading">{selectedThread.citizenName}</p>
-								</div>
-								{#if selectedThread.awaitingReply}
-									<span class="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-on-primary">Awaiting reply</span>
-								{/if}
-							</div>
-
-							<div bind:this={scroller} class="min-h-0 flex-1 space-y-2 overflow-y-auto p-4">
-								{#each selectedThread.messages as message (message.id)}
-									{@const mine = message.sender !== 'follower'}
-									<div class="flex {mine ? 'justify-end' : 'justify-start'}">
-										<div class="max-w-[85%] min-w-32 rounded-2xl px-3 py-2 text-sm {mine ? 'bg-primary-soft text-on-primary' : 'bg-surface-2 text-heading'}">
-											<p class="flex items-baseline justify-between gap-3 text-xs">
-												<span class="font-semibold opacity-70">{senderLabel(message.sender)}</span>
-												<span class="opacity-60">{formatChatTime(message.createdAt)}</span>
-											</p>
-											<p class="mt-0.5 leading-relaxed whitespace-pre-line">{message.body}</p>
-										</div>
-									</div>
-								{/each}
-								{#if typingThreads[selectedThread.id]}
-									<div class="flex justify-start">
-										<div class="rounded-2xl bg-surface-2 px-3 py-2 text-sm text-muted">
-											{selectedThread.citizenName} is typing<TypingDots />
-										</div>
-									</div>
-								{/if}
-							</div>
-
-							<!-- Composer: always open at the bottom of the thread -->
-							<form method="post" action="?/reply" class="border-t border-border p-3" use:enhance>
-								<input type="hidden" name="conversationId" value={selectedThread.id} />
-								<div class="flex items-end gap-2">
-									<textarea
-										name="body"
-										rows="1"
-										required
-										placeholder="Write your reply"
-										oninput={() => selectedThread && signalTeamTyping(selectedThread.id)}
-										onkeydown={(e) => {
-											if (e.key === 'Enter' && !e.shiftKey) {
-												e.preventDefault();
-												e.currentTarget.form?.requestSubmit();
-											}
-										}}
-										class="min-h-10 w-full flex-1 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
-									></textarea>
-									<button type="submit" class="shrink-0 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-95">Send</button>
-								</div>
-							</form>
-						</article>
-					{:else}
-						<div class="hidden h-full min-h-48 items-center justify-center rounded-2xl border border-dashed border-border text-sm text-muted lg:flex">
-							Select a chat to read and reply.
-						</div>
-					{/if}
-				</div>
-			</div>
-		{:else}
-			<p class="mt-6 text-sm text-muted">No citizen questions yet.</p>
-		{/if}
+		<ChatInbox
+			threads={data.threads}
+			page={data.chatsPage}
+			totalPages={chatPages}
+			total={data.chatTotal}
+			pageHref={chatHref}
+			eventsUrl={`/api/chat/events?person=${data.chatPersonId}&role=team`}
+			onTyping={signalTeamTyping}
+		/>
 	</section>
 
 	<!-- Reviews below the chats -->

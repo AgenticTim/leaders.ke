@@ -20,17 +20,27 @@ export async function adoptGuestConversations(viewerId: number, anonId: string):
 		.where(and(eq(conversations.anonId, anonId), isNull(conversations.userId)));
 }
 
-/** The latest open web thread for this (person, viewer), or a fresh one. A
+/** Matches a thread's scope: a leader thread keys on that PERSON's users.id,
+ * a platform thread (the header's site-wide Ask) has no scopeId at all. */
+function scopeMatch(personId: number | null) {
+	return personId === null
+		? and(eq(conversations.scope, 'platform'), isNull(conversations.scopeId))
+		: and(eq(conversations.scope, 'leader'), eq(conversations.scopeId, personId));
+}
+
+/** The latest open web thread for this (scope, viewer), or a fresh one. A
  * viewer's follow-ups build one thread per LEADER the team can read in order —
  * signed-in citizens key on userId, guests on their anon_id device cookie (the
  * same thread on the profile and campaign pages, since both key on the person,
  * and never mixed across leaders, since scopeId differs). Scope 'leader' keys
  * on the PERSON (users.id), matching how reviews.ts and the RAG scopes key
- * conversations. */
+ * conversations; `personId` null is the platform-wide thread instead (scopeId
+ * null), one per viewer across the whole site rather than per leader. */
 export async function getOrCreateWebConversation(
-	personId: number,
+	personId: number | null,
 	viewerId: number | null,
-	anonId: string | null
+	anonId: string | null,
+	ipAddress: string | null = null
 ): Promise<number> {
 	if (viewerId !== null && anonId) await adoptGuestConversations(viewerId, anonId);
 	const identity =
@@ -43,32 +53,33 @@ export async function getOrCreateWebConversation(
 		const [existing] = await db
 			.select({ id: conversations.id })
 			.from(conversations)
-			.where(
-				and(
-					eq(conversations.scope, 'leader'),
-					eq(conversations.scopeId, personId),
-					eq(conversations.channel, 'web'),
-					identity
-				)
-			)
+			.where(and(scopeMatch(personId), eq(conversations.channel, 'web'), identity))
 			.orderBy(desc(conversations.updatedAt))
 			.limit(1);
 		if (existing) return existing.id;
 	}
 	const [created] = await db
 		.insert(conversations)
-		.values({ scope: 'leader', scopeId: personId, channel: 'web', userId: viewerId, anonId })
+		.values({
+			scope: personId === null ? 'platform' : 'leader',
+			scopeId: personId,
+			channel: 'web',
+			userId: viewerId,
+			anonId,
+			ipAddress
+		})
 		.returning({ id: conversations.id });
 	return created.id;
 }
 
-/** The viewer's own chat history with this person, for the public Ask block:
- * every message across their threads for this leader (older threads included,
- * e.g. pre-adoption guest ones), oldest first. Read-only — never creates a
- * conversation, so plain page loads stay write-free (adoption is the one
- * exception: linking guest threads to a fresh login IS the page-load moment). */
+/** The viewer's own chat history in one scope, for the public Ask block: every
+ * message across their threads for this leader (older threads included, e.g.
+ * pre-adoption guest ones), oldest first, or their platform-wide thread when
+ * `personId` is null. Read-only — never creates a conversation, so plain page
+ * loads stay write-free (adoption is the one exception: linking guest threads
+ * to a fresh login IS the page-load moment). */
 export async function getWebThread(
-	personId: number,
+	personId: number | null,
 	viewerId: number | null,
 	anonId: string | null
 ): Promise<{ messages: ChatMessage[]; awaitingReply: boolean }> {
@@ -84,14 +95,7 @@ export async function getWebThread(
 	const convRows = await db
 		.select({ id: conversations.id })
 		.from(conversations)
-		.where(
-			and(
-				eq(conversations.scope, 'leader'),
-				eq(conversations.scopeId, personId),
-				eq(conversations.channel, 'web'),
-				identity
-			)
-		);
+		.where(and(scopeMatch(personId), eq(conversations.channel, 'web'), identity));
 	if (convRows.length === 0) return { messages: [], awaitingReply: false };
 
 	const msgRows = await db
@@ -117,6 +121,31 @@ export async function getWebThread(
 		createdAt: m.createdAt.toISOString()
 	}));
 	return { messages: list, awaitingReply: list[list.length - 1]?.sender === 'follower' };
+}
+
+/** The tail of a thread, oldest-first, for feeding back as conversation context
+ * on the next question — so "what about his rival?" resolves against what was
+ * just discussed instead of being answered cold. */
+export async function getRecentMessages(conversationId: number, limit: number): Promise<{ sender: string; body: string }[]> {
+	const rows = await db
+		.select({ sender: messages.sender, body: messages.body, id: messages.id })
+		.from(messages)
+		.where(eq(messages.conversationId, conversationId))
+		.orderBy(desc(messages.id))
+		.limit(limit);
+	return rows.reverse().map((r) => ({ sender: r.sender, body: r.body }));
+}
+
+/** The signed-in citizen who owns this thread, or null for a guest thread
+ * (identified only by an anon_id device cookie). Callers use it to decide
+ * whether a reply can actually be delivered — a guest has no account to
+ * notify and no email on file. */
+export async function getConversationOwnerId(conversationId: number): Promise<number | null> {
+	const [conv] = await db
+		.select({ userId: conversations.userId })
+		.from(conversations)
+		.where(eq(conversations.id, conversationId));
+	return conv?.userId ?? null;
 }
 
 async function touchConversation(conversationId: number): Promise<void> {
@@ -169,21 +198,26 @@ export type ChatThread = {
 	awaitingReply: boolean; // latest message is from the citizen — needs a team answer
 	lastActivity: string;
 	messages: ChatMessage[];
+	// Guest identifiers, for telling one anonymous asker from another and for
+	// abuse triage. Both null on a signed-in thread (the account name identifies
+	// it), and both taken from the conversation itself — the address is the one
+	// the thread was opened from (see conversations.ipAddress on why it isn't
+	// read back from aiAskEvents).
+	anonId: string | null;
+	ipAddress: string | null;
 };
 
 /** Every citizen chat thread for this person (across seats), newest activity
  * first, each with its full message list — the dashboard Inbox reads this.
- * A thread needs attention when its last message came from the citizen. */
+ * A thread needs attention when its last message came from the citizen.
+ * `personId` null reads the PLATFORM-scope threads instead (the header's
+ * site-wide Ask), which the admin platform inbox shows. */
 export async function listLeaderChats(
-	personId: number,
+	personId: number | null,
 	page: number,
 	pageSize: number
 ): Promise<{ threads: ChatThread[]; total: number }> {
-	const scope = and(
-		eq(conversations.scope, 'leader'),
-		eq(conversations.scopeId, personId),
-		eq(conversations.channel, 'web')
-	);
+	const scope = and(scopeMatch(personId), eq(conversations.channel, 'web'));
 
 	const [{ total }] = await db
 		.select({ total: sql<number>`count(*)::int` })
@@ -194,6 +228,8 @@ export async function listLeaderChats(
 		.select({
 			id: conversations.id,
 			userId: conversations.userId,
+			anonId: conversations.anonId,
+			ipAddress: conversations.ipAddress,
 			updatedAt: conversations.updatedAt,
 			firstName: users.firstName,
 			otherNames: users.otherNames
@@ -234,6 +270,7 @@ export async function listLeaderChats(
 	const threads = convRows.map((c) => {
 		const msgs = byConv.get(c.id) ?? [];
 		const last = msgs[msgs.length - 1];
+		const isGuest = !c.userId;
 		return {
 			id: c.id,
 			citizenName: c.firstName
@@ -241,7 +278,9 @@ export async function listLeaderChats(
 				: 'Guest',
 			awaitingReply: last?.sender === 'follower',
 			lastActivity: c.updatedAt.toISOString(),
-			messages: msgs
+			messages: msgs,
+			anonId: isGuest ? c.anonId : null,
+			ipAddress: isGuest ? c.ipAddress : null
 		};
 	});
 
@@ -249,9 +288,10 @@ export async function listLeaderChats(
 }
 
 /** A team member's reply in a thread; guarded so only a conversation belonging
- * to this person can be answered. Returns false if the thread isn't theirs. */
+ * to this person can be answered. Returns false if the thread isn't theirs.
+ * `personId` null replies in a PLATFORM-scope thread (admin platform inbox). */
 export async function replyToChat(
-	personId: number,
+	personId: number | null,
 	conversationId: number,
 	sender: 'leader' | 'manager',
 	senderId: number,
@@ -260,13 +300,7 @@ export async function replyToChat(
 	const [conv] = await db
 		.select({ id: conversations.id })
 		.from(conversations)
-		.where(
-			and(
-				eq(conversations.id, conversationId),
-				eq(conversations.scope, 'leader'),
-				eq(conversations.scopeId, personId)
-			)
-		);
+		.where(and(eq(conversations.id, conversationId), scopeMatch(personId)));
 	if (!conv) return false;
 
 	await db.insert(messages).values({ conversationId, sender, senderId, body });

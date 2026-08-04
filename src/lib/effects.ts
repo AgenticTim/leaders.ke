@@ -75,3 +75,15 @@ export function disableForSeconds(node: HTMLElement, seconds: number) {
     destroy() { node.removeEventListener('click', handleClick); },
   };
 }
+/** Moves the node to <body> so `position: fixed` on it resolves against the
+ * VIEWPORT. Without this, any ancestor carrying `transform`, `filter` or
+ * `backdrop-filter` becomes the containing block for its fixed-position
+ * descendants — the sticky header's own `backdrop-blur` does exactly that, so
+ * a fixed panel rendered inside it anchors to the 64px header box instead of
+ * the screen. */
+export function portal(node: HTMLElement) {
+  document.body.appendChild(node);
+  return {
+    destroy() { node.remove(); },
+  };
+}

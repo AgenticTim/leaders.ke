@@ -9,12 +9,12 @@
 // real daily quota instead, tracked against their own account rather than a
 // spoofable cookie. Both limits are admin-editable
 // (platformSettings.guestAskLifetimeLimit / userAskDailyLimit — Settings → AI
-// Chat), not hardcoded.
-import { and, count, eq, gte } from 'drizzle-orm';
+// Chat), not hardcoded. Platform admins are exempt from both.
+import { and, count, eq, gte, isNotNull } from 'drizzle-orm';
 import type { RequestEvent } from '@sveltejs/kit';
 import { getOrMintAnonId } from '$lib/server/anonId';
 import { db } from '$lib/server/db';
-import { aiAskEvents } from '$lib/server/db/schema';
+import { aiAskEvents, users } from '$lib/server/db/schema';
 import { enforceRateLimit, ipBucket } from '$lib/server/rateLimit';
 import { getPlatformSettings } from '$lib/server/settings';
 
@@ -77,10 +77,29 @@ async function enforceGuestAskLimit(event: RequestEvent, lifetimeLimit: number):
 	return { ok: true };
 }
 
+/** Whether this account is a platform admin, who is exempt from the ask caps
+ * (they run the platform, test the feature, and answer the questions it can't).
+ * Checked here rather than at each call site so no caller can forget it. */
+async function isPlatformAdmin(domainUserId: number): Promise<boolean> {
+	const [row] = await db
+		.select({ id: users.id })
+		.from(users)
+		.where(and(eq(users.id, domainUserId), isNotNull(users.adminAt)));
+	return !!row;
+}
+
 /** domainUserId is the signed-in citizen's numeric users.id (null for a
  * guest) — the caller already resolves this via getDomainUser for the ask
  * action's own grounding lookup, so it's passed in rather than re-derived. */
 export async function enforceAskRateLimit(event: RequestEvent, domainUserId: number | null): Promise<RateLimitResult> {
+	// Platform admins ask without limit. The attempt is still recorded, so the
+	// ask log stays a complete picture of AI spend — it's simply never checked
+	// against a cap for them.
+	if (domainUserId && (await isPlatformAdmin(domainUserId))) {
+		await db.insert(aiAskEvents).values({ userId: domainUserId });
+		return { ok: true };
+	}
+
 	const settings = await getPlatformSettings();
 	return domainUserId
 		? enforceUserAskLimit(domainUserId, settings.userAskDailyLimit)

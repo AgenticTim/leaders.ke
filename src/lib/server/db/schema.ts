@@ -957,6 +957,12 @@ export const conversations = pgTable('conversations', {
   channel: chatChannelEnum('channel').notNull(),
   userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }), // null for anonymous web visitors
   anonId: varchar('anon_id', { length: 64 }), // guest device id (the shared anon_id cookie) — lets a guest's thread survive refresh and get adopted onto userId at login
+  // Address the thread was opened from, for telling anonymous askers apart in
+  // the platform inbox and for abuse triage. Stored here rather than read back
+  // from aiAskEvents: that table only records an ask that stayed WITHIN quota,
+  // so an over-limit guest — precisely the one whose question lands in the
+  // inbox for a human — would have no address on file at all.
+  ipAddress: varchar('ip_address', { length: 45 }),
   followerId: integer('follower_id').references(() => followers.id, { onDelete: 'set null' }), // set when a WhatsApp thread starts from a follow notification
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -1265,6 +1271,16 @@ export const platformSettings = pgTable('platform_settings', {
   // against their own account instead of a spoofable cookie.
   guestAskLifetimeLimit: integer('guest_ask_lifetime_limit').default(1).notNull(),
   userAskDailyLimit: integer('user_ask_daily_limit').default(5).notNull(),
+  // Hard cap on one question's length. Anything longer is TRUNCATED rather than
+  // rejected (a citizen who over-explains still gets an answer), and it bounds
+  // what an attacker can push into a billed Anthropic call — without it a
+  // pasted 100KB block would go straight through.
+  askMaxChars: integer('ask_max_chars').default(300).notNull(),
+  // How many prior messages of the thread ride along as conversation context,
+  // so follow-ups ("when did he take office?") resolve. Counted in individual
+  // messages, not exchanges — each one is a separate billed input on every
+  // subsequent question, so this is the main lever on per-question cost.
+  askHistoryMessages: integer('ask_history_messages').default(5).notNull(),
   // PAYG price on /pricing's Credits table (docs/ai-chat-costs.md) — spent
   // from the campaign's wallet on an AI-sourced answer (see the `ask` actions
   // on [leader]/+page.server.ts and [leader]/[year=year]/+page.server.ts); a

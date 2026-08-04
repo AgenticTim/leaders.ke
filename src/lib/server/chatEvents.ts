@@ -11,7 +11,9 @@ import { conversations } from '$lib/server/db/schema';
 
 export type ChatEvent = {
 	kind: 'message' | 'typing';
-	personId: number; // the leader (conversations.scopeId) this thread belongs to
+	// The leader (conversations.scopeId) this thread belongs to, or null for a
+	// platform-scope thread (the header's site-wide Ask, which has no scopeId).
+	personId: number | null;
 	conversationId: number;
 	userId: number | null; // thread owner, for citizen-side filtering
 	anonId: string | null;
@@ -23,10 +25,12 @@ emitter.setMaxListeners(0); // one listener per open SSE connection
 
 async function threadIdentity(conversationId: number) {
 	const [conv] = await db
-		.select({ scopeId: conversations.scopeId, userId: conversations.userId, anonId: conversations.anonId })
+		.select({ scope: conversations.scope, scopeId: conversations.scopeId, userId: conversations.userId, anonId: conversations.anonId })
 		.from(conversations)
 		.where(eq(conversations.id, conversationId));
-	return conv && conv.scopeId !== null ? conv : null;
+	// A leader thread must carry its scopeId; a platform thread legitimately has none.
+	if (!conv) return null;
+	return conv.scope === 'platform' || conv.scopeId !== null ? conv : null;
 }
 
 /** Announces a new message in a conversation to every subscribed connection.
@@ -36,7 +40,7 @@ export async function emitChatEvent(conversationId: number): Promise<void> {
 	if (!conv) return;
 	emitter.emit('message', {
 		kind: 'message',
-		personId: conv.scopeId!,
+		personId: conv.scopeId,
 		conversationId,
 		userId: conv.userId,
 		anonId: conv.anonId,
@@ -51,7 +55,7 @@ export async function emitTypingEvent(conversationId: number, from: 'citizen' | 
 	if (!conv) return;
 	emitter.emit('message', {
 		kind: 'typing',
-		personId: conv.scopeId!,
+		personId: conv.scopeId,
 		conversationId,
 		userId: conv.userId,
 		anonId: conv.anonId,

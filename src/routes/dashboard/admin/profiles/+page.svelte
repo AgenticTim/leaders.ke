@@ -95,8 +95,7 @@
 <div>
 	<h1 class="text-xl font-bold text-heading">Profiles</h1>
 	<p class="mt-1 text-sm text-muted">
-		Every leader profile — seeded, applied and claimed — one row per person. "Admin" opens the
-		leader's own dashboard, where you can edit, review and decide.
+		Every leader profile. "Admin" opens the leader's own dashboard, where you can edit, review and decide.
 	</p>
 
 	<!-- Server-side search across all pages. -->

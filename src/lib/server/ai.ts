@@ -185,6 +185,79 @@ export async function answerConstituentQuestion(
 	return { answer: heuristicAnswer(leader, question), source: 'heuristic' };
 }
 
+// ── Platform-wide chat (plans/10-platform-wide-ai-chat.md) ──────────────────
+
+/** Answers a site-wide civic/platform question against whatever the retrieval
+ * router pulled (platformAsk.ts), rather than one leader's knowledgebase.
+ * Shares the platform system prompt with the per-leader chat but NOT the leader
+ * one — its instructions are about representing a single campaign, which is
+ * wrong for a platform-scope answer. Throws PlatformOutOfCreditsError the same
+ * way, so the caller can route the question to the platform inbox instead of
+ * silently degrading. Returns null when there's no API key at all: unlike the
+ * leader chat there's no useful keyword heuristic across this many different
+ * source types, so the caller routes the question to a human instead. */
+export type ChatTurn = { role: 'user' | 'assistant'; content: string };
+
+/** Anthropic requires the messages array to start with a user turn and to
+ * alternate roles, but a real thread doesn't: a citizen can ask twice with no
+ * answer in between (over their limit), and a thread can open with an admin
+ * reply. Consecutive same-role turns are merged and any leading assistant
+ * turns dropped, so real history can be replayed without a 400. */
+function normalizeHistory(history: ChatTurn[]): ChatTurn[] {
+	const merged: ChatTurn[] = [];
+	for (const turn of history) {
+		if (!turn.content.trim()) continue;
+		const last = merged[merged.length - 1];
+		if (last && last.role === turn.role) last.content += `\n\n${turn.content}`;
+		else merged.push({ ...turn });
+	}
+	while (merged.length > 0 && merged[0].role === 'assistant') merged.shift();
+	return merged;
+}
+
+export async function answerPlatformQuestion(
+	question: string,
+	groundingText: string,
+	history: ChatTurn[] = []
+): Promise<string | null> {
+	if (!env.ANTHROPIC_API_KEY) return null;
+	const settings = await getPlatformSettings();
+	const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+
+	let response;
+	try {
+		response = await client.messages.create({
+			model: 'claude-sonnet-5',
+			max_tokens: 1024,
+			thinking: { type: 'adaptive' },
+			// Same two-breakpoint caching rationale as askClaude: the system prompt is
+			// identical for every platform question site-wide so it stays warm, while
+			// the retrieved grounding varies per question and sits after it.
+			system: [
+				{
+					type: 'text',
+					text: `${settings.platformSystemPrompt}\n\nYou are answering a PLATFORM-WIDE question — about Kenyan civics, elections, or how vote.ke itself works — not a question about one candidate. Ground every claim only in the retrieved material below. Where a source carries a URL or a site path (e.g. /pricing, /demographics), point the citizen to it so they can go deeper — write site paths exactly as given, starting with "/", never prefixed with a domain name. When the material genuinely doesn't answer the question, say so plainly and suggest the closest useful next step on vote.ke.`,
+					cache_control: { type: 'ephemeral' }
+				},
+				{ type: 'text', text: groundingText, cache_control: { type: 'ephemeral' } }
+			],
+			// Recent turns first so follow-ups ("what about his rival?") resolve
+			// against the conversation rather than being answered cold.
+			messages: [...normalizeHistory(history), { role: 'user', content: question }]
+		});
+	} catch (err) {
+		if (err instanceof Anthropic.APIError && err.status === 400 && /credit balance/i.test(err.message)) {
+			throw new PlatformOutOfCreditsError('The AI provider account is out of credits.');
+		}
+		throw err;
+	}
+
+	if (response.stop_reason === 'refusal') {
+		return "I can't help with that one. Try asking about candidates, seats, elections, or how vote.ke works.";
+	}
+	return response.content.find((b) => b.type === 'text')?.text ?? null;
+}
+
 // ── Mention sentiment (TODO 7.2) ────────────────────────────────────────────
 
 export type MentionSentiment = 'positive' | 'neutral' | 'negative';

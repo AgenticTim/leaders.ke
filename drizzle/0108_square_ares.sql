@@ -1,0 +1,2 @@
+ALTER TABLE "platform_settings" ADD COLUMN "ask_max_chars" integer DEFAULT 300 NOT NULL;--> statement-breakpoint
+ALTER TABLE "platform_settings" ADD COLUMN "ask_history_messages" integer DEFAULT 5 NOT NULL;

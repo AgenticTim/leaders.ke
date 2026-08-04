@@ -10,6 +10,9 @@
 //   ?person=<users.id>&role=team    team view (Inbox): pings for every
 //                                   thread of that leader — admin or active
 //                                   manager only
+//   ?scope=platform                 citizen view of the header's site-wide Ask
+//                                   thread (conversations.scopeId null)
+//   ?scope=platform&role=team       platform inbox (admins only)
 import { error } from '@sveltejs/kit';
 import { and, eq, isNull } from 'drizzle-orm';
 import { getAnonId } from '$lib/server/anonId';
@@ -20,32 +23,37 @@ import { getDomainUser } from '$lib/server/leader';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url, locals, cookies }) => {
+	// Platform threads have no scopeId, so they're selected by ?scope=platform
+	// rather than a person id — matched against ChatEvent.personId === null.
+	const platform = url.searchParams.get('scope') === 'platform';
 	const personId = Number(url.searchParams.get('person') ?? 0);
-	if (!personId) error(400, 'person is required');
+	if (!platform && !personId) error(400, 'person is required');
 	const team = url.searchParams.get('role') === 'team';
 
 	const viewer = locals.user ? await getDomainUser(locals.user.id) : null;
 	const anonId = getAnonId(cookies);
 
 	if (team) {
-		const allowed =
-			!!viewer &&
-			(!!viewer.adminAt ||
-				viewer.id === personId ||
-				!!(
-					await db
-						.select({ id: managers.id })
-						.from(managers)
-						.where(
-							and(
-								eq(managers.userId, viewer.id),
-								eq(managers.subjectUserId, personId),
-								eq(managers.isActive, true),
-								isNull(managers.deletedAt)
+		// The platform inbox is admin-only; there's no team to belong to.
+		const allowed = platform
+			? !!viewer?.adminAt
+			: !!viewer &&
+				(!!viewer.adminAt ||
+					viewer.id === personId ||
+					!!(
+						await db
+							.select({ id: managers.id })
+							.from(managers)
+							.where(
+								and(
+									eq(managers.userId, viewer.id),
+									eq(managers.subjectUserId, personId),
+									eq(managers.isActive, true),
+									isNull(managers.deletedAt)
+								)
 							)
-						)
-				)[0]);
-		if (!allowed) error(403, 'Not a team member for this profile.');
+					)[0]);
+		if (!allowed) error(403, platform ? 'Admins only.' : 'Not a team member for this profile.');
 	} else if (!viewer && !anonId) {
 		// A guest with no device cookie has no thread to stream yet — the cookie
 		// is minted by their first ask, after which the page reconnects.
@@ -66,7 +74,8 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 			send('retry: 3000\n\n');
 
 			const unsubscribe = subscribeChatEvents((e) => {
-				if (e.personId !== personId) return;
+				// Platform events carry personId null; leader events carry the id.
+				if (platform ? e.personId !== null : e.personId !== personId) return;
 				// Citizen connections only hear their own thread.
 				if (!team) {
 					const mine =

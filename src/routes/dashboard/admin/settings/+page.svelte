@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { tooltip } from '$lib/effects';
 	import { toast } from '$lib/stores/toast';
 	import type { PageProps } from './$types';
 
@@ -320,7 +321,8 @@ Applies everywhere a code/link is sent
 			<p class="mt-1 text-xs text-muted">
 				Guest limit is lifetime, not daily (anon_id/IP are trivially reset by clearing cookies, so
 				it's a one-time taste before requiring login, not a precise meter). Signed-in limit resets
-				daily, tracked per account.
+				daily, tracked per account. Platform admins are exempt from both. Question length and
+				history depth are the two levers on what a single answer costs.
 			</p>
 			<div class="mt-2 space-y-3">
 				<label class="block">
@@ -340,6 +342,28 @@ Applies everywhere a code/link is sent
 						name="userAskDailyLimit"
 						min="1"
 						value={data.settings.userAskDailyLimit}
+						class="mt-1 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+					/>
+				</label>
+				<label class="block">
+					<span class="text-xs font-medium text-muted">Max question length (characters)</span>
+					<input
+						type="number"
+						name="askMaxChars"
+						min="1"
+						value={data.settings.askMaxChars}
+						use:tooltip={'Anything longer is truncated, not rejected — the citizen still gets an answer to the first part.'}
+						class="mt-1 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+					/>
+				</label>
+				<label class="block">
+					<span class="text-xs font-medium text-muted">Conversation history (messages)</span>
+					<input
+						type="number"
+						name="askHistoryMessages"
+						min="0"
+						value={data.settings.askHistoryMessages}
+						use:tooltip={'Prior messages replayed as context so follow-ups resolve. Each one is billed again on every later question — 0 disables follow-up memory.'}
 						class="mt-1 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
 					/>
 				</label>
