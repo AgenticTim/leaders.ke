@@ -84,7 +84,7 @@ function groundingText(leader: LeaderGrounding, maxChars: number): string {
 		.slice(0, maxChars);
 }
 
-async function askClaude(leader: LeaderGrounding, question: string): Promise<string> {
+async function askClaude(leader: LeaderGrounding, question: string, history: ChatTurn[]): Promise<string> {
 	// Admin-editable on the Settings page (Settings → AI Chat): platformSystemPrompt
 	// governs the assistant everywhere, leaderSystemPrompt layers on top for
 	// per-leader answers specifically. See DEFAULT_PLATFORM_SYSTEM_PROMPT /
@@ -112,7 +112,9 @@ async function askClaude(leader: LeaderGrounding, question: string): Promise<str
 				{ type: 'text', text: `${settings.platformSystemPrompt}\n\n${settings.leaderSystemPrompt}`, cache_control: { type: 'ephemeral' } },
 				{ type: 'text', text: groundingText(leader, settings.maxGroundingChars), cache_control: { type: 'ephemeral' } }
 			],
-			messages: [{ role: 'user', content: question }]
+			// Recent turns first so follow-ups ("what about his record on that?")
+			// resolve against the conversation rather than being answered cold.
+			messages: [...normalizeHistory(history), { role: 'user', content: question }]
 		});
 	} catch (err) {
 		// Anthropic's documented shape for our account being out of credits: a 400
@@ -172,11 +174,12 @@ function heuristicAnswer(leader: LeaderGrounding, question: string): string {
 
 export async function answerConstituentQuestion(
 	leader: LeaderGrounding,
-	question: string
+	question: string,
+	history: ChatTurn[] = []
 ): Promise<ConstituentAnswer> {
 	if (env.ANTHROPIC_API_KEY) {
 		try {
-			return { answer: await askClaude(leader, question), source: 'ai' };
+			return { answer: await askClaude(leader, question, history), source: 'ai' };
 		} catch (err) {
 			if (err instanceof PlatformOutOfCreditsError) throw err;
 			console.error('AI answer failed, falling back to heuristic:', err);
@@ -197,6 +200,17 @@ export async function answerConstituentQuestion(
  * leader chat there's no useful keyword heuristic across this many different
  * source types, so the caller routes the question to a human instead. */
 export type ChatTurn = { role: 'user' | 'assistant'; content: string };
+
+/** Stored thread messages mapped to Anthropic roles: the citizen is the user;
+ * the AI and any human reply (a campaign's team, or the platform's) both speak
+ * as the assistant, since from the citizen's side they're the one voice
+ * answering them. */
+export function toChatTurns(rows: { sender: string; body: string }[]): ChatTurn[] {
+	return rows.map((r) => ({
+		role: r.sender === 'follower' ? ('user' as const) : ('assistant' as const),
+		content: r.body
+	}));
+}
 
 /** Anthropic requires the messages array to start with a user turn and to
  * alternate roles, but a real thread doesn't: a citizen can ask twice with no

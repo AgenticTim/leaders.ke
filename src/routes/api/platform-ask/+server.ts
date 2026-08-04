@@ -10,22 +10,14 @@
 // it gets an AI answer, so an over-limit or unanswerable one lands in the admin
 // platform inbox instead of dead-ending the citizen.
 import { json } from '@sveltejs/kit';
-import { getAnonId, getOrMintAnonId } from '$lib/server/anonId';
-import { answerPlatformQuestion, PlatformOutOfCreditsError } from '$lib/server/ai';
+import { clientAddress, getAnonId, getOrMintAnonId } from '$lib/server/anonId';
+import { answerPlatformQuestion, PlatformOutOfCreditsError, toChatTurns } from '$lib/server/ai';
 import { enforceAskRateLimit } from '$lib/server/aiRateLimit';
-import type { ChatTurn } from '$lib/server/ai';
 import { getOrCreateWebConversation, getRecentMessages, getWebThread, recordAiAnswer, recordQuestion, routeQuestionToTeam } from '$lib/server/chat';
 import { getDomainUser } from '$lib/server/leader';
 import { platformGroundingText, routePlatformQuestion } from '$lib/server/platformAsk';
 import { getPlatformSettings } from '$lib/server/settings';
 import type { RequestHandler } from './$types';
-
-/** Thread senders mapped to Anthropic roles: the citizen is the user; the AI
- * and any human platform reply both speak as the assistant, since from the
- * citizen's side they're the same voice answering them. */
-function toTurns(rows: { sender: string; body: string }[]): ChatTurn[] {
-	return rows.map((r) => ({ role: r.sender === 'follower' ? ('user' as const) : ('assistant' as const), content: r.body }));
-}
 
 export const GET: RequestHandler = async ({ locals, cookies }) => {
 	const viewer = locals.user ? await getDomainUser(locals.user.id) : null;
@@ -55,15 +47,12 @@ export const POST: RequestHandler = async (event) => {
 	const rateLimit = await enforceAskRateLimit(event, viewer?.id ?? null);
 	if (!rateLimit.ok) return json({ error: rateLimit.error }, { status: 429 });
 
-	// getClientAddress throws when the adapter can't determine one — the thread
-	// is worth far more than the address, so a failure just leaves it null.
-	let ip: string | null = null;
-	try {
-		ip = event.getClientAddress();
-	} catch {
-		ip = null;
-	}
-	const conversationId = await getOrCreateWebConversation(null, viewer?.id ?? null, getOrMintAnonId(event.cookies), ip);
+	const conversationId = await getOrCreateWebConversation(
+		null,
+		viewer?.id ?? null,
+		getOrMintAnonId(event.cookies),
+		clientAddress(event)
+	);
 
 	// Free AI answers spent (guest only — a signed-in citizen over their daily
 	// quota gets a 429 above instead). The question is still captured and routed
@@ -96,7 +85,7 @@ export const POST: RequestHandler = async (event) => {
 		const answer = await answerPlatformQuestion(
 			question,
 			platformGroundingText(grounding, settings.maxGroundingChars),
-			toTurns(prior)
+			toChatTurns(prior)
 		);
 		// No API key configured: nothing to answer with, so the recorded question
 		// becomes a human one rather than returning an empty answer.

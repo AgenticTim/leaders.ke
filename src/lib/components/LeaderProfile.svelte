@@ -318,6 +318,7 @@
 							name="question"
 							rows="2"
 							required
+							maxlength={data.askMaxChars}
 							placeholder="e.g. What is the plan for water in my ward?"
 							oninput={() => signalTyping(data.subjectId)}
 							onkeydown={(e) => {

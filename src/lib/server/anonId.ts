@@ -2,7 +2,7 @@
 // every guest-facing feature (ballot booth, AI-chat rate limit, chat threads),
 // so one visitor is one id across the site. Server-only (httpOnly).
 import { randomBytes } from 'node:crypto';
-import type { Cookies } from '@sveltejs/kit';
+import type { Cookies, RequestEvent } from '@sveltejs/kit';
 
 export const ANON_ID_COOKIE = 'anon_id';
 
@@ -21,4 +21,16 @@ export function getOrMintAnonId(cookies: Cookies): string {
 		cookies.set(ANON_ID_COOKIE, anonId, { path: '/', httpOnly: true, maxAge: 60 * 60 * 24 * 365 });
 	}
 	return anonId;
+}
+
+/** The caller's address, or null when the adapter can't determine one (it
+ * throws in that case). Paired with the device id above: together they're what
+ * distinguishes one anonymous asker from another in the inboxes. Never worth
+ * failing a request over, so a failure just yields null. */
+export function clientAddress(event: RequestEvent): string | null {
+	try {
+		return event.getClientAddress();
+	} catch {
+		return null;
+	}
 }

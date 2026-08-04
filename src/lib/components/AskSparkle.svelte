@@ -112,7 +112,7 @@
 				// Nothing is broken here — the free guest allowance is simply spent,
 				// so say that plainly and point at the way to get more answers.
 				limitReached = true;
-				errorText = "You have hit your daily ask limit for guests.";
+				errorText = "You have hit your daily limit for guests.";
 			} else {
 				// Recorded but genuinely unanswerable right now (no AI configured, or
 				// the call failed): it's in the platform inbox for a human.

@@ -56,7 +56,16 @@ export async function getOrCreateWebConversation(
 			.where(and(scopeMatch(personId), eq(conversations.channel, 'web'), identity))
 			.orderBy(desc(conversations.updatedAt))
 			.limit(1);
-		if (existing) return existing.id;
+		if (existing) {
+			// Refresh the address on every ask rather than keeping only the one the
+			// thread was opened from: the inboxes use it for abuse triage, where the
+			// CURRENT address matters more than the first, and threads that predate
+			// this column would otherwise stay blank forever.
+			if (ipAddress) {
+				await db.update(conversations).set({ ipAddress }).where(eq(conversations.id, existing.id));
+			}
+			return existing.id;
+		}
 	}
 	const [created] = await db
 		.insert(conversations)
@@ -200,9 +209,9 @@ export type ChatThread = {
 	messages: ChatMessage[];
 	// Guest identifiers, for telling one anonymous asker from another and for
 	// abuse triage. Both null on a signed-in thread (the account name identifies
-	// it), and both taken from the conversation itself — the address is the one
-	// the thread was opened from (see conversations.ipAddress on why it isn't
-	// read back from aiAskEvents).
+	// it), and both taken from the conversation itself — the address is the most
+	// recent one the thread was used from (see conversations.ipAddress on why it
+	// isn't read back from aiAskEvents).
 	anonId: string | null;
 	ipAddress: string | null;
 };

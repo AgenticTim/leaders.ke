@@ -13,13 +13,14 @@ import { ACTIVE_CYCLE, fullName, getDomainUser, resolveCurrentTerm } from '$lib/
 import { loadPublicProfileData } from '$lib/server/publicProfile';
 import { followAsAccount, unfollowAsAccount } from '$lib/server/follow';
 import { handleDeleteReviewAction, handleReviewAction } from '$lib/server/reviews';
-import { answerConstituentQuestion, PlatformOutOfCreditsError } from '$lib/server/ai';
+import { PlatformOutOfCreditsError, answerConstituentQuestion, toChatTurns } from '$lib/server/ai';
 import { enforceAskRateLimit } from '$lib/server/aiRateLimit';
 import { enforceRateLimit, ipBucket } from '$lib/server/rateLimit';
 import { getGroundingExtras } from '$lib/server/knowledge';
-import { getOrMintAnonId } from '$lib/server/anonId';
+import { clientAddress, getOrMintAnonId } from '$lib/server/anonId';
 import {
 	getOrCreateWebConversation,
+	getRecentMessages,
 	getWebThread,
 	recordAiAnswer,
 	recordQuestion,
@@ -69,7 +70,10 @@ export const load: PageServerLoad = async ({ params, locals, cookies, depends })
 	// never loses the thread and team replies actually reach the citizen.
 	const chatThread = await getWebThread(data.subjectId, viewer?.id ?? null, anonId);
 
-	return { ...data, isPledged, chatThread };
+	// askMaxChars drives the Ask box's own maxlength — the action truncates to
+	// it regardless, this just stops the textarea taking more than will be used.
+	const { askMaxChars } = await getPlatformSettings();
+	return { ...data, isPledged, chatThread, askMaxChars };
 };
 
 // Resolves a slug to its public review target: the person id, the lead campaign
@@ -201,10 +205,17 @@ export const actions: Actions = {
 	// doesn't need a live campaign workspace to answer a question.
 	ask: async (event) => {
 		const form = await event.request.formData();
-		const question = String(form.get('question') ?? '').trim();
-		if (!question || question.length < 5) {
+		const raw = String(form.get('question') ?? '').trim();
+		if (!raw || raw.length < 5) {
 			return fail(400, { error: 'Ask a question of at least a few words.' });
 		}
+
+		// Truncated, not rejected: an over-long question still gets answered on
+		// its first askMaxChars. Enforced server-side because the textarea's own
+		// maxlength is bypassed by a direct POST — this is what actually keeps an
+		// arbitrarily large paste out of a billed Anthropic call.
+		const settings = await getPlatformSettings();
+		const question = raw.slice(0, settings.askMaxChars);
 
 		const viewer = event.locals.user ? await getDomainUser(event.locals.user.id) : null;
 		const rateLimit = await enforceAskRateLimit(event, viewer?.id ?? null);
@@ -224,7 +235,8 @@ export const actions: Actions = {
 		const conversationId = await getOrCreateWebConversation(
 			lead.subjectId,
 			viewer?.id ?? null,
-			getOrMintAnonId(event.cookies)
+			getOrMintAnonId(event.cookies),
+			clientAddress(event)
 		);
 
 		// Free AI answers exhausted (guest): the question still lands, routed to
@@ -238,7 +250,6 @@ export const actions: Actions = {
 		// a wallet pays to query is one per person, not per run. With no credit the
 		// question is still recorded and routed to the team — a human replies later
 		// rather than the citizen hitting a dead end.
-		const settings = await getPlatformSettings();
 		const [wallet] = await db
 			.select()
 			.from(wallets)
@@ -247,6 +258,11 @@ export const actions: Actions = {
 			await recordQuestion(conversationId, viewer?.id ?? null, question, true);
 			return { asked: true, answered: false, question };
 		}
+
+		// Read the thread BEFORE recording this question, so history is strictly
+		// what came before it and the new question isn't duplicated as both
+		// context and the live turn. Bounded by askHistoryMessages.
+		const prior = await getRecentMessages(conversationId, settings.askHistoryMessages);
 
 		const questionMessageId = await recordQuestion(
 			conversationId,
@@ -296,7 +312,7 @@ export const actions: Actions = {
 		let answer: string;
 		let source: 'ai' | 'heuristic';
 		try {
-			({ answer, source } = await answerConstituentQuestion(grounding, question));
+			({ answer, source } = await answerConstituentQuestion(grounding, question, toChatTurns(prior)));
 		} catch (err) {
 			if (err instanceof PlatformOutOfCreditsError) {
 				// Platform-wide outage: the question is already captured, so hand it

@@ -957,11 +957,11 @@ export const conversations = pgTable('conversations', {
   channel: chatChannelEnum('channel').notNull(),
   userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }), // null for anonymous web visitors
   anonId: varchar('anon_id', { length: 64 }), // guest device id (the shared anon_id cookie) — lets a guest's thread survive refresh and get adopted onto userId at login
-  // Address the thread was opened from, for telling anonymous askers apart in
-  // the platform inbox and for abuse triage. Stored here rather than read back
-  // from aiAskEvents: that table only records an ask that stayed WITHIN quota,
-  // so an over-limit guest — precisely the one whose question lands in the
-  // inbox for a human — would have no address on file at all.
+  // Most recent address the thread was used from, refreshed on every ask, for
+  // telling anonymous askers apart in the inboxes and for abuse triage. Stored
+  // here rather than read back from aiAskEvents: that table only records an ask
+  // that stayed WITHIN quota, so an over-limit guest — precisely the one whose
+  // question lands in the inbox for a human — would have no address on file.
   ipAddress: varchar('ip_address', { length: 45 }),
   followerId: integer('follower_id').references(() => followers.id, { onDelete: 'set null' }), // set when a WhatsApp thread starts from a follow notification
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
