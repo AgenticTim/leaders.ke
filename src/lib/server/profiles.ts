@@ -7,7 +7,7 @@
 //   status, aspirant | current | former   (the person's lead seat)
 //   source, seeded | applied | claimed     (how the profile came to exist)
 //   verified, null | pending | approved | rejected | deleted  (review-workflow state)
-import { and, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '$lib/server/db';
 import { campaigns, contacts, leaders, managers, positions, profileClaims, subscriptions, users, verifications, wallets } from '$lib/server/db/schema';
@@ -41,8 +41,13 @@ export type ProfileRow = {
 	// The 2027 run's own campaign id, null when no run exists yet (a held-term-only
 	// profile, or a fresh claim/application with no campaign declared).
 	campaignId: number | null;
-	// Latest subscription on record, whatever its status. The raw expiry date tells
-	// the admin whether it's actually still live, rather than this re-deriving that.
+	// The subscription currently in force: the newest ACTIVE one, falling back to
+	// the newest of any status when nothing is active. Ordering by expiry alone
+	// picked whichever row happened to end furthest out, so a long-dated
+	// cancelled row (a seeded one, say) outranked every later change forever and
+	// the tier shown never moved. Newest-first by id also settles the very common
+	// tie where several rows share an expiry, since setSubscription always dates
+	// them a year out.
 	subscriptionTier: string | null;
 	subscriptionExpiresAt: string | null;
 	// Wallets are profile-scoped (subjectUserId), not campaign-scoped, so every
@@ -130,10 +135,17 @@ export async function listProfiles(
 			.where(inArray(profileClaims.subjectUserId, personIds))
 			.orderBy(desc(profileClaims.requestedAt)),
 		db
-			.select({ subjectUserId: subscriptions.subjectUserId, tier: subscriptions.tier, endsAt: subscriptions.endsAt })
+			.select({
+				subjectUserId: subscriptions.subjectUserId,
+				tier: subscriptions.tier,
+				endsAt: subscriptions.endsAt,
+				status: subscriptions.status
+			})
 			.from(subscriptions)
 			.where(inArray(subscriptions.subjectUserId, personIds))
-			.orderBy(desc(subscriptions.endsAt)),
+			// Active first, then newest. Deliberately NOT by expiry: see
+			// subscriptionTier's note on why that showed a stale tier forever.
+			.orderBy(sql`case when ${subscriptions.status} = 'active' then 0 else 1 end`, desc(subscriptions.id)),
 		db.select({ subjectUserId: wallets.subjectUserId, balance: wallets.balance }).from(wallets).where(inArray(wallets.subjectUserId, personIds))
 	]);
 
