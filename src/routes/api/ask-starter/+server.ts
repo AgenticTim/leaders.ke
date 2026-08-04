@@ -1,6 +1,6 @@
 // Starter click-through logging (plans/10-platform-wide-ai-chat.md): which
 // suggested prompt a visitor actually tapped in the Ask panel. Pure product
-// signal — which starters earn their place in the rotation — so it's fire and
+// signal (which starters earn their place in the rotation), so it's fire and
 // forget: the client never waits on it, and a failure must never stop the
 // question itself from being asked.
 import { json } from '@sveltejs/kit';

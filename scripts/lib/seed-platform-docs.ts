@@ -1,5 +1,5 @@
 // Seeds the civics/platform corpus from src/lib/data/platformDocs.json into
-// `platform_documents` — the citizen, ambassador, and leaders manuals, which the
+// `platform_documents`: the citizen, ambassador, and leaders manuals, which the
 // site-wide Ask box answers "how does vote.ke work" questions from.
 //
 // The JSON is generated from the manuals in Drive with the unshipped ([ ]) items

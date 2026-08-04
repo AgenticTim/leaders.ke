@@ -7,8 +7,8 @@
 // to rot, and it carries the citizenship claim this script uses to reject a
 // wrong-person match.
 //
-// A wrong birth date is worse than none — it would be stated as fact to citizens
-// — so a match is only accepted when the entity claims Kenyan citizenship
+// A wrong birth date is worse than none, since it would be stated as fact to
+// citizens, so a match is only accepted when the entity claims Kenyan citizenship
 // (P27 = Q114). That rejects the common failure mode of a Kenyan politician's
 // name matching some unrelated person on the English Wikipedia.
 //
@@ -25,7 +25,7 @@ import { leaders, positions, users } from '../src/lib/server/db/schema';
 const { values } = parseArgs({
 	options: {
 		apply: { type: 'boolean', default: false },
-		// Governors first, per the plan — they're the smallest, highest-profile
+		// Governors first, per the plan: they're the smallest, highest-profile
 		// set, so coverage is best and mistakes are easiest to eyeball.
 		title: { type: 'string', default: 'Governor' },
 		limit: { type: 'string', default: '100' }
@@ -70,7 +70,7 @@ async function wikidataIdFor(name: string): Promise<string | null> {
 }
 
 /** Date of birth (YYYY-MM-DD) for an entity, but ONLY if it also claims Kenyan
- * citizenship — the guard against silently importing a different person who
+ * citizenship. That's the guard against silently importing a different person who
  * happens to share the name. Returns why it was rejected, for the dry run. */
 async function birthDateFor(entityId: string): Promise<{ dob: string } | { skip: string }> {
 	const data = await getJson(`https://www.wikidata.org/wiki/Special:EntityData/${entityId}.json`);
@@ -142,7 +142,7 @@ async function main() {
 		}
 		// 1 January is the classic placeholder for a year-only birth date that
 		// someone recorded at day precision anyway, and Wikidata's own precision
-		// flag can't distinguish that from a real New Year's Day birthday — so
+		// flag can't distinguish that from a real New Year's Day birthday, so
 		// flag it for a human rather than silently trusting or dropping it.
 		const suspect = result.dob.endsWith('-01-01') ? '  ← 1 Jan, verify (often a year-only placeholder)' : '';
 		console.log(`  ${name} (${row.region}) -> ${result.dob}  [${entityId}]${suspect}`);
@@ -153,7 +153,7 @@ async function main() {
 		await sleep(DELAY_MS);
 	}
 
-	console.log(`\n${written} matched${APPLY ? ' and written' : ' (not written — dry run)'}, ${skipped.length} skipped.`);
+	console.log(`\n${written} matched${APPLY ? ' and written' : ' (not written, dry run)'}, ${skipped.length} skipped.`);
 	if (skipped.length > 0) {
 		console.log('\nSkipped:');
 		for (const s of skipped) console.log(`  - ${s}`);

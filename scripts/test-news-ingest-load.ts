@@ -3,7 +3,7 @@
 // runIngest()'s Google-News half from $lib/server/newsIngest.ts, but as a
 // standalone script with its own DB connection (that file imports $env/dynamic/
 // private via $lib/server/db, which only resolves inside SvelteKit's own
-// runtime — not under a plain `bun run`), so it can be timed in detail without
+// runtime, not under a plain `bun run`), so it can be timed in detail without
 // touching the app's request/response cycle. If runIngest()'s batching/tagging
 // logic changes, mirror the change here too.
 //

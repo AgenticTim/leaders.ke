@@ -1014,7 +1014,7 @@ export const aiAskEvents = pgTable('ai_ask_events', {
 ]);
 
 // 20.1 CIVICS CORPUS (plans/10-platform-wide-ai-chat.md): curated platform-scope
-// reference text the site-wide Ask box answers from — seat duties beyond what
+// reference text the site-wide Ask box answers from: seat duties beyond what
 // seatDuties.ts hardcodes, registration how-tos, election dates, the citizen and
 // ambassador manuals. Deliberately NOT knowledge_documents: that table is for a
 // leader's uploaded FILES (file_url/mime_type are required there), so curated
@@ -1027,7 +1027,7 @@ export const platformDocuments = pgTable('platform_documents', {
   // so an answer can point past our summary to the real source.
   sourceUrl: text('source_url'),
   // Matched against the question (lowercased, comma-separated) to decide whether
-  // this doc is worth pulling — the router keeps every source keyword-gated so
+  // this doc is worth pulling. The router keeps every source keyword-gated so
   // one question never drags the whole corpus into the prompt.
   keywords: text('keywords').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -1037,7 +1037,7 @@ export const platformDocuments = pgTable('platform_documents', {
 
 // 20.1b PLATFORM FAQ: the public /faq page's own Q&A, in the database rather
 // than hardcoded in the page, so the same answers a citizen reads there are the
-// ones the site-wide Ask box answers from — one source of truth instead of a
+// ones the site-wide Ask box answers from: one source of truth instead of a
 // static page and an AI that can't see it drifting apart. Seeded from
 // src/lib/data/platformFaqs.json (bun run db:seed -- --platform-faqs) and
 // editable at /dashboard/admin/knowledge. Distinct from faqEntries, which is a

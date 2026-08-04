@@ -1,11 +1,11 @@
 // Platform knowledge admin (plans/10-platform-wide-ai-chat.md): everything the
 // site-wide Ask box answers platform/civics questions from, in one place.
 //
-//   Documents — curated reference text (registration how-tos, election dates,
+//   Documents: curated reference text (registration how-tos, election dates,
 //     the citizen/ambassador manuals). Each carries its own keyword list, since
 //     platformAsk.ts keeps every source keyword-gated so one question never
 //     drags the whole corpus into a billed prompt.
-//   FAQ — the same Q&A the public /faq page renders. Editing an answer here
+//   FAQ: the same Q&A the public /faq page renders. Editing an answer here
 //     changes both what a citizen reads there and what the AI says, which is
 //     the point of it living in the database rather than in the page.
 import { and, asc, desc, eq, isNull } from 'drizzle-orm';
@@ -105,7 +105,7 @@ export const actions: Actions = {
 		return { saved: true };
 	},
 
-	// Soft delete, matching every other removable record here — a doc pulled from
+	// Soft delete, matching every other removable record here. A doc pulled from
 	// the corpus stays recoverable rather than being destroyed outright.
 	remove: async (event) => {
 		const admin = await requireAdmin(event);

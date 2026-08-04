@@ -285,7 +285,7 @@ function howToSource(q: string): Source | null {
 
 const DIGEST_DAYS = 7;
 
-/** Recent activity for the leaders this citizen actually follows — their posts
+/** Recent activity for the leaders this citizen actually follows: their posts
  * and news mentions from the last week. Falls back to the leaders of their saved
  * location when they follow nobody, so "what have my leaders done this week?"
  * still answers for a citizen who has only set a county. */
@@ -351,10 +351,10 @@ async function activityDigestSource(q: string, asker: AskerLocation): Promise<So
 	}
 
 	const lines = rows.map(
-		(r) => `- ${fullName(r)}${r.slug ? ` (${leaderPath(r)})` : ''}: "${r.title}" — ${r.teamAuthored ? 'their own update' : 'press mention'}, ${r.createdAt.toDateString()}`
+		(r) => `- ${fullName(r)}${r.slug ? ` (${leaderPath(r)})` : ''}: "${r.title}" (${r.teamAuthored ? 'their own update' : 'press mention'}), ${r.createdAt.toDateString()}`
 	);
 	return {
-		label: `Activity digest — last ${DIGEST_DAYS} days, for ${basis}`,
+		label: `Activity digest, last ${DIGEST_DAYS} days, for ${basis}`,
 		text: lines.join('\n')
 	};
 }
@@ -363,7 +363,7 @@ async function activityDigestSource(q: string, asker: AskerLocation): Promise<So
 
 /** Follower/pledge/ballot-pick counts per candidate for a seat. This is the one
  * source that can be actively misread, so the disclaimer is part of the text
- * itself rather than left to the model's discretion — these are counts of
+ * itself rather than left to the model's discretion. These are counts of
  * activity ON vote.ke by self-selected users, not a representative sample. */
 async function raceMetricsSource(q: string): Promise<Source | null> {
 	if (!has(q, 'leading', 'winning', 'ahead', 'popular', 'front-runner', 'frontrunner', 'who will win', 'poll')) return null;
@@ -414,7 +414,7 @@ async function raceMetricsSource(q: string): Promise<Source | null> {
 	const lines = ranked.map((r) => `- ${fullName(r)}${r.slug ? ` (${leaderPath(r)})` : ''}: ${r.pledges} vote pledge(s), ${r.followers} follower(s)`);
 
 	return {
-		label: `vote.ke engagement for the ${ACTIVE_CYCLE} ${title} race — NOT a poll`,
+		label: `vote.ke engagement for the ${ACTIVE_CYCLE} ${title} race (NOT a poll)`,
 		text: [
 			`IMPORTANT: these are counts of activity by self-selected vote.ke users (${total} pledge(s) in total across ${ranked.length} candidate(s)), NOT a poll, NOT a representative sample, and NOT a prediction. You MUST say this plainly in your answer and must not describe anyone as "leading" the actual election.`,
 			lines.join('\n')
@@ -425,7 +425,7 @@ async function raceMetricsSource(q: string): Promise<Source | null> {
 // ── Leader facts: age comparisons, which need a real birth date ─────────────
 
 /** Age superlatives ("youngest governor"). Only profiles with a sourced
- * dateOfBirth are eligible — users.age is self-declared and goes stale, so
+ * dateOfBirth are eligible: users.age is self-declared and goes stale, so
  * ranking on it would produce confidently wrong answers. */
 async function leaderFactsSource(q: string): Promise<Source | null> {
 	if (!has(q, 'youngest', 'oldest', 'age', 'how old', 'born')) return null;
@@ -478,7 +478,7 @@ async function leaderFactsSource(q: string): Promise<Source | null> {
 	return {
 		label: 'Sitting leaders with a recorded date of birth',
 		text: [
-			`Ages computed from recorded birth dates (${withAges.length} leader(s) on file — anyone without a date is simply absent, so treat this as "of those on record", not the whole country).`,
+			`Ages computed from recorded birth dates. ${withAges.length} leader(s) on file; anyone without a date is simply absent, so treat this as "of those on record", not the whole country.`,
 			withAges.map((r) => `- ${fullName(r)}, ${r.title}, ${r.region}: ${r.age}${r.slug ? ` (${leaderPath(r)})` : ''}`).join('\n')
 		].join('\n')
 	};
@@ -489,7 +489,7 @@ async function leaderFactsSource(q: string): Promise<Source | null> {
 type KeyDate = { date: string; title: string; summary: string; expected: boolean; source: string };
 
 /** The 2027 electoral calendar, read from the SAME dates.json the /dates page
- * renders — not copied into the corpus — so the page and the assistant can
+ * renders (not copied into the corpus), so the page and the assistant can
  * never disagree, and updating the file updates both.
  *
  * The expected/confirmed split is carried through deliberately: most IEBC
@@ -503,7 +503,7 @@ function electionDatesSource(q: string): Source | null {
 	if (dates.length === 0) return null;
 
 	const lines = dates.map(
-		(d) => `- ${d.date} — ${d.title}${d.expected ? ' [EXPECTED, not yet confirmed by the IEBC]' : ' [CONFIRMED]'}: ${d.summary}`
+		(d) => `- ${d.date}: ${d.title}${d.expected ? ' [EXPECTED, not yet confirmed by the IEBC]' : ' [CONFIRMED]'}. ${d.summary}`
 	);
 	return {
 		label: 'vote.ke 2027 election timeline (same data as the /dates page)',
@@ -517,7 +517,7 @@ function electionDatesSource(q: string): Source | null {
 
 // ── Civics corpus: curated, admin-editable reference text ──────────────────
 
-/** The public FAQ (platform_faqs) — the same answers /faq renders, scored by
+/** The public FAQ (platform_faqs), the same answers /faq renders, scored by
  * how much of the question's own wording each entry shares. Unlike the keyword
  * gate the documents use, an FAQ IS a question, so matching question-to-question
  * on overlapping words needs no hand-maintained keyword list. */
@@ -594,7 +594,7 @@ export async function routePlatformQuestion(
 	// (an answer that links /pricing shouldn't pull the pricing table next turn).
 	const q = [...recentQuestions, question].join(' \n ').toLowerCase();
 	// Every source is keyword-gated and independent, so they're resolved together
-	// rather than in sequence — a question that matches several (e.g. "what have
+	// rather than in sequence. A question that matches several (e.g. "what have
 	// my leaders done" hitting both the digest and the directory) should pay for
 	// one round of queries, not one per source.
 	const [directory, pricing, digest, race, facts, civics, faq] = await Promise.all([

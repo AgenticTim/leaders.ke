@@ -1,6 +1,6 @@
 // The public FAQ, read from platform_faqs rather than hardcoded in the page.
 // Same rows the site-wide Ask box answers from (platformAsk.ts) and the same
-// ones admins edit at /dashboard/admin/knowledge — so what a citizen reads here
+// ones admins edit at /dashboard/admin/knowledge, so what a citizen reads here
 // and what the AI tells them can't drift apart.
 import { asc, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';

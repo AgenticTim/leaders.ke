@@ -1,6 +1,6 @@
 <script lang="ts">
 	// Platform knowledge: both halves of what the site-wide Ask box answers
-	// platform questions from — curated reference Documents, and the public FAQ
+	// platform questions from: curated reference Documents, and the public FAQ
 	// that /faq also renders. Two tabs rather than two pages, since they're the
 	// same job (what does the assistant know) with different shapes.
 	import { enhance } from '$app/forms';
@@ -82,7 +82,7 @@
 			<input type="url" name="sourceUrl" value={doc?.sourceUrl ?? ''} placeholder="https://www.iebc.or.ke/…" class={inputClass} />
 		</label>
 		<label class="mt-3 block">
-			<span class="text-xs font-medium text-muted">Body — the text the AI answers from</span>
+			<span class="text-xs font-medium text-muted">Body (the text the AI answers from)</span>
 			<textarea name="body" rows="6" required placeholder="Plain, factual reference text." class={inputClass}>{doc?.body ?? ''}</textarea>
 		</label>
 	{/snippet}
