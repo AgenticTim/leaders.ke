@@ -33,14 +33,39 @@
 	let input: HTMLTextAreaElement | undefined = $state();
 
 	// Starters (the plan's prompt-starter chips), shown only on an empty thread,
-	// where a blank box is hardest to start from.
-	const STARTERS = [
+	// where a blank box is hardest to start from. The pool is deliberately wider
+	// than what's shown: a rotating subset keeps the panel feeling alive across
+	// visits and, with click logging below, reveals which prompts citizens
+	// actually want rather than which ones happened to be hardcoded first.
+	const STARTER_POOL = [
 		'Who is my MP?',
+		'What have my leaders done this week?',
 		'What does a Woman Rep actually do?',
 		'How do I check if I am registered to vote?',
 		'What does a campaign page cost?',
-		'How many gen-z will vote in 2027?'
+		'How many gen-z will vote in 2027?',
+		'When is the next election?',
+		'How do I pledge my vote?',
+		'How much does an MCA earn?',
+		'How can I become a campaign ambassador?'
 	];
+	const SHOWN_STARTERS = 5;
+	// Rotated per panel-open rather than per render, so chips don't reshuffle
+	// under the pointer while someone is reading them.
+	let starters = $state<string[]>([]);
+	function rotateStarters() {
+		starters = [...STARTER_POOL].sort(() => Math.random() - 0.5).slice(0, SHOWN_STARTERS);
+	}
+
+	/** Fire-and-forget: which chip was tapped. Never awaited, so a slow or failed
+	 * log can't delay the citizen getting their question into the box. */
+	function logStarter(starter: string) {
+		void fetch('/api/ask-starter', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ starter })
+		}).catch(() => {});
+	}
 
 	async function loadThread() {
 		try {
@@ -83,6 +108,7 @@
 	function toggle() {
 		open = !open;
 		if (open) {
+			rotateStarters();
 			ensureThread();
 			// Focus after the panel has actually rendered.
 			setTimeout(() => input?.focus(), 50);
@@ -201,10 +227,11 @@
 			{#if messages.length === 0}
 				<p class="text-sm text-muted">Ask anything about Kenyan elections, your leaders, or vote.ke.</p>
 				<div class="flex flex-wrap gap-1.5 pt-1">
-					{#each STARTERS as starter (starter)}
+					{#each starters as starter (starter)}
 						<button
 							type="button"
 							onclick={() => {
+								logStarter(starter);
 								question = starter;
 								input?.focus();
 							}}

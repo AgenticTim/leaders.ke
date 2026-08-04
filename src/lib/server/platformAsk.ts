@@ -11,9 +11,9 @@
 // question. They're all included rather than picking a single winner, since
 // the answering model is better placed to decide what's relevant than a
 // keyword rule is.
-import { and, desc, eq, ilike, isNotNull, isNull, or } from 'drizzle-orm';
+import { and, count, desc, eq, gte, ilike, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { campaigns, leaders, positions, users } from '$lib/server/db/schema';
+import { campaigns, followers, leaders, platformDocuments, platformFaqs, pledges, positions, posts, users } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, leaderPath } from '$lib/server/leader';
 import { counties } from '$lib/data/geo';
 import { SEAT_DUTIES_BY_TITLE } from '$lib/data/seatDuties';
@@ -21,9 +21,15 @@ import { CENSUS_YEAR, DEMOGRAPHICS_SOURCE, NATIONAL, genZEligible2027, votingAge
 import { listCurrentPricing, listPackages } from '$lib/server/packages';
 import { getPlatformSettings } from '$lib/server/settings';
 
-/** The viewer's saved location (users.county/constituency/ward), so "who is my
- * MP" resolves without asking them to repeat it. All null for a guest. */
-export type AskerLocation = { county: string | null; constituency: string | null; ward: string | null };
+/** Who's asking: their saved location (users.county/constituency/ward) so "who
+ * is my MP" resolves without repeating it, and their account id so "my leaders"
+ * can mean the ones they actually follow. All null/absent for a guest. */
+export type AskerLocation = {
+	userId?: number | null;
+	county: string | null;
+	constituency: string | null;
+	ward: string | null;
+};
 
 /** One retrieved block: `label` names the source in the prompt so the model can
  * attribute, `text` is the material itself. */
@@ -274,6 +280,267 @@ function howToSource(q: string): Source | null {
 	};
 }
 
+// ── Activity digest: what the citizen's own leaders have been doing ────────
+
+const DIGEST_DAYS = 7;
+
+/** Recent activity for the leaders this citizen actually follows — their posts
+ * and news mentions from the last week. Falls back to the leaders of their saved
+ * location when they follow nobody, so "what have my leaders done this week?"
+ * still answers for a citizen who has only set a county. */
+async function activityDigestSource(q: string, asker: AskerLocation): Promise<Source | null> {
+	if (!has(q, 'my leader', 'this week', 'lately', 'recently', 'been doing', 'been up to', 'latest', 'update')) return null;
+
+	let personIds: number[] = [];
+	let basis = '';
+	if (asker.userId) {
+		const followed = await db
+			.select({ id: followers.digestId })
+			.from(followers)
+			.where(and(eq(followers.userId, asker.userId), eq(followers.digest, 'leader'), isNull(followers.deletedAt)));
+		// digestId is nullable on the table (a follow can target a non-leader
+		// digest), so null rows are dropped rather than cast away.
+		personIds = followed.map((f) => f.id).filter((id): id is number => id !== null);
+		basis = 'the leaders this citizen follows';
+	}
+	// No follows: fall back to whoever holds a seat covering their saved location.
+	if (personIds.length === 0) {
+		const regions = [asker.ward, asker.constituency, asker.county].filter((r): r is string => !!r);
+		if (regions.length === 0) return null;
+		const rows = await db
+			.select({ id: leaders.userId })
+			.from(leaders)
+			.innerJoin(positions, eq(leaders.positionId, positions.id))
+			.where(
+				and(
+					isNull(leaders.deletedAt),
+					isNotNull(leaders.verifiedAt),
+					eq(leaders.status, 'current'),
+					or(...regions.map((r) => ilike(positions.region, r)))
+				)
+			);
+		personIds = [...new Set(rows.map((r) => r.id))];
+		basis = `the sitting leaders for this citizen's saved location (${regions.join(', ')})`;
+	}
+	if (personIds.length === 0) return null;
+
+	const since = new Date(Date.now() - DIGEST_DAYS * 24 * 60 * 60 * 1000);
+	const rows = await db
+		.select({
+			firstName: users.firstName,
+			otherNames: users.otherNames,
+			slug: users.slug,
+			title: posts.title,
+			createdAt: posts.createdAt,
+			// A team-authored update reads differently from press coverage we merely
+			// ingested, so the answer can attribute each correctly.
+			teamAuthored: sql<boolean>`${posts.creatorId} is not null`
+		})
+		.from(posts)
+		.innerJoin(users, eq(users.id, posts.subjectUserId))
+		.where(and(inArray(posts.subjectUserId, personIds), gte(posts.createdAt, since), isNull(posts.deletedAt), eq(posts.public, true)))
+		.orderBy(desc(posts.createdAt))
+		.limit(30);
+
+	if (rows.length === 0) {
+		return {
+			label: `Activity digest (last ${DIGEST_DAYS} days)`,
+			text: `Nothing published in the last ${DIGEST_DAYS} days by ${basis}. Say so plainly rather than reaching further back.`
+		};
+	}
+
+	const lines = rows.map(
+		(r) => `- ${fullName(r)}${r.slug ? ` (${leaderPath(r)})` : ''}: "${r.title}" — ${r.teamAuthored ? 'their own update' : 'press mention'}, ${r.createdAt.toDateString()}`
+	);
+	return {
+		label: `Activity digest — last ${DIGEST_DAYS} days, for ${basis}`,
+		text: lines.join('\n')
+	};
+}
+
+// ── Race metrics: platform engagement, explicitly NOT a poll ────────────────
+
+/** Follower/pledge/ballot-pick counts per candidate for a seat. This is the one
+ * source that can be actively misread, so the disclaimer is part of the text
+ * itself rather than left to the model's discretion — these are counts of
+ * activity ON vote.ke by self-selected users, not a representative sample. */
+async function raceMetricsSource(q: string): Promise<Source | null> {
+	if (!has(q, 'leading', 'winning', 'ahead', 'popular', 'front-runner', 'frontrunner', 'who will win', 'poll')) return null;
+	const titles = titlesIn(q);
+	const title = titles[0] ?? 'President';
+
+	const runs = await db
+		.select({ subjectId: campaigns.subjectUserId, firstName: users.firstName, otherNames: users.otherNames, slug: users.slug, region: positions.region })
+		.from(campaigns)
+		.innerJoin(positions, eq(campaigns.positionId, positions.id))
+		.innerJoin(users, eq(users.id, campaigns.subjectUserId))
+		.where(
+			and(
+				isNull(campaigns.deletedAt),
+				isNotNull(campaigns.verifiedAt),
+				eq(campaigns.cycleYear, ACTIVE_CYCLE),
+				eq(positions.title, title),
+				isNull(users.deletedAt)
+			)
+		)
+		.limit(30);
+	if (runs.length === 0) return null;
+
+	const ids = runs.map((r) => r.subjectId).filter((id): id is number => id !== null);
+	if (ids.length === 0) return null;
+
+	const [followerRows, pledgeRows] = await Promise.all([
+		db
+			.select({ id: followers.digestId, n: count() })
+			.from(followers)
+			.where(and(eq(followers.digest, 'leader'), inArray(followers.digestId, ids), isNull(followers.deletedAt)))
+			.groupBy(followers.digestId),
+		db
+			.select({ id: campaigns.subjectUserId, n: count() })
+			.from(pledges)
+			.innerJoin(campaigns, eq(campaigns.id, pledges.campaignId))
+			.where(and(inArray(campaigns.subjectUserId, ids), isNull(pledges.deletedAt)))
+			.groupBy(campaigns.subjectUserId)
+	]);
+	const followersBy = new Map(followerRows.map((r) => [r.id, r.n]));
+	const pledgesBy = new Map(pledgeRows.map((r) => [r.id, r.n]));
+
+	const ranked = runs
+		.map((r) => ({ ...r, followers: followersBy.get(r.subjectId!) ?? 0, pledges: pledgesBy.get(r.subjectId!) ?? 0 }))
+		.sort((a, b) => b.pledges - a.pledges || b.followers - a.followers);
+
+	const total = ranked.reduce((sum, r) => sum + r.pledges, 0);
+	const lines = ranked.map((r) => `- ${fullName(r)}${r.slug ? ` (${leaderPath(r)})` : ''}: ${r.pledges} vote pledge(s), ${r.followers} follower(s)`);
+
+	return {
+		label: `vote.ke engagement for the ${ACTIVE_CYCLE} ${title} race — NOT a poll`,
+		text: [
+			`IMPORTANT: these are counts of activity by self-selected vote.ke users (${total} pledge(s) in total across ${ranked.length} candidate(s)), NOT a poll, NOT a representative sample, and NOT a prediction. You MUST say this plainly in your answer and must not describe anyone as "leading" the actual election.`,
+			lines.join('\n')
+		].join('\n\n')
+	};
+}
+
+// ── Leader facts: age comparisons, which need a real birth date ─────────────
+
+/** Age superlatives ("youngest governor"). Only profiles with a sourced
+ * dateOfBirth are eligible — users.age is self-declared and goes stale, so
+ * ranking on it would produce confidently wrong answers. */
+async function leaderFactsSource(q: string): Promise<Source | null> {
+	if (!has(q, 'youngest', 'oldest', 'age', 'how old', 'born')) return null;
+	const titles = titlesIn(q);
+
+	const rows = await db
+		.select({
+			firstName: users.firstName,
+			otherNames: users.otherNames,
+			slug: users.slug,
+			dateOfBirth: users.dateOfBirth,
+			title: positions.title,
+			region: positions.region
+		})
+		.from(leaders)
+		.innerJoin(positions, eq(leaders.positionId, positions.id))
+		.innerJoin(users, eq(users.id, leaders.userId))
+		.where(
+			and(
+				isNull(leaders.deletedAt),
+				isNotNull(leaders.verifiedAt),
+				eq(leaders.status, 'current'),
+				isNotNull(users.dateOfBirth),
+				isNull(users.deletedAt),
+				...(titles.length > 0 ? [or(...titles.map((t) => eq(positions.title, t)))] : [])
+			)
+		)
+		.limit(80);
+
+	if (rows.length === 0) {
+		return {
+			label: 'Leader ages',
+			text: 'No birth dates are on file for the leaders this question covers, so an age comparison cannot be made from vote.ke data. Say that plainly rather than estimating.'
+		};
+	}
+
+	const ageOf = (dob: string) => {
+		const d = new Date(dob);
+		const now = new Date();
+		let age = now.getFullYear() - d.getFullYear();
+		const m = now.getMonth() - d.getMonth();
+		if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+		return age;
+	};
+	const withAges = rows
+		.filter((r) => r.dateOfBirth)
+		.map((r) => ({ ...r, age: ageOf(r.dateOfBirth as string) }))
+		.sort((a, b) => a.age - b.age);
+
+	return {
+		label: 'Sitting leaders with a recorded date of birth',
+		text: [
+			`Ages computed from recorded birth dates (${withAges.length} leader(s) on file — anyone without a date is simply absent, so treat this as "of those on record", not the whole country).`,
+			withAges.map((r) => `- ${fullName(r)}, ${r.title}, ${r.region}: ${r.age}${r.slug ? ` (${leaderPath(r)})` : ''}`).join('\n')
+		].join('\n')
+	};
+}
+
+// ── Civics corpus: curated, admin-editable reference text ──────────────────
+
+/** The public FAQ (platform_faqs) — the same answers /faq renders, scored by
+ * how much of the question's own wording each entry shares. Unlike the keyword
+ * gate the documents use, an FAQ IS a question, so matching question-to-question
+ * on overlapping words needs no hand-maintained keyword list. */
+async function platformFaqSource(q: string): Promise<Source | null> {
+	const words = q
+		.split(/[^a-z0-9]+/)
+		.filter((w) => w.length > 3);
+	if (words.length === 0) return null;
+
+	const rows = await db
+		.select({ section: platformFaqs.section, question: platformFaqs.question, answer: platformFaqs.answer })
+		.from(platformFaqs)
+		.where(isNull(platformFaqs.deletedAt));
+
+	const scored = rows
+		.map((r) => {
+			const text = `${r.question} ${r.answer}`.toLowerCase();
+			return { ...r, score: words.reduce((n, w) => (text.includes(w) ? n + 1 : n), 0) };
+		})
+		// At least two shared words: a single common word ("what", "vote") matches
+		// nearly every entry and would drag the whole FAQ into the prompt.
+		.filter((r) => r.score >= 2)
+		.sort((a, b) => b.score - a.score)
+		.slice(0, 4);
+	if (scored.length === 0) return null;
+
+	return {
+		label: 'vote.ke FAQ (the same answers published on /faq)',
+		text: scored.map((r) => `[${r.section}] Q: ${r.question}\nA: ${r.answer}`).join('\n\n')
+	};
+}
+
+/** Keyword-matched documents from the platform corpus (platform_documents):
+ * registration how-tos, election dates, the citizen/ambassador manuals. */
+async function civicsCorpusSource(q: string): Promise<Source | null> {
+	const docs = await db
+		.select({ title: platformDocuments.title, body: platformDocuments.body, sourceUrl: platformDocuments.sourceUrl, keywords: platformDocuments.keywords })
+		.from(platformDocuments)
+		.where(isNull(platformDocuments.deletedAt));
+
+	const hits = docs.filter((d) =>
+		d.keywords
+			.split(',')
+			.map((k) => k.trim().toLowerCase())
+			.filter(Boolean)
+			.some((k) => q.includes(k))
+	);
+	if (hits.length === 0) return null;
+
+	return {
+		label: 'vote.ke civics reference',
+		text: hits.map((d) => `--- ${d.title}${d.sourceUrl ? ` (source: ${d.sourceUrl})` : ''} ---\n${d.body}`).join('\n\n')
+	};
+}
+
 // ── The router ─────────────────────────────────────────────────────────────
 
 export type PlatformGrounding = { sources: Source[]; usedSavedLocation: boolean };
@@ -294,10 +561,31 @@ export async function routePlatformQuestion(
 	// past answers are long and would trigger sources by incidental mentions
 	// (an answer that links /pricing shouldn't pull the pricing table next turn).
 	const q = [...recentQuestions, question].join(' \n ').toLowerCase();
-	const [directory, pricing] = await Promise.all([directorySource(q, location), pricingSource(q)]);
-	const sources = [directory, seatDutiesSource(q), demographicsSource(q), pricing, howToSource(q)].filter(
-		(s): s is Source => s !== null
-	);
+	// Every source is keyword-gated and independent, so they're resolved together
+	// rather than in sequence — a question that matches several (e.g. "what have
+	// my leaders done" hitting both the digest and the directory) should pay for
+	// one round of queries, not one per source.
+	const [directory, pricing, digest, race, facts, civics, faq] = await Promise.all([
+		directorySource(q, location),
+		pricingSource(q),
+		activityDigestSource(q, location),
+		raceMetricsSource(q),
+		leaderFactsSource(q),
+		civicsCorpusSource(q),
+		platformFaqSource(q)
+	]);
+	const sources = [
+		directory,
+		seatDutiesSource(q),
+		demographicsSource(q),
+		pricing,
+		howToSource(q),
+		digest,
+		race,
+		facts,
+		civics,
+		faq
+	].filter((s): s is Source => s !== null);
 	const askedForRegion = regionsIn(q).length > 0;
 	const usedSavedLocation = !!directory && !askedForRegion && !!(location.county || location.constituency || location.ward);
 	return { sources, usedSavedLocation };

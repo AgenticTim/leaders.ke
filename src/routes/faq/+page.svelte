@@ -1,138 +1,20 @@
 <script lang="ts">
-	// FAQ: grounded in shipped features and the visible pipeline (Features page /
-	// docs/TODO.md); pipeline answers say "coming" so nothing reads as live before
-	// it is. Search filters question + answer text client-side.
-	type Faq = { q: string; a: string };
-	type Section = { title: string; items: Faq[] };
+	// FAQ content lives in platform_faqs (seeded from src/lib/data/platformFaqs.json,
+	// editable at /dashboard/admin/knowledge) rather than in this file, so the
+	// answers here are the same ones the site-wide Ask box grounds on. Search
+	// filters question + answer text client-side.
+	import type { PageProps } from './$types';
 
-	const sections: Section[] = [
-		{
-			title: 'Citizens',
-			items: [
-				{
-					q: 'What can I do here without an account?',
-					a: 'Browse every leader and 2027 candidate, view seat pages for any position and region, compare two leaders side by side, check the Ranks table, and read manifestos with their delivery trackers.'
-				},
-				{
-					q: 'How do I follow a leader or campaign?',
-					a: 'Open their public page and follow with just your name and a phone or email. The channel you provide becomes how their campaign updates reach you, and every message carries an opt-out.'
-				},
-				{
-					q: 'Where are the voter tools: ballot simulator, voter education, key dates?',
-					a: 'Right here. The homepage is the ballot simulator: pick your county, constituency and ward and cast a full six-seat simulated ballot. Voter education lives under Learn, with key 2027 dates, registration drives, and a registration checker alongside.'
-				},
-				{
-					q: 'Can I review a leader?',
-					a: "Yes, rate and review any leader on their public page, organized around their manifesto pillars. Campaigns can respond in the review's thread and flag abuse; platform admins arbitrate flags."
-				},
-				{
-					q: 'Will anyone see my political choices?',
-					a: 'No. Ballots, follows, and reviews are never sold or shared in a form that identifies you, per the Data Protection Act (2019). See the Privacy and Data Policy pages.'
-				}
-			]
-		},
-		{
-			title: 'Leaders & candidates',
-			items: [
-				{
-					q: 'How do I get on vote.ke?',
-					a: 'If a profile for you already exists, claim it via "Claim this profile" on that page. Otherwise create one: hit Create a Profile, fill the Profile tab (including your photo), the Contacts tab, and the Team tab (where your sign-off sits under your own entry), then submit for verification. Adding a campaign (Campaign tab) is separate and optional, verified on its own.'
-				},
-				{
-					q: 'What does verification involve?',
-					a: 'You upload your photo on the Profile tab and your ID and role in the sign-off on the Team tab, and an admin reviews the application. Each campaign you add (Campaign tab) is verified separately, once its IEBC Certificate of Clearance is on file.'
-				},
-				{
-					q: 'What do I get once verified?',
-					a: 'A permanent public page at vote.ke/your-name: bio, record, manifesto with a public delivery tracker, posts, reviews, followers, fundraising, and a PR desk that tracks your news mentions.'
-				},
-				{
-					q: 'How do broadcasts work?',
-					a: "Compose once and send to your followers filtered by ward or county. Email works today; SMS and WhatsApp send using your package's monthly credits."
-				},
-				{
-					q: 'Can an AI answer my constituents?',
-					a: 'Yes, campaign pages carry a chat grounded in your manifesto, answering constituent questions 24/7. Persistent conversations and WhatsApp as a channel are in the pipeline.'
-				},
-				{
-					q: 'Can I raise funds through my page?',
-					a: 'Your campaign page takes donations against a public goal today (manually confirmed ledger). Direct M-Pesa STK push and automated receipts are in the pipeline.'
-				}
-			]
-		},
-		{
-			title: 'Managers & teams',
-			items: [
-				{
-					q: 'Can I run a campaign without the candidate?',
-					a: "Yes. Managers can create the campaign, complete the application, and run the whole dashboard. The candidate never has to touch it. You'll appear with a \"Managing\" badge."
-				},
-				{
-					q: 'How do I build a team?',
-					a: 'Invite managers and ambassadors by email from the Team tab. An application needs at least 2 team members before it can be submitted. Only admin managers can add or remove other managers.'
-				},
-				{
-					q: 'What do ambassadors do?',
-					a: 'Ambassadors mobilize on the ground: each campaign they serve appears as a tab on their citizen dashboard where they add citizens as followers (with consent) and see the roster they recruited.'
-				},
-				{
-					q: 'What happens if a manager or ambassador leaves?',
-					a: 'Their recruits stay attached to the campaign. Removing a manager keeps their ambassadors, and removing an ambassador keeps the followers they signed up.'
-				}
-			]
-		},
-		{
-			title: 'Billing & pricing',
-			items: [
-				{
-					q: 'What does it cost?',
-					a: 'Citizens pay nothing. Campaigns subscribe monthly on one of three packages (Kickstart, Mobilize, Dominate) at one flat rate for every office, see the Pricing page.'
-				},
-				{
-					q: 'When do I pay?',
-					a: 'After approval: you complete verification first, then pay for the package that takes your page public. Online checkout (Paystack/M-Pesa) is in the pipeline; payments are handled manually until then.'
-				},
-				{
-					q: 'Are there fundraising fees?',
-					a: 'A flat 5% platform fee on every confirmed donation, the same on every package, disclosed at the point of donation. The fee is not returned on refunds. Full details on the Fundraising Rules page.'
-				},
-				{
-					q: 'Can I be featured on the homepage?',
-					a: 'Featured placement (your profile pinned for every visitor) is in the pipeline. The rail exists, the purchase flow is coming.'
-				}
-			]
-		},
-		{
-			title: 'Legal & data',
-			items: [
-				{
-					q: 'Is vote.ke neutral?',
-					a: 'Yes: every campaign gets the same tools on the same terms, verification is against IEBC records, voter education never carries paid placement, and the platform endorses no one.'
-				},
-				{
-					q: 'What laws does the platform follow?',
-					a: 'The Kenya Data Protection Act (2019) for personal data and IEBC regulations for campaign material. Political opinions are treated as sensitive data.'
-				},
-				{
-					q: 'How do I correct or delete my data?',
-					a: 'Manage everything from your account page, including full account deletion, or write to privacy@vote.ke for anything the dashboard doesn\'t cover.'
-				},
-				{
-					q: 'How is spam and impersonation handled?',
-					a: 'Impersonating a leader gets the account removed; profiles only go public after ID and IEBC verification. OTP verification guards contacts, and follower messages always carry an opt-out.'
-				}
-			]
-		}
-	];
+	let { data }: PageProps = $props();
 
 	let query = $state('');
 	const visible = $derived.by(() => {
 		const q = query.trim().toLowerCase();
-		if (!q) return sections;
-		return sections
+		if (!q) return data.sections;
+		return data.sections
 			.map((s) => ({
 				...s,
-				items: s.items.filter((f) => f.q.toLowerCase().includes(q) || f.a.toLowerCase().includes(q))
+				items: s.items.filter((f) => f.question.toLowerCase().includes(q) || f.answer.toLowerCase().includes(q))
 			}))
 			.filter((s) => s.items.length > 0);
 	});
@@ -161,13 +43,13 @@
 		<section class="mt-8" aria-label={section.title}>
 			<h2 class="text-lg font-semibold text-heading">{section.title}</h2>
 			<div class="mt-3 space-y-2">
-				{#each section.items as faq (faq.q)}
+				{#each section.items as faq (faq.question)}
 					<details class="group rounded-2xl border border-border bg-surface p-4" open={!!query.trim()}>
 						<summary class="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-semibold text-heading">
-							{faq.q}
+							{faq.question}
 							<span class="text-muted transition group-open:rotate-180">⌄</span>
 						</summary>
-						<p class="mt-2 text-sm leading-relaxed text-muted">{faq.a}</p>
+						<p class="mt-2 text-sm leading-relaxed text-muted">{faq.answer}</p>
 					</details>
 				{/each}
 			</div>

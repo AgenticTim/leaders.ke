@@ -76,6 +76,7 @@ export const POST: RequestHandler = async (event) => {
 		const grounding = await routePlatformQuestion(
 			question,
 			{
+				userId: viewer?.id ?? null,
 				county: viewer?.county ?? null,
 				constituency: viewer?.constituency ?? null,
 				ward: viewer?.ward ?? null

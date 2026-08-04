@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, boolean, integer, bigint, timestamp, jsonb, customType, pgEnum, uniqueIndex, index } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, text, boolean, integer, bigint, timestamp, date, jsonb, customType, pgEnum, uniqueIndex, index } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { user } from './auth.schema'; // better-auth owns login; users below is the 1:1 domain profile
 import type { ManagerRoles } from '$lib/utils/campaignRoles';
@@ -55,6 +55,12 @@ export const users = pgTable('users', {
   firstName: varchar('first_name', { length: 50 }).notNull(), // single word, no spaces (enforced at signup)
   otherNames: varchar('other_names', { length: 100 }).notNull(), // surname + any middle names, e.g. "Van Der Berg"
   age: integer('age'), // optional, self-declared on the leader Profile tab
+  // Date of birth, where it's known from a public record (see
+  // scripts/backfill-dob.ts). Preferred over `age` for anything comparative
+  // ("youngest governor"): a stored integer age is silently wrong a year after
+  // it was entered, a birth date never goes stale. `age` stays as the
+  // self-declared fallback for profiles with no sourced date.
+  dateOfBirth: date('date_of_birth'),
   bio: text('bio'),
   address: varchar('address', { length: 200 }),
   // Where this PERSON lives, set on their own /dashboard/account, same
@@ -1005,6 +1011,61 @@ export const aiAskEvents = pgTable('ai_ask_events', {
   index('ai_ask_events_anon_idx').on(t.anonId, t.createdAt),
   index('ai_ask_events_ip_idx').on(t.ipAddress, t.createdAt),
   index('ai_ask_events_user_idx').on(t.userId, t.createdAt),
+]);
+
+// 20.1 CIVICS CORPUS (plans/10-platform-wide-ai-chat.md): curated platform-scope
+// reference text the site-wide Ask box answers from — seat duties beyond what
+// seatDuties.ts hardcodes, registration how-tos, election dates, the citizen and
+// ambassador manuals. Deliberately NOT knowledge_documents: that table is for a
+// leader's uploaded FILES (file_url/mime_type are required there), so curated
+// authored text would have to fake both. Admin-editable on /dashboard/admin/civics.
+export const platformDocuments = pgTable('platform_documents', {
+  id: serial('id').primaryKey(),
+  title: varchar('title', { length: 255 }).notNull(),
+  body: text('body').notNull(), // the text fed to the AI as grounding
+  // Where a citizen can read the authoritative version (IEBC, kenyalaw.org…),
+  // so an answer can point past our summary to the real source.
+  sourceUrl: text('source_url'),
+  // Matched against the question (lowercased, comma-separated) to decide whether
+  // this doc is worth pulling — the router keeps every source keyword-gated so
+  // one question never drags the whole corpus into the prompt.
+  keywords: text('keywords').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+});
+
+// 20.1b PLATFORM FAQ: the public /faq page's own Q&A, in the database rather
+// than hardcoded in the page, so the same answers a citizen reads there are the
+// ones the site-wide Ask box answers from — one source of truth instead of a
+// static page and an AI that can't see it drifting apart. Seeded from
+// src/lib/data/platformFaqs.json (bun run db:seed -- --platform-faqs) and
+// editable at /dashboard/admin/knowledge. Distinct from faqEntries, which is a
+// single LEADER's own team-written Q&A and only ever grounds that leader's chat.
+export const platformFaqs = pgTable('platform_faqs', {
+  id: serial('id').primaryKey(),
+  section: varchar('section', { length: 100 }).notNull(), // the /faq page's grouping, e.g. "Citizens"
+  question: varchar('question', { length: 500 }).notNull(),
+  answer: text('answer').notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(), // display order within a section
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+}, (t) => [
+  index('platform_faqs_section_idx').on(t.section, t.sortOrder),
+]);
+
+// 20.2 ASK STARTER CLICKS: which suggested prompt a visitor actually tapped in
+// the Ask panel. Purely product signal (which starters earn their place in the
+// rotation), never read back into an answer.
+export const askStarterClicks = pgTable('ask_starter_clicks', {
+  id: serial('id').primaryKey(),
+  starter: varchar('starter', { length: 255 }).notNull(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  anonId: varchar('anon_id', { length: 64 }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index('ask_starter_clicks_starter_idx').on(t.starter, t.createdAt),
 ]);
 
 // 21. PLEDGES (a citizen pledging their vote to a campaign, created by the

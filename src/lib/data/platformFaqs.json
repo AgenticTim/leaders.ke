@@ -1,0 +1,119 @@
+[
+  {
+    "section": "Citizens",
+    "items": [
+      {
+        "question": "What can I do here without an account?",
+        "answer": "Browse every leader and 2027 candidate, view seat pages for any position and region, compare two leaders side by side, check the Ranks table, and read manifestos with their delivery trackers."
+      },
+      {
+        "question": "How do I follow a leader or campaign?",
+        "answer": "Open their public page and follow with just your name and a phone or email. The channel you provide becomes how their campaign updates reach you, and every message carries an opt-out."
+      },
+      {
+        "question": "Where are the voter tools: ballot simulator, voter education, key dates?",
+        "answer": "Right here. The homepage is the ballot simulator: pick your county, constituency and ward and cast a full six-seat simulated ballot. Voter education lives under Learn, with key 2027 dates, registration drives, and a registration checker alongside."
+      },
+      {
+        "question": "Can I review a leader?",
+        "answer": "Yes, rate and review any leader on their public page, organized around their manifesto pillars. Campaigns can respond in the review's thread and flag abuse; platform admins arbitrate flags."
+      },
+      {
+        "question": "Will anyone see my political choices?",
+        "answer": "No. Ballots, follows, and reviews are never sold or shared in a form that identifies you, per the Data Protection Act (2019). See the Privacy and Data Policy pages."
+      }
+    ]
+  },
+  {
+    "section": "Leaders & candidates",
+    "items": [
+      {
+        "question": "How do I get on vote.ke?",
+        "answer": "If a profile for you already exists, claim it via \"Claim this profile\" on that page. Otherwise create one: hit Create a Profile, fill the Profile tab (including your photo), the Contacts tab, and the Team tab (where your sign-off sits under your own entry), then submit for verification. Adding a campaign (Campaign tab) is separate and optional, verified on its own."
+      },
+      {
+        "question": "What does verification involve?",
+        "answer": "You upload your photo on the Profile tab and your ID and role in the sign-off on the Team tab, and an admin reviews the application. Each campaign you add (Campaign tab) is verified separately, once its IEBC Certificate of Clearance is on file."
+      },
+      {
+        "question": "What do I get once verified?",
+        "answer": "A permanent public page at vote.ke/your-name: bio, record, manifesto with a public delivery tracker, posts, reviews, followers, fundraising, and a PR desk that tracks your news mentions."
+      },
+      {
+        "question": "How do broadcasts work?",
+        "answer": "Compose once and send to your followers filtered by ward or county. Email works today; SMS and WhatsApp send using your package's monthly credits."
+      },
+      {
+        "question": "Can an AI answer my constituents?",
+        "answer": "Yes, campaign pages carry a chat grounded in your manifesto, answering constituent questions 24/7. Persistent conversations and WhatsApp as a channel are in the pipeline."
+      },
+      {
+        "question": "Can I raise funds through my page?",
+        "answer": "Your campaign page takes donations against a public goal today (manually confirmed ledger). Direct M-Pesa STK push and automated receipts are in the pipeline."
+      }
+    ]
+  },
+  {
+    "section": "Managers & teams",
+    "items": [
+      {
+        "question": "Can I run a campaign without the candidate?",
+        "answer": "Yes. Managers can create the campaign, complete the application, and run the whole dashboard. The candidate never has to touch it. You'll appear with a \"Managing\" badge."
+      },
+      {
+        "question": "How do I build a team?",
+        "answer": "Invite managers and ambassadors by email from the Team tab. An application needs at least 2 team members before it can be submitted. Only admin managers can add or remove other managers."
+      },
+      {
+        "question": "What do ambassadors do?",
+        "answer": "Ambassadors mobilize on the ground: each campaign they serve appears as a tab on their citizen dashboard where they add citizens as followers (with consent) and see the roster they recruited."
+      },
+      {
+        "question": "What happens if a manager or ambassador leaves?",
+        "answer": "Their recruits stay attached to the campaign. Removing a manager keeps their ambassadors, and removing an ambassador keeps the followers they signed up."
+      }
+    ]
+  },
+  {
+    "section": "Billing & pricing",
+    "items": [
+      {
+        "question": "What does it cost?",
+        "answer": "Citizens pay nothing. Campaigns subscribe monthly on one of three packages (Kickstart, Mobilize, Dominate) at one flat rate for every office, see the Pricing page."
+      },
+      {
+        "question": "When do I pay?",
+        "answer": "After approval: you complete verification first, then pay for the package that takes your page public. Online checkout (Paystack/M-Pesa) is in the pipeline; payments are handled manually until then."
+      },
+      {
+        "question": "Are there fundraising fees?",
+        "answer": "A flat 5% platform fee on every confirmed donation, the same on every package, disclosed at the point of donation. The fee is not returned on refunds. Full details on the Fundraising Rules page."
+      },
+      {
+        "question": "Can I be featured on the homepage?",
+        "answer": "Featured placement (your profile pinned for every visitor) is in the pipeline. The rail exists, the purchase flow is coming."
+      }
+    ]
+  },
+  {
+    "section": "Legal & data",
+    "items": [
+      {
+        "question": "Is vote.ke neutral?",
+        "answer": "Yes: every campaign gets the same tools on the same terms, verification is against IEBC records, voter education never carries paid placement, and the platform endorses no one."
+      },
+      {
+        "question": "What laws does the platform follow?",
+        "answer": "The Kenya Data Protection Act (2019) for personal data and IEBC regulations for campaign material. Political opinions are treated as sensitive data."
+      },
+      {
+        "question": "How do I correct or delete my data?",
+        "answer": "Manage everything from your account page, including full account deletion, or write to privacy@vote.ke for anything the dashboard doesn't cover."
+      },
+      {
+        "question": "How is spam and impersonation handled?",
+        "answer": "Impersonating a leader gets the account removed; profiles only go public after ID and IEBC verification. OTP verification guards contacts, and follower messages always carry an opt-out."
+      }
+    ]
+  }
+]
