@@ -7,6 +7,8 @@
 	// its thread server-rendered into the page data), this lives in the shared
 	// Header on every route, so it owns its own fetch/state and loads its thread
 	// lazily the first time it's opened.
+	import { page } from '$app/state';
+	import AuthModal from '$lib/components/auth/AuthModal.svelte';
 	import TypingDots from '$lib/components/TypingDots.svelte';
 	import CloseIcon from '$lib/components/svgs/CloseIcon.svelte';
 	import { portal } from '$lib/effects';
@@ -22,6 +24,7 @@
 	// Guest allowance spent — pairs the message below with a log-in link, since
 	// signing in is the actual remedy rather than retrying.
 	let limitReached = $state(false);
+	let authOpen = $state(false);
 	// Overwritten by the server's own askMaxChars on first load; this default
 	// only governs the moment before that lands.
 	let maxChars = $state(300);
@@ -240,7 +243,19 @@
 				<p class="rounded-xl bg-surface-2 px-3.5 py-2 text-xs text-muted">
 					{errorText}
 					{#if limitReached}
-						<a href="/login" class="font-semibold text-primary hover:underline">Log in to keep asking.</a>
+						<!-- Auth as a step inside this flow, not a navigation away from it:
+						the panel closes and the modal opens over the page they were on,
+						and `next` brings them back here rather than to a dashboard. -->
+						<button
+							type="button"
+							onclick={() => {
+								open = false;
+								authOpen = true;
+							}}
+							class="font-semibold text-primary hover:underline"
+						>
+							Log in to keep asking.
+						</button>
 					{/if}
 				</p>
 			{/if}
@@ -278,3 +293,16 @@
 		</div>
 	</div>
 {/if}
+
+<!-- Outside the panel's own {#if}, since opening this CLOSES the panel. Portaled
+for the same reason the panel is: Modal.svelte positions itself `fixed inset-0`,
+which would resolve against the backdrop-blurred sticky header this component is
+mounted in rather than the viewport. `next` returns them to the page they were
+reading, not a dashboard. -->
+<div use:portal>
+	<AuthModal
+		bind:open={authOpen}
+		next={page.url.pathname + page.url.search}
+		message="Log in to keep asking vote.ke questions."
+	/>
+</div>
