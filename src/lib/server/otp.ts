@@ -46,7 +46,7 @@ export async function otpCooldownRemaining(channel: OtpChannel, destination: str
 
 /**
  * Seconds remaining before this user may request another code on this channel,
- * regardless of destination — keyed on userId (unlike otpCooldownRemaining, which
+ * regardless of destination, keyed on userId (unlike otpCooldownRemaining, which
  * is keyed on destination) so someone can't dodge the per-destination cooldown by
  * simply typing a different address/number on every request
  * e.g. changing email and spamming arbitrary inboxes with confirmation emails.
@@ -112,7 +112,7 @@ export async function sendOtp(userId: number, channel: OtpChannel, destination: 
 }
 
 /** True if a still-valid (unconsumed, unexpired) code was already sent to this
- * destination — lets the verify pages auto-send only when none is outstanding, so
+ * destination, lets the verify pages auto-send only when none is outstanding, so
  * a refresh doesn't fire a duplicate. */
 export async function hasPendingOtp(channel: OtpChannel, destination: string): Promise<boolean> {
 	const [row] = await db
@@ -153,7 +153,7 @@ export async function verifyOtpWithDestination(
 
 /**
  * Records a password-reset request for this email, enforcing the same
- * cooldown/daily-cap settings as OTP sends — otherwise call this right before
+ * cooldown/daily-cap settings as OTP sends, otherwise call this right before
  * auth.api.requestPasswordReset. Throws (with the standard "wait Xs"/"too many"
  * messages) if the limit is hit; on success the email is safe to send.
  */

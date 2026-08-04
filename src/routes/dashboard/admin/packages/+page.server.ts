@@ -28,7 +28,7 @@ export const load: PageServerLoad = async (event) => {
 		// Lifetime invite caps are part of what each package buys, so they're
 		// managed here on the package matrix, not under Settings.
 		inviteLimits: settings.inviteLimits,
-		// PAYG credit rates (the /pricing Credits table) — priced product, so they
+		// PAYG credit rates (the /pricing Credits table), priced product, so they
 		// live here at the top of Packages rather than under Settings.
 		creditRates: {
 			aiChat: settings.aiChatCostCredits,
@@ -93,7 +93,7 @@ export const actions: Actions = {
 	},
 
 	// One perk toggle. Checkboxes only submit when CHECKED, so a plain
-	// form.get('value') can't distinguish "off" from "not submitted" — the
+	// form.get('value') can't distinguish "off" from "not submitted". The
 	// checkbox posts its own onchange (always present) instead, carrying the
 	// new state explicitly.
 	setPerk: async (event) => {

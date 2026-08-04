@@ -68,7 +68,7 @@
 	};
 </script>
 
-<svelte:head><title>Inbox — Dashboard</title></svelte:head>
+<svelte:head><title>Inbox · Dashboard</title></svelte:head>
 
 <div>
 	{#if form?.error}
@@ -76,7 +76,7 @@
 	{/if}
 
 	<!-- Chats: the shared two-pane inbox (ChatInbox), same component the admin
-	platform inbox renders — UI changes there land here too. -->
+	platform inbox renders, UI changes there land here too. -->
 	<section class="mt-6">
 		<h2 class="text-lg font-semibold text-heading">
 			Chats <span class="text-sm font-normal text-muted">({data.chatTotal}{#if awaitingChats > 0} · {awaitingChats} awaiting{/if})</span>

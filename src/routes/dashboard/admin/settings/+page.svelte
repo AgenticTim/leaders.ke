@@ -22,7 +22,7 @@
 	}
 </script>
 
-<svelte:head><title>Platform settings — vote.ke</title></svelte:head>
+<svelte:head><title>Platform settings · vote.ke</title></svelte:head>
 
 <div>
 	<h1 class="text-xl font-bold text-heading">Platform settings</h1>
@@ -102,7 +102,7 @@
 
 	<!-- News ingestion sources (newsIngest.ts): which feeds the daily crawl reads.
 	A source with no working feed yet (url: null there) still shows here so the
-	toggle is ready — it's a no-op until a URL is filled in. Autosaves per
+	toggle is ready. It's a no-op until a URL is filled in. Autosaves per
 	checkbox, same pattern as the Packages perk grid. -->
 	<div class="mt-8 rounded-2xl border border-border bg-surface p-5">
 		<h2 class="font-semibold text-heading">News ingestion sources</h2>
@@ -237,7 +237,7 @@ Applies everywhere a code/link is sent
 			<p class="mt-1 text-xs text-muted">
 				Whether the "Verify Campaign" action on each of a profile's campaigns (Campaign tab)
 				requires the IEBC Certificate of Clearance to already be uploaded. Leave off until closer to
-				nominations — certificates aren't issued yet.
+				nominations, certificates aren't issued yet.
 			</p>
 			<label class="mt-2 flex items-center gap-2">
 				<input
@@ -256,7 +256,7 @@ Applies everywhere a code/link is sent
 			<h2 class="font-semibold text-heading">Onboarding verification gate</h2>
 			<p class="mt-1 text-xs text-muted">
 				Whether a citizen must verify their email/phone (OTP) before they can create or claim a
-				leader profile. Leave both on in production — turning either off is really only for a
+				leader profile. Leave both on in production. Turning either off is really only for a
 				low-friction demo environment.
 			</p>
 			<label class="mt-2 flex items-center gap-2">
@@ -352,7 +352,7 @@ Applies everywhere a code/link is sent
 						name="askMaxChars"
 						min="1"
 						value={data.settings.askMaxChars}
-						use:tooltip={'Anything longer is truncated, not rejected — the citizen still gets an answer to the first part.'}
+						use:tooltip={'Anything longer is truncated, not rejected. The citizen still gets an answer to the first part.'}
 						class="mt-1 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
 					/>
 				</label>
@@ -363,7 +363,7 @@ Applies everywhere a code/link is sent
 						name="askHistoryMessages"
 						min="0"
 						value={data.settings.askHistoryMessages}
-						use:tooltip={'Prior messages replayed as context so follow-ups resolve. Each one is billed again on every later question — 0 disables follow-up memory.'}
+						use:tooltip={'Prior messages replayed as context so follow-ups resolve. Each one is billed again on every later question, 0 disables follow-up memory.'}
 						class="mt-1 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
 					/>
 				</label>
@@ -374,7 +374,7 @@ Applies everywhere a code/link is sent
 		     and specifically when answering about one leader's profile. Both need room
 		     to breathe, so each spans the full grid width. -->
 		<div class="rounded-2xl border border-border bg-surface p-5 md:col-span-3">
-			<h2 class="font-semibold text-heading">AI Chat — platform system prompt</h2>
+			<h2 class="font-semibold text-heading">AI Chat, platform system prompt</h2>
 			<p class="mt-1 text-xs text-muted">
 				Governs the AI Chat assistant everywhere it runs, before any leader-specific instructions
 				apply: overall tone, honesty rules, neutrality between candidates, and what it does when it
@@ -389,7 +389,7 @@ Applies everywhere a code/link is sent
 		</div>
 
 		<div class="rounded-2xl border border-border bg-surface p-5 md:col-span-3">
-			<h2 class="font-semibold text-heading">AI Chat — leader system prompt</h2>
+			<h2 class="font-semibold text-heading">AI Chat. Leader system prompt</h2>
 			<p class="mt-1 text-xs text-muted">
 				Layers on top of the platform prompt specifically for answers about one leader's own
 				profile: how to represent their record and plans, and how to handle questions outside what

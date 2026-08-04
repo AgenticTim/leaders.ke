@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.leader.name} — {data.leader.positionTitle}, {data.leader.regionLabel} | vote.ke</title>
+	<title>{data.leader.name} · {data.leader.positionTitle}, {data.leader.regionLabel} | vote.ke</title>
 	<meta
 		name="description"
 		content="{data.leader.name}, {data.leader.status} {data.leader.positionTitle} for {data.leader.regionLabel}: verified record, track record and active campaign."

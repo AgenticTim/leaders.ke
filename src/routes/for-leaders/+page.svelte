@@ -13,7 +13,7 @@
 
 
 	// Campaign toolkit grid: what a subscription buys. `live` distinguishes
-	// shipped features from roadmap items (badged "Coming soon") — the badge
+	// shipped features from roadmap items (badged "Coming soon"). The badge
 	// doubles as a demand test for later phases.
 	// Ordered by what sells; one-clause descriptions keep the section scannable.
 	// Featured placement is pipeline (see FAQ), so it sits last and badged.
@@ -102,7 +102,7 @@
 
 	let { data }: { data: PageData } = $props();
 
-	// Live counts from the load function — never hand-maintained numbers a
+	// Live counts from the load function, never hand-maintained numbers a
 	// campaign team could catch out of date.
 	const fmt = new Intl.NumberFormat('en-KE');
 	const stats = $derived([
@@ -113,7 +113,7 @@
 </script>
 
 <svelte:head>
-	<title>vote.ke for Leaders — Your 2027 Campaign HQ</title>
+	<title>vote.ke for Leaders · Your 2027 Campaign HQ</title>
 	<meta
 		name="description"
 		content="Run and win your 2027 campaign from one platform: a verified profile, manifesto, followers and broadcasts. Citizens: verify who is vying and follow campaigns."

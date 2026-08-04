@@ -1,5 +1,5 @@
 // The Contacts section embedded on the Profile tab (contacts belong to the person,
-// so they save alongside the profile) — writes the person's real contacts (the
+// so they save alongside the profile), writes the person's real contacts (the
 // phantom users row) directly.
 import { fail, type RequestEvent } from '@sveltejs/kit';
 import { and, eq, isNull } from 'drizzle-orm';
@@ -10,7 +10,7 @@ import { PLATFORMS } from '$lib/components/contact/socials';
 import { normalizeKenyanPhone } from '$lib/utils/phone';
 
 /** The client stages each social entry as a bare handle (ContactsTab.svelte's
- * handleSocialInput strips a pasted full URL down to one) — reconstruct the full
+ * handleSocialInput strips a pasted full URL down to one), reconstruct the full
  * URL here so ContactLinks.svelte (which uses the stored value as an href
  * directly, no prefix logic of its own) actually links somewhere real. */
 function buildSocialsRecord(entries: { kind: string; value: string }[], website: string): Record<string, string> {
@@ -25,7 +25,7 @@ function buildSocialsRecord(entries: { kind: string; value: string }[], website:
 	return socials;
 }
 
-// The subject is the leader profile being edited — a distinct (phantom) user from
+// The subject is the leader profile being edited. A distinct (phantom) user from
 // the signed-in account, so this is the campaign's PUBLIC contact info, not the
 // citizen's own login identity.
 async function getSubject(event: RequestEvent) {
@@ -49,7 +49,7 @@ export async function loadContactsTab(event: RequestEvent) {
 	const { website, ...otherSocials } = socials;
 
 	// Contacts the editor already OTP-verified on their own citizen account count
-	// as verified here too — typing one shows "✓ Verified" without another OTP.
+	// as verified here too. Typing one shows "✓ Verified" without another OTP.
 	const own = await ownVerifiedContacts(domainUser.id);
 
 	return {
@@ -88,7 +88,7 @@ export async function saveContactsTab(event: RequestEvent) {
 
 	await db.update(users).set({ address: address || null, socials }).where(eq(users.id, subject.id));
 
-	// A campaign's public contact lines (the leader profile, not a login) — saved
+	// A campaign's public contact lines (the leader profile, not a login), saved
 	// directly on change. Only a value some OTHER person has verified is rejected;
 	// the editor's own accounts (citizen login and managed profiles) share one pool
 	// of contacts, and a stranger's unverified hold no longer collides now that the
@@ -135,7 +135,7 @@ export async function saveContactsTab(event: RequestEvent) {
 		if (conflict) return fail(400, { error: conflict });
 	}
 
-	// The public contact email — like the phone lines, saved directly and left
+	// The public contact email, like the phone lines, saved directly and left
 	// UNVERIFIED (verifiedAt null); verifying via /verify/email is optional. An
 	// unchanged value is skipped so an already-verified email keeps its verifiedAt.
 	const email = String(form.get('email') ?? '').trim().toLowerCase();

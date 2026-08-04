@@ -10,7 +10,7 @@ import { users, contacts } from '$lib/server/db/schema';
 import { sendEmail } from '$lib/server/email';
 import { getDomainUser } from '$lib/server/leader';
 
-// "Continue with Google" only lights up when both OAuth credentials are set —
+// "Continue with Google" only lights up when both OAuth credentials are set,
 // dev without keys stays on email/password, and the login/signup pages hide the
 // button (they read this flag).
 export const googleAuthEnabled = !!env.GOOGLE_CLIENT_ID && !!env.GOOGLE_CLIENT_SECRET;
@@ -29,13 +29,13 @@ export const auth = betterAuth({
 			await sendEmail({
 				to: user.email,
 				subject: 'Reset your vote.ke password',
-				text: `Hi ${user.name || 'there'},\n\nReset your password with this link (valid for a limited time):\n${url}\n\nDidn't request it? Ignore this email — your password stays the same.`
+				text: `Hi ${user.name || 'there'},\n\nReset your password with this link (valid for a limited time):\n${url}\n\nDidn't request it? Ignore this email. Your password stays the same.`
 			});
 		}
 	},
 	// No requireEmailVerification, so signup stays frictionless (you're signed in
 	// immediately). Verification itself happens on /verify/email via OTP (see
-	// $lib/server/otp.ts), not this link — no sendOnSignUp, so that's the only email sent.
+	// $lib/server/otp.ts), not this link. No sendOnSignUp, so that's the only email sent.
 	emailVerification: {
 		sendOnSignUp: false,
 		sendVerificationEmail: async ({ user, url }) => {
@@ -62,7 +62,7 @@ export const auth = betterAuth({
 	},
 	// Link Google to an existing account with the same email instead of erroring or
 	// making a duplicate. Google is trusted (it verifies emails), so the link is
-	// automatic — someone who signed up with email/password can later "Sign in with
+	// automatic, someone who signed up with email/password can later "Sign in with
 	// Google" and land on the same account.
 	account: {
 		accountLinking: {
@@ -88,14 +88,14 @@ export const auth = betterAuth({
 							// skip the OTP step for those; email/password signups arrive
 							// unverified (emailVerified false) and still verify on /verify/email.
 							verified: { email: !!authUser.emailVerified, sms: false, whatsapp: false },
-							origin: 'browser' // real signup, not a seed script — the only web path today
+							origin: 'browser' // real signup, not a seed script. The only web path today
 						})
 						.returning();
 
 					if (authUser.email) {
 						// onConflictDoNothing: the same email can already be live as some other
 						// user's contacts row (e.g. a leader profile's own public contact
-						// address) — that's a separate concern from this account's login email,
+						// address). That's a separate concern from this account's login email,
 						// so just skip the redundant contacts row rather than failing signup
 						// over the shared unique index. This citizen still gets a working
 						// login; their own email-verified state is tracked on `users.verified`

@@ -1,8 +1,8 @@
 // Ambassador workspace for one campaign, a tab on the CITIZEN view (an ambassador
-// is a citizen with extra duties — no separate mode/route family). Scoped hard to
+// is a citizen with extra duties. No separate mode/route family). Scoped hard to
 // the viewer's own recruits (followers.addedBy = me); the full roster stays a
-// manager concern on /dashboard/[slug]/followers. Field work — the events they
-// run and the citizen feedback they gather (TODO #17) — is likewise their own.
+// manager concern on /dashboard/[slug]/followers. Field work. The events they
+// run and the citizen feedback they gather (TODO #17), is likewise their own.
 import { error, fail, redirect } from '@sveltejs/kit';
 import { requireDashboardUser } from '$lib/server/dashboard';
 import {

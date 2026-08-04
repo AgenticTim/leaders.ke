@@ -8,7 +8,7 @@ import { hasPendingOtp, otpCooldownRemaining, sendOtp, verifyOtpWithDestination,
 import { getPlatformSettings } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
 
-// Only ever redirect to a same-origin relative path — never follow ?next anywhere else.
+// Only ever redirect to a same-origin relative path, never follow ?next anywhere else.
 function safeNext(next: string | null): string {
 	return next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard';
 }
@@ -36,7 +36,7 @@ async function verifiedByOther(ownerIds: number[], email: string): Promise<boole
 // A confirmed email becomes the account's login email + verified contact, and flips
 // every place verification is tracked: the denormalized `users.verified` cache and
 // better-auth's own `user`. Handles both post-signup (email === current) and an
-// inline change (email differs — the login email moves to the new address).
+// inline change (email differs. The login email moves to the new address).
 async function applyEmailVerified(subject: DashboardUser['domainUser'], email: string, syncAuth: boolean) {
 	// Drop this user's prior live email row so the per-user (user, channel, value)
 	// unique index can't collide on insert. Other accounts' rows are left alone:
@@ -74,7 +74,7 @@ export const load: PageServerLoad = async (event) => {
 		}
 	}
 
-	// Verifying the citizen's current login email that's already verified — nothing to do.
+	// Verifying the citizen's current login email that's already verified. Nothing to do.
 	if (isAccount && email === authUser.email && domainUser.verified.email) {
 		redirectWithFlash(event.cookies, next, `${email} is already verified.`);
 	}
@@ -83,7 +83,7 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	// Auto-send a code on arrival only if none is already outstanding for this
-	// address — so a page refresh reuses the code already sent instead of firing a
+	// address, so a page refresh reuses the code already sent instead of firing a
 	// new one. A later resend is a deliberate button click.
 	const linkPath = scope === 'account' ? '/verify/email' : `/verify/email?scope=${scope}${slug ? `&slug=${slug}` : ''}`;
 	let emailCooldown = await otpCooldownRemaining('email', email);
@@ -92,7 +92,7 @@ export const load: PageServerLoad = async (event) => {
 			await sendOtp(subject.id, 'email', email, subject.firstName, linkPath);
 			emailCooldown = (await getPlatformSettings()).otpCooldownSeconds;
 		} catch {
-			// Best-effort — the "Resend code" button still lets them retry manually.
+			// Best-effort. The "Resend code" button still lets them retry manually.
 		}
 	}
 

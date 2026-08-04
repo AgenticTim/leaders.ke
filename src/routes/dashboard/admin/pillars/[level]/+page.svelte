@@ -20,13 +20,13 @@
 	}
 </script>
 
-<svelte:head><title>Pillars — Admin</title></svelte:head>
+<svelte:head><title>Pillars · Admin</title></svelte:head>
 
 <div>
 	<h1 class="text-xl font-bold text-heading">Pillars</h1>
 	<p class="mt-1 text-sm text-muted">
 		The starting-point manifesto pillars candidates can pick from, by office level. Picking one
-		on their manifesto just prefills the title and summary — it isn't a link back to this list.
+		on their manifesto just prefills the title and summary. It isn't a link back to this list.
 	</p>
 
 	<div class="mt-4 overflow-x-auto border-b border-border">

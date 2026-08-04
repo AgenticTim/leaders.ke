@@ -7,7 +7,7 @@ import type { PageServerLoad } from './$types';
 
 // Paystack sends the customer back here after the hosted payment page. The
 // reference is re-verified against Paystack's API (never trusted from the
-// query), then fulfillment runs idempotently — if the webhook already
+// query), then fulfillment runs idempotently. If the webhook already
 // fulfilled it, this just redirects to the dashboard.
 export const load: PageServerLoad = async (event) => {
 	await requireDashboardUser(event);

@@ -29,13 +29,13 @@ import {
 import { getPlatformSettings } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
 
-// /[leader]: the permanent leader record — bio, verified track record across
+// /[leader]: the permanent leader record, bio, verified track record across
 // every seat they've held or are vying for, education/professional experience,
 // and a pointer to the active campaign workspace at /[leader]/[year]. The bulk
 // of the data-loading lives in $lib/server/publicProfile so admin previews
 // (a pending application, a pending claim) can render the exact same shape.
 export const load: PageServerLoad = async ({ params, locals, cookies, depends }) => {
-	// Re-run on invalidate('chat:thread') — the SSE ping's refresh hook.
+	// Re-run on invalidate('chat:thread'). The SSE ping's refresh hook.
 	depends('chat:thread');
 	const viewer = locals.user ? await getDomainUser(locals.user.id) : null;
 
@@ -66,11 +66,11 @@ export const load: PageServerLoad = async ({ params, locals, cookies, depends })
 	}
 
 	// The viewer's own chat history with this person (questions, AI answers,
-	// team replies), keyed by account or the guest's anon_id — so refreshing
+	// team replies), keyed by account or the guest's anon_id, so refreshing
 	// never loses the thread and team replies actually reach the citizen.
 	const chatThread = await getWebThread(data.subjectId, viewer?.id ?? null, anonId);
 
-	// askMaxChars drives the Ask box's own maxlength — the action truncates to
+	// askMaxChars drives the Ask box's own maxlength. The action truncates to
 	// it regardless, this just stops the textarea taking more than will be used.
 	const { askMaxChars } = await getPlatformSettings();
 	return { ...data, isPledged, chatThread, askMaxChars };
@@ -97,7 +97,7 @@ async function publicLead(slug: string): Promise<{
 	if (leadsWithRun) {
 		leadCampaignId = activeRun!.campaigns.id;
 	} else if (currentTerm) {
-		// Person+cycle scoped (subjectUserId), same key as an aspirant's activeRun —
+		// Person+cycle scoped (subjectUserId), same key as an aspirant's activeRun,
 		// leaderId on `campaigns` is only ever a nullable secondary link, never the
 		// lookup key (seed-campaigns.ts never sets it).
 		const [c] = await db
@@ -127,7 +127,7 @@ async function publicLead(slug: string): Promise<{
 }
 
 export const actions: Actions = {
-	// Signed-in only — the account itself is the proof, no name/contact capture
+	// Signed-in only. The account itself is the proof, no name/contact capture
 	// or OTP confirm needed (see followAsAccount).
 	follow: async (event) => {
 		if (!event.locals.user) return fail(401, { error: 'Log in to follow.' });
@@ -201,7 +201,7 @@ export const actions: Actions = {
 	},
 
 	// Same AI constituent chat as the campaign workspace's Ask block, grounded in
-	// the same manifesto/posts — available here too so the permanent profile
+	// the same manifesto/posts, available here too so the permanent profile
 	// doesn't need a live campaign workspace to answer a question.
 	ask: async (event) => {
 		const form = await event.request.formData();
@@ -212,7 +212,7 @@ export const actions: Actions = {
 
 		// Truncated, not rejected: an over-long question still gets answered on
 		// its first askMaxChars. Enforced server-side because the textarea's own
-		// maxlength is bypassed by a direct POST — this is what actually keeps an
+		// maxlength is bypassed by a direct POST. This is what actually keeps an
 		// arbitrarily large paste out of a billed Anthropic call.
 		const settings = await getPlatformSettings();
 		const question = raw.slice(0, settings.askMaxChars);
@@ -224,7 +224,7 @@ export const actions: Actions = {
 		const lead = await publicLead(event.params.leader);
 		if (!lead) return fail(404, { error: 'Leader not found.' });
 
-		// AI chat is available on EVERY package — the wallet's credit balance is
+		// AI chat is available on EVERY package. The wallet's credit balance is
 		// the only gate. Low tiers taste the feature and buy credits; that's the
 		// conversion path, so no tier check here.
 
@@ -240,7 +240,7 @@ export const actions: Actions = {
 		);
 
 		// Free AI answers exhausted (guest): the question still lands, routed to
-		// the team — never a "log in to keep asking" dead end.
+		// the team, never a "log in to keep asking" dead end.
 		if (rateLimit.teamOnly) {
 			await recordQuestion(conversationId, viewer?.id ?? null, question, true);
 			return { asked: true, answered: false, question };
@@ -248,7 +248,7 @@ export const actions: Actions = {
 
 		// Profile-scoped wallet gate (subjectId), not campaignId: the knowledgebase
 		// a wallet pays to query is one per person, not per run. With no credit the
-		// question is still recorded and routed to the team — a human replies later
+		// question is still recorded and routed to the team. A human replies later
 		// rather than the citizen hitting a dead end.
 		const [wallet] = await db
 			.select()

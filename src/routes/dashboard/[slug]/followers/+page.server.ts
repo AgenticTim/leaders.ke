@@ -17,7 +17,7 @@ export type AreaRow = { area: string; slug: string; pledges: number; registeredV
 
 /** The seat's own patch, for ward-level penetration: a county seat (governor/
  * senator/woman rep) gets every ward in the county, an MP their constituency's
- * wards, an MCA just theirs — plus the county name that scopes pledger
+ * wards, an MCA just theirs, plus the county name that scopes pledger
  * accounts and the seat's own electorate. Null for national seats (the county
  * heatmap already covers those). `slug` is geoSlug(seatName), the same key
  * build-ward-maps.ts uses for its SVG paths, so WardMap.svelte can match rows
@@ -79,11 +79,11 @@ async function wardHeatmap(campaignId: number | null, scope: NonNullable<ReturnT
 
 /** Every county (geo.ts's real 2022 register), each against live pledges to
  * this person's active-cycle run grouped by the pledging citizen's own account
- * county (set on their Account page — the richer, always-current geo signal
+ * county (set on their Account page. The richer, always-current geo signal
  * now that pledging requires an account, rather than the one-off
  * contact-capture constituency/ward columns pledges itself carries, dead
  * weight since pledging stopped taking anonymous name/contact forms). Every
- * county is included even at 0 pledges — including when there's no campaign
+ * county is included even at 0 pledges. Including when there's no campaign
  * at all yet (campaignId null): the map still reads as "here's the ground
  * you'll need to cover", not just a leaderboard of hits. Sorted by pledge
  * count, most first, then by county name. */
@@ -121,7 +121,7 @@ export const load: PageServerLoad = async (event) => {
 
 	const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-	// Admin-toggled perk (packages.features.voterHeatmap — same fact /pricing
+	// Admin-toggled perk (packages.features.voterHeatmap, same fact /pricing
 	// shows), not a hardcoded tier name: flipping the toggle changes both
 	// pages together. Count is real either way; only the breakdown is gated.
 	const tier = await getPersonTier(ctx.profileUser.id);
@@ -129,7 +129,7 @@ export const load: PageServerLoad = async (event) => {
 	const campaign = await getRunCampaign(ctx.profileUser.id);
 
 	// The pledge/follower analytics below are about the 2027 RUN specifically,
-	// never the held office — ctx.position prefers a held term over the run
+	// never the held office, ctx.position prefers a held term over the run
 	// (see leader.ts buildContext), so a sitting Senator running for President
 	// would otherwise get their Senate seat's geography here. Falls back to
 	// ctx.position only for an incumbent with no declared 2027 run yet.
@@ -157,7 +157,7 @@ export const load: PageServerLoad = async (event) => {
 	]);
 
 	// Seat-scoped analytics (Dominate): ward penetration, opportunity ranking,
-	// and the votes-to-win benchmark — all against the seat's OWN electorate.
+	// and the votes-to-win benchmark. All against the seat's OWN electorate.
 	// National seats (President) get null here, so the county-wide heatmap
 	// below is what renders for them, not one held/other seat's wards.
 	const scope =
@@ -226,7 +226,7 @@ export const actions: Actions = {
 		return { invited: { email } };
 	},
 
-	// Same add-a-citizen flow ambassadors have on /dashboard/mobilize — managers
+	// Same add-a-citizen flow ambassadors have on /dashboard/mobilize, managers
 	// recruit too (blueprint funnel A), attributed via followers.addedBy.
 	addFollower: async (event) => {
 		const { domainUser, ctx } = await requireLeader(event);

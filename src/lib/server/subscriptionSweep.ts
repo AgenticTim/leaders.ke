@@ -1,6 +1,6 @@
 // Subscription lifecycle sweep, run on a timer from hooks.server.ts: reminds
 // payers ahead of expiry, then marks past-due subscriptions expired (which is
-// what actually downgrades them — every tier gate reads only status='active').
+// what actually downgrades them. Every tier gate reads only status='active').
 // Each email is stamped on the subscription row (renewalReminderSentAt /
 // expiryNotifiedAt), so the sweep is idempotent however often it runs.
 import { and, eq, gte, isNull, lt, lte } from 'drizzle-orm';
@@ -50,7 +50,7 @@ export async function runSubscriptionSweep(): Promise<{ reminded: number; expire
 		});
 	}
 
-	// 2) Expiry: active but past endsAt — flip to expired and tell the payer once.
+	// 2) Expiry: active but past endsAt, flip to expired and tell the payer once.
 	const pastDue = await db
 		.select()
 		.from(subscriptions)

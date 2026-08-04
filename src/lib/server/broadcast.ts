@@ -78,7 +78,7 @@ async function resolveRecipients(
 /**
  * Enqueues a broadcast: resolves the audience, checks the wallet can cover a paid
  * channel up front, then writes the `broadcasts` head and one queued
- * `broadcast_recipients` row per recipient. Does not send — dispatchBroadcast does.
+ * `broadcast_recipients` row per recipient. Does not send, dispatchBroadcast does.
  */
 export async function enqueueBroadcast(params: {
 	subjectUserId: number;

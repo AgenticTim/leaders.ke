@@ -8,7 +8,7 @@ import { ACTIVE_CYCLE, fullName, leaderPath } from '$lib/server/leader';
 
 export type AmbassadorAssignment = {
 	id: number;
-	/** The PERSON mobilized for (users.id) — the mobilize route's URL segment. */
+	/** The PERSON mobilized for (users.id). The mobilize route's URL segment. */
 	subjectId: number;
 	leaderName: string;
 	positionTitle: string;
@@ -19,7 +19,7 @@ export type AmbassadorAssignment = {
 /** This user's active ambassador assignments, across every campaign they mobilize
  * for. Assignments hang off the PERSON, so their seat comes from that person's
  * lead position: a held term (preferring non-'former') else their current-cycle
- * run — a pure aspirant has no leaders row, only a run. */
+ * run. A pure aspirant has no leaders row, only a run. */
 export async function listAmbassadorAssignments(userId: number): Promise<AmbassadorAssignment[]> {
 	const rows = await db
 		.select({ id: ambassadors.id, subject: users })
@@ -41,7 +41,7 @@ export async function listAmbassadorAssignments(userId: number): Promise<Ambassa
 			.innerJoin(positions, eq(campaigns.positionId, positions.id))
 			.where(and(inArray(campaigns.subjectUserId, subjectIds), eq(campaigns.cycleYear, ACTIVE_CYCLE), isNull(campaigns.parentCampaignId), isNull(campaigns.deletedAt)))
 	]);
-	// Held non-former term beats a run beats a former term — the same "lead seat"
+	// Held non-former term beats a run beats a former term. The same "lead seat"
 	// priority used elsewhere (e.g. the admin claims table).
 	const seatBySubject = new Map<number, { title: string; region: string; status: string }>();
 	for (const t of termRows) {
@@ -76,7 +76,7 @@ export async function leaveAmbassadorRole(ambassadorId: number, userId: number) 
 		.where(and(eq(ambassadors.id, ambassadorId), eq(ambassadors.userId, userId)));
 }
 
-/** Whether this user actively mobilizes for this person's campaign — the write
+/** Whether this user actively mobilizes for this person's campaign. The write
  * guard for every ambassador action, scoped to the person (subjectUserId). */
 export async function isActiveAmbassador(userId: number, subjectUserId: number): Promise<boolean> {
 	const [row] = await db
@@ -94,7 +94,7 @@ export async function isActiveAmbassador(userId: number, subjectUserId: number):
 }
 
 /**
- * Adds a citizen to a campaign's follower roster on an ambassador's behalf —
+ * Adds a citizen to a campaign's follower roster on an ambassador's behalf,
  * same shape and contact dedupe as the public follow form, plus `addedBy` so the
  * recruit stays attributed to whoever signed them up (the follower row itself
  * stays attached to the campaign if the ambassador is later removed).
@@ -160,8 +160,8 @@ export type Recruit = {
 	joinedAt: string;
 };
 
-/** One page of the citizens this user recruited for this campaign, newest first —
- * the ambassador view is scoped to their own recruits, never the full roster. */
+/** One page of the citizens this user recruited for this campaign, newest first.
+ * The ambassador view is scoped to their own recruits, never the full roster. */
 export async function listRecruits(
 	recruiterUserId: number,
 	subjectUserId: number,
@@ -199,8 +199,8 @@ export async function listRecruits(
 }
 
 /**
- * Records a vote pledge an ambassador gathered in the field (blueprint funnel A) —
- * a citizen who pledges but may not want to follow for news, so this is kept
+ * Records a vote pledge an ambassador gathered in the field (blueprint funnel A).
+ * A citizen who pledges but may not want to follow for news, so this is kept
  * separate from addCitizenFollower. The pledge attaches to the campaign directly
  * (never a leaders row) with contact capture and `addedBy` attribution; contact is
  * optional (a pledge can be just a name), deduped per campaign only when a contact

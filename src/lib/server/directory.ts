@@ -88,7 +88,7 @@ export async function listPositionDirectory(positionTitle: string, f: DirectoryF
 		.innerJoin(users, eq(leaders.userId, users.id))
 		.where(and(isNull(leaders.deletedAt), isNotNull(leaders.verifiedAt), isNull(users.deletedAt), eq(positions.title, positionTitle)));
 
-	// 2027 runs (campaigns) at this position — the aspirants (no leaders row).
+	// 2027 runs (campaigns) at this position. The aspirants (no leaders row).
 	const runRows = await db
 		.select({
 			userId: users.id,
@@ -132,7 +132,7 @@ export async function listPositionDirectory(positionTitle: string, f: DirectoryF
 	];
 
 	// Regime options: every year a recorded (non-aspirant) term started, newest first.
-	// The active cycle is excluded — it's already the default "today" view, and a
+	// The active cycle is excluded. It's already the default "today" view, and a
 	// freshly graduated winner's term starts within it (swearing-in), which would
 	// otherwise duplicate that entry.
 	const regimeOptions = [
@@ -142,7 +142,7 @@ export async function listPositionDirectory(positionTitle: string, f: DirectoryF
 	].sort((a, b) => b - a);
 
 	// The "Candidates" view needs every verified ACTIVE_CYCLE run at this seat on
-	// its own terms — a sitting officeholder running for re-election must still
+	// its own terms. A sitting officeholder running for re-election must still
 	// show up here, which the default dedupe below deliberately hides (it keeps
 	// only their 'current' row). Built straight from runRows, never from the
 	// current/former-preferring merge, so it can never lose that person.
@@ -168,8 +168,8 @@ export async function listPositionDirectory(positionTitle: string, f: DirectoryF
 	// One card per person for the default/"Elected" views. Today's view prefers
 	// the non-'former' row (else the most recent term); a regime year reslices
 	// to the terms COVERING that year, each person wearing that era's seat.
-	// Regime and 'candidate' don't combine — a candidacy is always this cycle,
-	// never a past regime — so the regime reslice only applies otherwise.
+	// Regime and 'candidate' don't combine. A candidacy is always this cycle,
+	// never a past regime, so the regime reslice only applies otherwise.
 	const eligible = f.regime && f.status !== 'candidate'
 		? rows.filter(
 				(r) =>
@@ -216,10 +216,10 @@ export async function listPositionDirectory(positionTitle: string, f: DirectoryF
 	const partyNameById = new Map(partyRows.map((r) => [r.id, r.name]));
 	const partyBy = new Map(people.map((p) => [p.userId, p.partyId ? (partyNameById.get(p.partyId) ?? null) : null]));
 
-	// Filter options come from the FULL position set (before filtering) — the
+	// Filter options come from the FULL position set (before filtering). The
 	// union of the elected dedupe and the candidate set, so switching the status
 	// pill never shrinks what the region/party dropdowns offer. Raw region
-	// labels — for MCA these are ward seat names; SearchFilter derives the
+	// labels, for MCA these are ward seat names; SearchFilter derives the
 	// constituency dropdown from them itself.
 	const isMca = positionTitle === 'MCA';
 	const allPeople = f.status === 'candidate' ? [...bySlug.values(), ...candidateBySlug.values()] : [...people, ...candidateBySlug.values()];
@@ -232,7 +232,7 @@ export async function listPositionDirectory(positionTitle: string, f: DirectoryF
 		if (f.party && partyBy.get(p.userId) !== f.party) return false;
 		// 'candidate' needs no extra check: `people` is already candidateBySlug's
 		// rows (all tagged 'candidate') when this filter is active. 'elected' means
-		// ever held the seat — current or former, just not a bare candidacy.
+		// ever held the seat, current or former, just not a bare candidacy.
 		if (f.status === 'elected' && p.status === 'aspirant') return false;
 		if (q && !fullName(p).toLowerCase().includes(q)) return false;
 		return true;

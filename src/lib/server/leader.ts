@@ -14,7 +14,7 @@ import { positionSlug } from '$lib/utils/seat';
 
 /**
  * Creates the leader's own `users` row, separate from whichever citizen account
- * is creating it — so editing the leader's profile/contacts never touches the
+ * is creating it, so editing the leader's profile/contacts never touches the
  * creator's own login identity. Backed by a placeholder auth-user row (never
  * used for login, same convention as seeded candidates' `{slug}@seed.leaders.ke`).
  */
@@ -45,7 +45,7 @@ export function fullName(u: { firstName: string; otherNames: string }): string {
 
 /** Whether the platform keeps this slug for itself: a numeric-only slug (ballot
  * routes use bare years like "2027") or a word on the admin-tunable blocked list
- * (platform_settings.blockedSlugs — seeded with every route a leader slug must
+ * (platform_settings.blockedSlugs, seeded with every route a leader slug must
  * never shadow, plus words the platform may want later). */
 async function isSlugBlocked(slug: string): Promise<boolean> {
 	if (/^[0-9-]+$/.test(slug)) return true;
@@ -59,7 +59,7 @@ async function isSlugBlocked(slug: string): Promise<boolean> {
 
 /** Whether a candidate slug is free to take: not blocked by the platform, and not
  * already used by another person (rows belonging to `excludeUserId`, if given, don't
- * count — so a person can "claim" their own current slug unchanged). */
+ * count, so a person can "claim" their own current slug unchanged). */
 export async function isSlugAvailable(slug: string, excludeUserId?: number): Promise<boolean> {
 	if (!slug || (await isSlugBlocked(slug))) return false;
 	const [existing] = await db
@@ -74,7 +74,7 @@ export async function isSlugAvailable(slug: string, excludeUserId?: number): Pro
  * time; every later `leaders` row for the same person just points at this user. */
 export async function generateLeaderSlug(name: string): Promise<string> {
 	// A numeric-only base, or one that contains "admin" as a whole word (e.g. someone
-	// literally named "Admin"), can never pass the blocked-slug check — suffixing with
+	// literally named "Admin"), can never pass the blocked-slug check. Suffixing with
 	// "-2", "-3"... doesn't help since admin-tim-2 still starts with "admin-" and is
 	// STILL blocked. Both are permanent, not just-this-exact-string blocks, so fall back
 	// to an anonymized base instead of suffix-looping forever.
@@ -82,7 +82,7 @@ export async function generateLeaderSlug(name: string): Promise<string> {
 	if (!base || /^[0-9-]+$/.test(base) || /(^|-)admin($|-)/.test(base)) base = `leader-${randomUUID().slice(0, 8)}`;
 	let candidate = base;
 	let n = 1;
-	// Hard cap: this loop should resolve in 1-2 iterations in practice — bounding it
+	// Hard cap: this loop should resolve in 1-2 iterations in practice. Bounding it
 	// turns any unforeseen isSlugAvailable bug into a clear error instead of a hang.
 	for (let tries = 0; tries < 100; tries++) {
 		if (await isSlugAvailable(candidate)) {
@@ -96,12 +96,12 @@ export async function generateLeaderSlug(name: string): Promise<string> {
 
 export type LeaderContext = {
 	// The held term the dashboard anchors to, if any. NULL for a pure aspirant who has
-	// only a run (campaign) and no leaders row — held-office-only ops guard on this.
+	// only a run (campaign) and no leaders row, held-office-only ops guard on this.
 	leader: typeof leaders.$inferSelect | null;
 	// The lead seat (from the held term or the run). NULL for a fresh application
-	// whose Campaign tab (seat + cycle) hasn't been saved yet — seat-scoped pages guard.
+	// whose Campaign tab (seat + cycle) hasn't been saved yet, seat-scoped pages guard.
 	position: typeof positions.$inferSelect | null;
-	campaignId: number; // the person's run this cycle (0 if none) — manifesto/fundraising/verification target it
+	campaignId: number; // the person's run this cycle (0 if none), manifesto/fundraising/verification target it
 	verified: boolean; // publicly live: a verified held term OR a verified run
 	profileUser: typeof users.$inferSelect; // the person the leader page is about
 	role: 'leader' | 'manager';
@@ -109,7 +109,7 @@ export type LeaderContext = {
 
 /** Builds a dashboard context for a person: their lead held term (if any) + their run
  * this cycle. With `allowEmpty` (URL-named or managed profiles) a person with neither
- * still resolves — a fresh application declares its seat later, on the Campaign tab.
+ * still resolves. A fresh application declares its seat later, on the Campaign tab.
  * Without it (the viewer's own fallback) null keeps plain citizens on the citizen view. */
 async function buildContext(
 	profileUser: typeof users.$inferSelect,
@@ -206,15 +206,15 @@ export async function isPlatformAdmin(domainUserId: number): Promise<boolean> {
 	return !!row?.adminAt;
 }
 
-/** The person (users.id) behind a leaders-row (term) id — for flows that arrive with
+/** The person (users.id) behind a leaders-row (term) id, for flows that arrive with
  * a term id but write person-scoped rows. */
 export async function personIdForLeader(leaderId: number): Promise<number | null> {
 	const [row] = await db.select({ userId: leaders.userId }).from(leaders).where(eq(leaders.id, leaderId));
 	return row?.userId ?? null;
 }
 
-/** A person's ACTIVE term (latest start = current/aspirant seat) joined to its seat —
- * the anchor for person-scoped flows that still need a term (ambassador placement,
+/** A person's ACTIVE term (latest start = current/aspirant seat) joined to its seat.
+ * The anchor for person-scoped flows that still need a term (ambassador placement,
  * invite display, dashboard base paths). Null for a person with no terms. */
 export async function activeTermForPerson(subjectUserId: number) {
 	const [row] = await db
@@ -228,7 +228,7 @@ export async function activeTermForPerson(subjectUserId: number) {
 }
 
 /**
- * The leader context for an explicit /dashboard/[slug]/* URL — the URL, not
+ * The leader context for an explicit /dashboard/[slug]/* URL. The URL, not
  * guesswork, picks which campaign is active (a person can manage several).
  * Returns null when the slug doesn't resolve or the viewer has no access
  * (not the leader's own profile and not an active manager of it).
@@ -238,7 +238,7 @@ export async function getLeaderContextBySlug(slug: string, domainUserId: number)
 	if (!profileUser) return null;
 
 	const admin = await isPlatformAdmin(domainUserId);
-	// A deactivated profile (users.deletedAt) is off-limits to its own team — only a
+	// A deactivated profile (users.deletedAt) is off-limits to its own team, only a
 	// platform admin can still open it, since Activate (the only way back out of
 	// Deactivate) lives on this same dashboard route.
 	if (profileUser.deletedAt && !admin) return null;
@@ -274,7 +274,7 @@ export async function findPositionByPath(position: string, region: string) {
 
 /** Resolves a flat /[leader] slug to a DB leader (or null). Since one person can
  * hold several `leaders` rows (Track Record), this returns whichever row was
- * looked up first — callers needing the full history query by userId instead. */
+ * looked up first, callers needing the full history query by userId instead. */
 export async function findLeaderBySlug(slug: string) {
 	const [row] = await db
 		.select()
@@ -287,19 +287,19 @@ export async function findLeaderBySlug(slug: string) {
 
 /** The seat a /[leader] page (and its /[year] campaign workspace) leads with:
  * whichever term has a live campaign (not 'former'), else the most recent past
- * term. Shared so both routes resolve the identical leader row for one slug —
- * a person can hold several `leaders` rows, and picking different ones per
+ * term. Shared so both routes resolve the identical leader row for one slug.
+ * A person can hold several `leaders` rows, and picking different ones per
  * route was a real bug (reviews/verification diverging between the two pages). */
 export async function resolveCurrentTerm(slug: string) {
 	// Person-first: a slug is a PERSON's URL, and a pure aspirant has no leaders row
-	// at all — only a run (campaign). So resolve the user, then their held terms and
+	// at all, only a run (campaign). So resolve the user, then their held terms and
 	// their active run separately.
 	const [userRow] = await db.select().from(users).where(and(eq(users.slug, slug), isNull(users.deletedAt)));
 	if (!userRow) return null;
 	return resolveTermForUser(userRow);
 }
 
-/** Same resolution as resolveCurrentTerm, but keyed by the person's user id — for
+/** Same resolution as resolveCurrentTerm, but keyed by the person's user id, for
  * slugless previews (a not-yet-verified application has no slug until approval,
  * so /previews/[userId] resolves by id instead of a public URL). */
 export async function resolveCurrentTermByUserId(userId: number) {
@@ -324,7 +324,7 @@ async function resolveTermForUser(userRow: typeof users.$inferSelect) {
 		terms.toSorted((a, b) => b.leaders.startAt.getTime() - a.leaders.startAt.getTime())[0] ??
 		null;
 
-	// The person's active RUN (main campaign + its seat), latest cycle first — how
+	// The person's active RUN (main campaign + its seat), latest cycle first, how
 	// an aspirant with no leaders row becomes public. verifiedAt no longer gates
 	// visibility (every account is public; it's a "Verified" badge only), so this
 	// is just their most recent cycle's run. Null when they aren't running.
@@ -339,7 +339,7 @@ async function resolveTermForUser(userRow: typeof users.$inferSelect) {
 	return { row, terms, currentTerm, activeRun };
 }
 
-/** All verified leaders (joined to person + seat) for one position/region pair —
+/** All verified leaders (joined to person + seat) for one position/region pair,
  * public seat-hub pages only ever show verified profiles. Resolves the seat first
  * (positions is small and mostly static) so the leaders query is scoped to that
  * ONE seat's positionId in SQL, instead of scanning every leader nationwide. */
@@ -368,7 +368,7 @@ export async function getOrCreateMainCampaign(leaderId: number, creatorId: numbe
 		.where(and(eq(campaigns.leaderId, leaderId), isNull(campaigns.parentCampaignId), isNull(campaigns.deletedAt)));
 	if (existing) return existing;
 
-	// A campaign is one run at one seat in one cycle — stamp both from its term,
+	// A campaign is one run at one seat in one cycle, stamp both from its term,
 	// and anchor it to the person holding the term (campaigns are person-scoped).
 	const [term] = await db.select({ userId: leaders.userId, positionId: leaders.positionId, startAt: leaders.startAt }).from(leaders).where(eq(leaders.id, leaderId));
 	const [created] = await db
@@ -387,7 +387,7 @@ export async function getOrCreateMainCampaign(leaderId: number, creatorId: numbe
 }
 
 /**
- * The person's run for the active cycle (their 2027 campaign) — what the dashboard
+ * The person's run for the active cycle (their 2027 campaign), what the dashboard
  * workspace (manifesto/fundraising) targets, since a run belongs to the person, not a
  * held term. Created lazily on first write; an incumbent editing their manifesto is
  * declaring/continuing their re-election run. `positionId` is the seat they're running
@@ -412,7 +412,7 @@ export async function getOrCreateRunCampaign(subjectUserId: number, positionId: 
 }
 
 /** Read-only: the person's active-cycle run (2027 main campaign), or null if none yet. */
-/** Resolves the "Other" party option to a real parties.id — reuses an existing row
+/** Resolves the "Other" party option to a real parties.id, reuses an existing row
  * (case-insensitive exact match) so retyping the same unregistered party's name
  * doesn't fork into duplicate rows, else creates one. status='unregistered' marks
  * it as never having gone through the ORPP register (distinct from 'provisional',
@@ -459,8 +459,8 @@ const toTab = (rows: (boolean | string)[][]): TabChecklist => {
  * dashboard nav can flag which tab (a `*` on its title) and the Submit for
  * Verification modal can list exactly what's outstanding. Shared by the layout load
  * (nav flags) and the requestVerification action (server-side re-check before
- * emailing admins — never trust the client's view of "complete"). Campaigns are
- * a separate, optional, individually-verified concern — not part of this
+ * emailing admins, never trust the client's view of "complete"). Campaigns are
+ * a separate, optional, individually-verified concern. Not part of this
  * checklist (see the Campaign tab's own per-campaign verify control). */
 export async function getApplicationChecklist(
 	ctx: LeaderContext
@@ -475,7 +475,7 @@ export async function getApplicationChecklist(
 			.from(contacts)
 			.where(and(eq(contacts.userId, ctx.profileUser.id), isNull(contacts.deletedAt))),
 		// Active team, each with their own sign-off roles and whether their account
-		// email is verified — the two verification gates count across the whole team.
+		// email is verified. The two verification gates count across the whole team.
 		db
 			.select({ userId: managers.userId, roles: managers.roles, emailVerified: authUsers.emailVerified, idFrontUrl: users.idFrontUrl, idBackUrl: users.idBackUrl })
 			.from(managers)
@@ -531,11 +531,11 @@ export async function getApplicationChecklist(
 }
 
 /** Finds a DIFFERENT account whose sign-off is already complete (role + national ID +
- * both ID images) with the same national ID, if any — not a hard block (could be a
+ * both ID images) with the same national ID, if any. Not a hard block (could be a
  * genuine duplicate account for the same person), just a flag surfaced on the admin
  * verification/claim preview so an admin can decide. Not narrowed by SQL predicate on
  * the jsonb `roles` column (see team/+page.server.ts's removeManager for the same
- * convention) — filtered in JS instead. */
+ * convention), filtered in JS instead. */
 export async function findNationalIdConflict(
 	nationalId: string,
 	excludeUserId: number

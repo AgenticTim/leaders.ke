@@ -10,7 +10,7 @@ import type { Actions, PageServerLoad } from './$types';
 
 const SORTS: ProfileSort[] = ['recent', 'name', 'position', 'region', 'status', 'source', 'verified'];
 
-// Admin "Profiles" — one row per leader person, merging the old candidates /
+// Admin "Profiles". One row per leader person, merging the old candidates /
 // verifications / claims tabs. Search (`q`) spans name, slug, seat and manager;
 // sort spans every visible column, default `recent` (newest activity first).
 export const load: PageServerLoad = async (event) => {
@@ -27,7 +27,7 @@ export const load: PageServerLoad = async (event) => {
 };
 
 export const actions: Actions = {
-	// Manual credit grant — the only way to fund a wallet today (docs/ai-chat-costs.md
+	// Manual credit grant. The only way to fund a wallet today (docs/ai-chat-costs.md
 	// notes there's no Paystack top-up flow yet). Upserts the wallet (profile-scoped,
 	// not campaign-scoped, so this works even before a run is declared) and logs
 	// the grant as a 'topup' transaction, same ledger the AI Chat spend writes to.
@@ -62,7 +62,7 @@ export const actions: Actions = {
 		return { granted: true, profileId, newBalance };
 	},
 
-	// Admin package override — the only way to change a profile's tier without a
+	// Admin package override. The only way to change a profile's tier without a
 	// real Paystack charge (support/testing/goodwill comps). Cancels whatever
 	// subscription is currently live (audit trail preserved, same "supersede,
 	// never mutate" convention as packages.ts's rate history) and inserts a

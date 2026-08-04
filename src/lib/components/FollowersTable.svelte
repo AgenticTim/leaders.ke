@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Follower roster shared by the manager view (/dashboard/[slug]/followers, all
 	// followers) and the ambassador view (/dashboard/mobilize/[subjectId], only the
-	// citizens they recruited — addedBy scoping happens server-side). "Add a citizen"
+	// citizens they recruited, addedBy scoping happens server-side). "Add a citizen"
 	// (blueprint funnel A) sits on top; the contact channels double as digest opt-ins.
 	import { enhance } from '$app/forms';
 	import DataTable, { type Column } from '$lib/components/DataTable.svelte';

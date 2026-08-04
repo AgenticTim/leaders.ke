@@ -6,13 +6,13 @@ import type { Cookies, RequestEvent } from '@sveltejs/kit';
 
 export const ANON_ID_COOKIE = 'anon_id';
 
-/** The visitor's device id, or null — for read paths (page loads) that must
+/** The visitor's device id, or null, for read paths (page loads) that must
  * not set cookies. */
 export function getAnonId(cookies: Cookies): string | null {
 	return cookies.get(ANON_ID_COOKIE) ?? null;
 }
 
-/** The visitor's device id, minted (32 hex chars, 1-year cookie) if missing —
+/** The visitor's device id, minted (32 hex chars, 1-year cookie) if missing,
  * for actions that need a stable identity going forward. */
 export function getOrMintAnonId(cookies: Cookies): string {
 	let anonId = cookies.get(ANON_ID_COOKIE);

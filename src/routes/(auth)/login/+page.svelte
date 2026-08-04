@@ -8,7 +8,7 @@
 	let { data }: { data: PageData } = $props();
 
 	// Same in-place verify step as /signup: an unverified account logging in is
-	// redirected to /verify/email by the server action — intercepted here and
+	// redirected to /verify/email by the server action, intercepted here and
 	// shown as an overlay instead of navigating to a separate page.
 	let verifyOpen = $state(false);
 	let verifyEmail = $state('');

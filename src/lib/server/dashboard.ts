@@ -9,11 +9,11 @@ import { contacts as contactsTable, managers, users as usersTable, type users } 
 import { user as authUser } from '$lib/server/db/auth.schema';
 
 // A one-shot flag set right before a login/signup redirect lands on plain
-// '/dashboard' (never on an explicit next= like an invite link — see the login
-// action) — landing on /dashboard consumes it once to decide whether to bounce
+// '/dashboard' (never on an explicit next= like an invite link, see the login
+// action). Landing on /dashboard consumes it once to decide whether to bounce
 // straight into a manager's own campaign dash instead of the citizen Overview.
 // Cookie (not a query param) because the Google OAuth round-trip controls its own
-// callback URL — this is the only channel that survives it. Session-scoped, no
+// callback URL. This is the only channel that survives it. Session-scoped, no
 // maxAge: gone with the browser session if never consumed.
 const POST_LOGIN_COOKIE = 'post_login';
 
@@ -23,7 +23,7 @@ export function flagPostLogin(cookies: Cookies) {
 
 /** Consumes the post-login flag (if set) and, only for an actual leader/manager,
  * returns where '/dashboard' root should redirect instead of showing the citizen
- * Overview. Null means "show Overview as normal" — a plain citizen, an
+ * Overview. Null means "show Overview as normal". A plain citizen, an
  * ambassador-only account, or a normal (non-post-login) visit, e.g. via the
  * account switcher's own "Citizen" entry, which must still reach the Overview. */
 export async function postLoginRedirectTarget(cookies: Cookies, domainUserId: number): Promise<string | null> {
@@ -49,7 +49,7 @@ export async function requireDashboardUser(event: RequestEvent): Promise<Dashboa
 
 /** Whose contacts a /verify/* flow writes to: the signed-in citizen's own login
  * identity ('account', e.g. /dashboard/account), or the leader profile they edit
- * ('profile' — a distinct phantom user, see createPhantomUser). */
+ * ('profile'. A distinct phantom user, see createPhantomUser). */
 export type VerifyScope = 'account' | 'profile';
 
 export function parseScope(raw: string | null): VerifyScope {
@@ -57,12 +57,12 @@ export function parseScope(raw: string | null): VerifyScope {
 }
 
 /** Resolves the subject a verification applies to. For 'profile' scope that's the
- * leader profile's (phantom) user — picked by the slug the originating
+ * leader profile's (phantom) user, picked by the slug the originating
  * /dashboard/<slug>/* form passed along (a multi-campaign manager has several
  * profiles; guessing would target the wrong one), falling back to the
  * own/first-managed guess when no slug is given, and to the citizen when
  * there's no leader context yet. `subject === domainUser` exactly when the
- * scope is the citizen's own account — the only case where better-auth's login
+ * scope is the citizen's own account. The only case where better-auth's login
  * email is synced. */
 export async function resolveVerifySubject(
 	event: RequestEvent,
@@ -72,7 +72,7 @@ export async function resolveVerifySubject(
 	const base = await requireDashboardUser(event);
 	if (scope === 'profile') {
 		if (slug) {
-			// An explicit slug must resolve with access — silently falling back to
+			// An explicit slug must resolve with access, silently falling back to
 			// the citizen would attach the verified contact to the wrong account
 			// (e.g. a claim form's inputs, where the claimant has no access yet).
 			const ctx = await getLeaderContextBySlug(slug, base.domainUser.id);
@@ -86,7 +86,7 @@ export async function resolveVerifySubject(
 }
 
 /**
- * The leader context the current dashboard route is about — the URL, not
+ * The leader context the current dashboard route is about. The URL, not
  * guesswork, picks which campaign is active:
  * - /dashboard/[slug]/*: the verified campaign; kicked to /dashboard when the
  *   slug doesn't resolve or the viewer lacks access.
@@ -108,10 +108,10 @@ export async function getRouteLeaderContext(
 
 /**
  * The viewer's own proven contacts, keyed for the contact forms: typing a
- * value they already proved control of shows "✓ Verified" immediately — no
+ * value they already proved control of shows "✓ Verified" immediately. No
  * second OTP round-trip on any profile they create, claim, or manage.
  * Proof comes from OTP-verified contacts rows PLUS the account's own login
- * email when better-auth marks it verified — some accounts (OAuth signups
+ * email when better-auth marks it verified. Some accounts (OAuth signups
  * before the hook wrote rows, seeded demo logins) verified their email
  * without a contacts row ever being written.
  */
@@ -154,14 +154,14 @@ export async function requireLeader(
 	return { ...base, ctx };
 }
 
-/** For /dashboard/admin/* pages. adminAt is set manually (psql) for now — no self-serve path. */
+/** For /dashboard/admin/* pages. adminAt is set manually (psql) for now. No self-serve path. */
 export async function requireAdmin(event: RequestEvent): Promise<DashboardUser> {
 	const base = await requireDashboardUser(event);
 	if (!base.domainUser.adminAt) redirect(302, '/dashboard');
 	return base;
 }
 
-/** onboarding.md: "leader is also a manager with admin role" — the campaign owner
+/** onboarding.md: "leader is also a manager with admin role". The campaign owner
  * is always admin; an invited manager only is if their managers.roles has admin:
  * true. Admin-only actions: inviting/removing managers, fundraising, deleting the
  * campaign. (Managing ambassadors, posts, etc. is open to every manager.) */

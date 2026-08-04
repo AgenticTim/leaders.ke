@@ -1,4 +1,4 @@
-// The account-switcher's list of managed profiles — shared by the dashboard
+// The account-switcher's list of managed profiles, shared by the dashboard
 // layout (computed eagerly, already mid-request there) and the /api/switcher
 // endpoint (lazy-fetched from anywhere else on the site, since running this on
 // every page's SSR load would tax every public page view for every signed-in
@@ -11,7 +11,7 @@ import { fullName } from '$lib/server/leader';
 export type SwitcherCampaign = { leaderId: number; name: string; verified: boolean; basePath: string };
 
 export async function getSwitcherProfiles(domainUserId: number): Promise<{ myCampaigns: SwitcherCampaign[] }> {
-	// Every managed PROFILE, not just ones with a leaders/campaigns row — an onboarded
+	// Every managed PROFILE, not just ones with a leaders/campaigns row. An onboarded
 	// profile (created or claimed, slug minted at payment) has neither until its owner
 	// later declares a term or launches a campaign, but it's real and paid-for from the
 	// moment it's created, so it belongs in the switcher regardless.
@@ -43,7 +43,7 @@ export async function getSwitcherProfiles(domainUserId: number): Promise<{ myCam
 			leaderId: r.users.id,
 			name: fullName(r.users),
 			verified,
-			// A slug always exists — onboarding mints it at payment time, before
+			// A slug always exists. Onboarding mints it at payment time, before
 			// anyone ever manages the profile.
 			basePath: `/dashboard/${r.users.slug}`
 		};

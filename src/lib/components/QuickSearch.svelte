@@ -135,7 +135,7 @@
 		} else if (e.key === 'Enter') {
 			e.preventDefault();
 			const item = flat[highlighted] ?? flat[0];
-			// No suggestion matched (or none was highlighted) — fall back to the full
+			// No suggestion matched (or none was highlighted), fall back to the full
 			// /search page instead of doing nothing.
 			if (item) pick(item);
 			else if (query.trim() && !onPick) {

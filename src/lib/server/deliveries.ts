@@ -1,5 +1,5 @@
 // Deliveries: what a leader lists as delivered under a SPECIFIC held term
-// (leaders.id) or a non-elective experience (experience.id) — retrospective
+// (leaders.id) or a non-elective experience (experience.id), retrospective
 // receipts, distinct from a run's forward-looking manifesto pillars. Merged into
 // the Profile tab (each experience item carries its own deliveries inline), so
 // this module holds the shared list/add/remove/pin logic that page's actions call.
@@ -7,14 +7,14 @@ import { and, asc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { deliveries, experience, leaders } from '$lib/server/db/schema';
 
-// Only PINNED deliveries show on the public profile — the leader curates their
+// Only PINNED deliveries show on the public profile. The leader curates their
 // best few. Capped here (not a DB constraint), counted across every term/experience.
 export const MAX_PINNED_DELIVERIES = 5;
 
 export type DeliveryItem = { id: number; title: string; description: string | null; pinned: boolean };
 
 /** Encodes which table a delivery attaches to in one value: "leader:123" or
- * "experience:45" — the same target string the Profile tab renders per item. */
+ * "experience:45". The same target string the Profile tab renders per item. */
 export function parseDeliveryTarget(raw: string): { kind: 'leader' | 'experience'; id: number } | null {
 	const [kind, idRaw] = raw.split(':');
 	const id = Number(idRaw) || 0;
@@ -22,7 +22,7 @@ export function parseDeliveryTarget(raw: string): { kind: 'leader' | 'experience
 	return { kind, id };
 }
 
-/** This person's own leaders/experience ids — every write scopes to one of these
+/** This person's own leaders/experience ids. Every write scopes to one of these
  * before touching a delivery, so nobody can act on someone else's row by id. */
 export async function ownDeliveryIds(subjectUserId: number): Promise<{ leaderIds: number[]; experienceIds: number[] }> {
 	const [ownLeaders, ownExperience] = await Promise.all([
@@ -77,7 +77,7 @@ export async function addDelivery(subjectUserId: number, targetRaw: string, titl
 	if (!title) return { ok: false as const, error: 'Every delivery needs a title.' };
 	if (description.length > 1000) return { ok: false as const, error: 'Delivery descriptions are limited to 1000 characters.' };
 
-	// The target must actually belong to this person — never trust the id off the client.
+	// The target must actually belong to this person, never trust the id off the client.
 	if (parsed.kind === 'leader') {
 		const [term] = await db.select({ id: leaders.id }).from(leaders).where(and(eq(leaders.id, parsed.id), eq(leaders.userId, subjectUserId), isNull(leaders.deletedAt)));
 		if (!term) return { ok: false as const, error: 'That term is not yours.' };
@@ -116,7 +116,7 @@ export async function togglePinDelivery(subjectUserId: number, id: number) {
 		db.select({ id: deliveries.id }).from(deliveries).where(and(isNotNull(deliveries.pinnedAt), isNull(deliveries.deletedAt), inArray(deliveries.experienceId, experienceIds.length ? experienceIds : [-1])))
 	]);
 	if (pinnedByLeader.length + pinnedByExp.length >= MAX_PINNED_DELIVERIES) {
-		return { ok: false as const, error: `You can only pin up to ${MAX_PINNED_DELIVERIES} deliveries — unpin one first.` };
+		return { ok: false as const, error: `You can only pin up to ${MAX_PINNED_DELIVERIES} deliveries, unpin one first.` };
 	}
 	await db.update(deliveries).set({ pinnedAt: new Date() }).where(eq(deliveries.id, id));
 	return { ok: true as const };

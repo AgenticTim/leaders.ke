@@ -1,14 +1,14 @@
 // Anti-abuse cap on the public AI Chat "ask" action (see [leader]/+page.server.ts
-// and [leader]/[year]/+page.server.ts) — without this, a scripted burst of
+// and [leader]/[year]/+page.server.ts), without this, a scripted burst of
 // questions racks up real Anthropic API cost fast. Guests get a few free AI
-// answers (lifetime, not daily — anonId/ipAddress are trivially resettable by
+// answers (lifetime, not daily, anonId/ipAddress are trivially resettable by
 // clearing cookies, so the point isn't to meter guests precisely); once
 // exhausted their questions still go through, routed to the team instead of
-// the AI (`teamOnly`) — never a dead end, just no more API spend — behind a
+// the AI (`teamOnly`), never a dead end, just no more API spend, behind a
 // sliding-window flood cap (rateLimit.ts 'ask'). A signed-in citizen gets a
 // real daily quota instead, tracked against their own account rather than a
 // spoofable cookie. Both limits are admin-editable
-// (platformSettings.guestAskLifetimeLimit / userAskDailyLimit — Settings → AI
+// (platformSettings.guestAskLifetimeLimit / userAskDailyLimit, Settings → AI
 // Chat), not hardcoded. Platform admins are exempt from both.
 import { and, count, eq, gte, isNotNull } from 'drizzle-orm';
 import type { RequestEvent } from '@sveltejs/kit';
@@ -28,8 +28,8 @@ function startOfToday(): Date {
 // to the team (guest free answers exhausted).
 type RateLimitResult = { ok: true; teamOnly?: boolean } | { ok: false; error: string };
 
-/** Signed-in path: a real daily quota against the citizen's own domain user id
- * — can't be dodged by clearing cookies or switching devices the way the
+/** Signed-in path: a real daily quota against the citizen's own domain user id.
+ * Can't be dodged by clearing cookies or switching devices the way the
  * guest path can. Records this attempt on success. */
 async function enforceUserAskLimit(domainUserId: number, dailyLimit: number): Promise<RateLimitResult> {
 	const [{ n }] = await db
@@ -49,7 +49,7 @@ async function enforceUserAskLimit(domainUserId: number, dailyLimit: number): Pr
  * alone doesn't help dodge the other. Mints the anon_id cookie if missing.
  * Records this attempt on success. Once the free answers are spent, questions
  * still go through as `teamOnly` (recorded + routed to the team, no AI call)
- * behind the 'ask' flood window — a guest is never told to stop asking. */
+ * behind the 'ask' flood window. A guest is never told to stop asking. */
 async function enforceGuestAskLimit(event: RequestEvent, lifetimeLimit: number): Promise<RateLimitResult> {
 	const anonId = getOrMintAnonId(event.cookies);
 
@@ -68,7 +68,7 @@ async function enforceGuestAskLimit(event: RequestEvent, lifetimeLimit: number):
 	if (byAnon >= lifetimeLimit || byIp >= lifetimeLimit) {
 		const flood = await enforceRateLimit('ask', [`anon:${anonId}`, ipBucket(event)]);
 		if (!flood.ok) {
-			return { ok: false, error: 'Too many questions in a short time — please try again in a minute.' };
+			return { ok: false, error: 'Too many questions in a short time, please try again in a minute.' };
 		}
 		return { ok: true, teamOnly: true };
 	}
@@ -89,11 +89,11 @@ async function isPlatformAdmin(domainUserId: number): Promise<boolean> {
 }
 
 /** domainUserId is the signed-in citizen's numeric users.id (null for a
- * guest) — the caller already resolves this via getDomainUser for the ask
+ * guest). The caller already resolves this via getDomainUser for the ask
  * action's own grounding lookup, so it's passed in rather than re-derived. */
 export async function enforceAskRateLimit(event: RequestEvent, domainUserId: number | null): Promise<RateLimitResult> {
 	// Platform admins ask without limit. The attempt is still recorded, so the
-	// ask log stays a complete picture of AI spend — it's simply never checked
+	// ask log stays a complete picture of AI spend. It's simply never checked
 	// against a cap for them.
 	if (domainUserId && (await isPlatformAdmin(domainUserId))) {
 		await db.insert(aiAskEvents).values({ userId: domainUserId });

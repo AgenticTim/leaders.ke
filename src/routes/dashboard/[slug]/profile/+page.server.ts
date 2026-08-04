@@ -1,4 +1,4 @@
-// The Profile tab for a leader's own dashboard (/dashboard/[slug]/profile) —
+// The Profile tab for a leader's own dashboard (/dashboard/[slug]/profile),
 // covers both an unverified profile still being assembled and a verified one.
 import { fail } from '@sveltejs/kit';
 import { redirectWithFlash } from '$lib/server/flash';
@@ -34,7 +34,7 @@ import {
 import type { Actions, PageServerLoad } from './$types';
 
 // The photo rides the ?/save submit itself (multipart) and lands on the PERSON
-// (users.photoUrl — it follows them across terms and runs).
+// (users.photoUrl. It follows them across terms and runs).
 
 export const load: PageServerLoad = async (event) => {
 	const { domainUser } = await requireDashboardUser(event);
@@ -237,9 +237,9 @@ export const actions: Actions = {
 		if (!otherNames)
 			return fail(400, { error: 'Other names are required.', missingFields: ['otherNames'] });
 		if (!bio) return fail(400, { error: 'Add a short bio.', missingFields: ['bio'] });
-		// The seat contested is no longer part of this form — the run (seat + cycle)
-		// is declared on the Campaign tab. Party isn't edited at the top level either —
-		// every held term (current or former) is a Track Record entry added via
+		// The seat contested is no longer part of this form. The run (seat + cycle)
+		// is declared on the Campaign tab. Party isn't edited at the top level either.
+		// Every held term (current or former) is a Track Record entry added via
 		// "+ Elected" below, each carrying its own party.
 
 		for (const e of pendingExperience) {
@@ -320,7 +320,7 @@ export const actions: Actions = {
 		let subjectId: number;
 
 		if (ctx) {
-			// The person the profile is about: the leader's own (phantom) user row —
+			// The person the profile is about: the leader's own (phantom) user row,
 			// separate from whichever citizen account is editing it.
 			subjectId = ctx.profileUser.id;
 			await db.update(users).set({ firstName, otherNames, age, bio }).where(eq(users.id, subjectId));
@@ -335,16 +335,16 @@ export const actions: Actions = {
 			}
 		} else {
 			// New leader: a fresh users row for the leader identity itself, never the
-			// creating citizen's own — so editing this profile never touches their login
+			// creating citizen's own, so editing this profile never touches their login
 			// account. Reachable only if a profile is somehow missing its slug/manager
-			// by the time someone edits it here — onboarding (createProfile/linkProfile)
+			// by the time someone edits it here. Onboarding (createProfile/linkProfile)
 			// already sets both up before anyone reaches this route.
 			const phantom = await createPhantomUser(firstName, otherNames);
 			subjectId = phantom.id;
 			await db.update(users).set({ age, bio }).where(eq(users.id, subjectId));
 
 			// onboarding.md: the creator is the campaign's first manager, with admin
-			// permissions (invite/remove team, fundraising, delete campaign) — "leader"
+			// permissions (invite/remove team, fundraising, delete campaign), "leader"
 			// isn't a separate permission tier, just the first admin manager.
 			await db.insert(managers).values({
 				userId: domainUser.id,
@@ -377,7 +377,7 @@ export const actions: Actions = {
 			});
 		}
 
-		// In-place edits to saved experience rows — scoped to this person so nobody
+		// In-place edits to saved experience rows, scoped to this person so nobody
 		// can rewrite someone else's rows by id-guessing. Type is left untouched.
 		for (const e of editedExperience) {
 			await db
@@ -398,7 +398,7 @@ export const actions: Actions = {
 				);
 		}
 
-		// In-place edits to saved leadership (elected term) rows — scoped to this
+		// In-place edits to saved leadership (elected term) rows, scoped to this
 		// person (leaders.userId) so nobody can rewrite someone else's rows by id.
 		for (const l of editedLeadership) {
 			await db
@@ -430,7 +430,7 @@ export const actions: Actions = {
 		}
 
 		// The staged photo, validated above: written to disk keyed by the PERSON and
-		// wired onto their users row — part of this same save, no separate upload step.
+		// wired onto their users row, part of this same save, no separate upload step.
 		if (hasPhoto) {
 			try {
 				const photoUrl = await saveLeaderDocument(subjectId, 'photo', photoFile);
@@ -481,7 +481,7 @@ export const actions: Actions = {
 	},
 
 	// "Just testing" escape hatch (mirrors the claim form's Delete): soft-deletes
-	// the in-progress application — its leader row and phantom user — so it drops
+	// the in-progress application. Its leader row and phantom user, so it drops
 	// out of the switcher and its slug frees up. Verified campaigns are exempt.
 	deleteApplication: async (event) => {
 		const { domainUser } = await requireDashboardUser(event);
@@ -513,7 +513,7 @@ export const actions: Actions = {
 			.update(managers)
 			.set({ deletedAt: new Date() })
 			.where(eq(managers.subjectUserId, ctx.profileUser.id));
-		// The phantom identity goes with it — but never the citizen's own users row
+		// The phantom identity goes with it, but never the citizen's own users row
 		// (legacy self-profiles point leaders.userId at the citizen).
 		if (ctx.profileUser.id !== domainUser.id) {
 			await db.update(users).set({ deletedAt: new Date() }).where(eq(users.id, ctx.profileUser.id));
@@ -523,10 +523,10 @@ export const actions: Actions = {
 
 	// "Submit for Verification": re-checks the checklist server-side (never trust
 	// the client's view of "complete") and, only if every tab is done, emails the
-	// admins — there's no submit/pending state to flip, just a heads-up that this
+	// admins. There's no submit/pending state to flip, just a heads-up that this
 	// one's ready for the admin's Verify Profile toggle. users.verificationRequestedAt
 	// records the click so the dashboard can show "pending review" and this can't
-	// re-email admins on every subsequent click. Decoupled from any campaign —
+	// re-email admins on every subsequent click. Decoupled from any campaign,
 	// campaigns are optional and verified individually on the Campaign tab.
 	requestVerification: async (event) => {
 		const { domainUser } = await requireDashboardUser(event);
@@ -537,7 +537,7 @@ export const actions: Actions = {
 
 		const { applicationComplete, verificationRequestedAt } = await getApplicationChecklist(ctx);
 		if (verificationRequestedAt)
-			return fail(400, { verificationError: "Already submitted — it's pending admin review." });
+			return fail(400, { verificationError: "Already submitted. It's pending admin review." });
 		if (!applicationComplete)
 			return fail(400, { verificationError: 'Some required fields are still missing.' });
 

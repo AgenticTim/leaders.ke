@@ -1,5 +1,5 @@
 // Candidate resolution for the homepage ballot simulator. Only surfaces
-// verified 2027 runs (campaigns) — a real ballot lists candidates, which are runs
+// verified 2027 runs (campaigns). A real ballot lists candidates, which are runs
 // for office, not held terms. ACTIVE_CYCLE (2027) is the cycle this ballot covers.
 import { randomBytes } from 'node:crypto';
 import type { RequestEvent } from '@sveltejs/kit';
@@ -38,7 +38,7 @@ export async function resolveVoterIdentity(
 export type BallotLevel = 'president' | 'governor' | 'senator' | 'womanRep' | 'mp' | 'mca';
 
 export type Candidate = {
-	candidateId: string; // "campaign:<id>" — resolved back to live data on the share page
+	candidateId: string; // "campaign:<id>", resolved back to live data on the share page
 	name: string;
 	initials: string;
 	photoUrl: string | null;
@@ -83,7 +83,7 @@ function toCandidate(row: {
 	};
 }
 
-/** A person's current-term party, keyed by user id — the fallback when a 2027 run
+/** A person's current-term party, keyed by user id. The fallback when a 2027 run
  * carries no partyId of its own (most seeded runs don't; an incumbent runs under
  * their current party by default until they declare otherwise). Most recent
  * current term wins if somehow more than one. */
@@ -130,8 +130,8 @@ async function verifiedCampaignsFor(title: string, region: string): Promise<Cand
  * Candidates for one ballot level given the citizen's selected geography.
  * Geography is progressive: only the piece a level actually needs must be set
  * (president none, governor/senator/womanRep the county, mp the constituency,
- * mca the ward) — callers guarantee that piece before asking for the level.
- * Returns [] when nothing exists yet (no fabricated candidates) — the UI must let the
+ * mca the ward), callers guarantee that piece before asking for the level.
+ * Returns [] when nothing exists yet (no fabricated candidates). The UI must let the
  * citizen explicitly skip a level rather than block on it.
  */
 export async function resolveCandidates(
@@ -178,7 +178,7 @@ export async function claimGuestBallots(domainUserId: number, anonId: string | n
 
 /** Re-resolves a stored candidateId to live display data, or null if gone.
  * "campaign:<id>" is a verified run offered on the ballot; "person:<slug>" is an
- * aspirational write-in picked via quick search — any profile on the platform,
+ * aspirational write-in picked via quick search. Any profile on the platform,
  * vying for that seat or not. */
 export async function resolveCandidateById(candidateId: string | null): Promise<Candidate | null> {
 	if (!candidateId) return null;

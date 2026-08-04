@@ -1,13 +1,13 @@
-// Rejecting a claim that already granted access (see onboard.ts — access is
+// Rejecting a claim that already granted access (see onboard.ts, access is
 // immediate, review happens after) needs something to revert TO. There's no
 // "before" snapshot of the live profile, so this restores the seed pipeline's own
 // committed record instead: scripts/out/dossiers.json, keyed by userId. Covers
 // everything a claimant could rewrite that the seed pipeline actually sourced:
 // name, slug, photo, bio, party, and experience (education/professional). Team,
-// contacts, and posts aren't seed data at all — reviewClaim (claims.ts)
+// contacts, and posts aren't seed data at all, reviewClaim (claims.ts)
 // handles those separately (clear rather than restore).
 // Known limitation: the bio is the RAW scraped text, not whatever AI-rewritten
-// version the agentic pipeline may have later written — restoring to
+// version the agentic pipeline may have later written. Restoring to
 // source-verified content, not necessarily byte-identical to what was live before.
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -54,7 +54,7 @@ export async function restoreFromSeed(subjectUserId: number): Promise<{ ok: true
 		return { ok: false, error: 'Could not read the seed record (dossiers.json unavailable).' };
 	}
 	const entry = dossiers.find((d) => d.userId === subjectUserId);
-	if (!entry) return { ok: false, error: 'No seed record found for this profile — nothing to restore to.' };
+	if (!entry) return { ok: false, error: 'No seed record found for this profile. Nothing to restore to.' };
 
 	if (entry.canonicalName) {
 		const { firstName, otherNames } = splitName(entry.canonicalName);
@@ -70,7 +70,7 @@ export async function restoreFromSeed(subjectUserId: number): Promise<{ ok: true
 	}
 
 	// Photo: the seed pipeline (seed-photos.ts) points photoUrl at a git-shipped
-	// static/leaders/<slug>.jpg when one exists, else leaves it null — reproduce
+	// static/leaders/<slug>.jpg when one exists, else leaves it null, reproduce
 	// that same rule rather than guessing from dossier source URLs (which are
 	// external and not what actually ended up live).
 	if (entry.platformSlug) {
@@ -82,7 +82,7 @@ export async function restoreFromSeed(subjectUserId: number): Promise<{ ok: true
 		await db.update(users).set({ photoUrl: hasPhoto ? `/leaders/${entry.platformSlug}.jpg` : null }).where(eq(users.id, subjectUserId));
 	}
 
-	// Party: the first term that actually names one (not necessarily terms[0] —
+	// Party: the first term that actually names one (not necessarily terms[0],
 	// e.g. a later 2027 aspirant entry can have a null party). Restores onto
 	// whichever row a claimant could have edited: their live held term, else
 	// their active-cycle run (party is per-term/per-run, not person-level).
@@ -109,8 +109,8 @@ export async function restoreFromSeed(subjectUserId: number): Promise<{ ok: true
 
 	// Experience: drop whatever's live (the claimant's own edits) and rebuild from
 	// every rawProfiles source's education/professional entries. Years in the source
-	// are free-text ranges too inconsistent to parse reliably ("1981–Present.",
-	// "(1977–1980) ,(1980–1981)") — startAt/endAt stay null, same as the schema's
+	// are free-text ranges too inconsistent to parse reliably ("1981-Present.",
+	// "(1977-1980) ,(1980-1981)"), startAt/endAt stay null, same as the schema's
 	// own documented fallback for an unparseable range, rather than guess wrong.
 	await db.update(experience).set({ deletedAt: new Date() }).where(and(eq(experience.subjectUserId, subjectUserId), isNull(experience.deletedAt)));
 	for (const profile of entry.rawProfiles ?? []) {

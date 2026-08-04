@@ -14,7 +14,7 @@
 	let saving = $state(false);
 
 	// Logo: picked -> square-cropped (raster) or passed through (SVG) -> STAGED in
-	// the form's own file input and previewed locally, uploaded with the submit —
+	// the form's own file input and previewed locally, uploaded with the submit,
 	// same staging model as the leader photo.
 	let logoInput: HTMLInputElement | undefined = $state();
 	let cropping = $state<File | null>(null);
@@ -29,7 +29,7 @@
 		const input = e.currentTarget as HTMLInputElement;
 		const file = input.files?.[0];
 		if (!file) return;
-		// Everything — SVG included — goes through the square crop and is rasterized
+		// Everything, SVG included, goes through the square crop and is rasterized
 		// to PNG, so every logo renders uniformly regardless of source format.
 		input.value = ''; // the cropped result replaces it on confirm
 		cropping = file;
@@ -64,7 +64,7 @@
 		'mt-1 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none';
 </script>
 
-<svelte:head><title>Parties — Admin — vote.ke</title></svelte:head>
+<svelte:head><title>Parties · Admin · vote.ke</title></svelte:head>
 
 <div class="flex flex-wrap items-start justify-between gap-3">
 	<div>
@@ -191,7 +191,7 @@
 										class="text-sm text-muted file:mr-3 file:rounded-full file:border file:border-border file:bg-surface-2 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-heading"
 									/>
 							</div>
-							<p class="mt-1 text-xs text-muted">PNG, JPEG, WebP, or SVG — square-cropped to PNG. Leave empty to keep the current logo.</p>
+							<p class="mt-1 text-xs text-muted">PNG, JPEG, WebP, or SVG, square-cropped to PNG. Leave empty to keep the current logo.</p>
 						</div>
 					</div>
 

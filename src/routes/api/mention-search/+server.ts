@@ -1,4 +1,4 @@
-// Autocomplete for @mentions in the News composer — leaders (verified held terms
+// Autocomplete for @mentions in the News composer. Leaders (verified held terms
 // and runs) and parties, flat (unlike quick-search's seat-family grouping). The
 // standalone "Mentions" chip field (which feeds the `tags` table, subjectUserId a
 // real user) filters this down to kind: 'leader' client-side; the inline @mention

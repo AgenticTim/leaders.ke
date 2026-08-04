@@ -7,7 +7,7 @@
 	let { data }: { data: PageData } = $props();
 
 	// The key ORDER is literal here (drives iteration + matches packages.features'
-	// shape); the LABEL text itself comes from packages.json's perkLabels — the
+	// shape); the LABEL text itself comes from packages.json's perkLabels. The
 	// same file $lib/server/packages.ts and the admin Packages page read, so
 	// wording only ever changes in one place.
 	const PACKAGE_PERK_KEYS = [
@@ -22,18 +22,18 @@
 	const leftSet = ['Level Up', 'Catapult', 'Propel', 'Amplify', 'Strengthen'];
 	const rightSet = ['Leadership', 'Campaign', 'Publicity', 'Advocacy', 'Supporters'];
 
-	// pricing-v2 (leaders.ke-pricing-v2.csv): one flat rate per tier — every
+	// pricing-v2 (leaders.ke-pricing-v2.csv): one flat rate per tier. Every
 	// office costs the same, no more per-band price matrix.
 	const TIER_KEYS = ['kickstart', 'mobilize', 'dominate'] as const;
 	const tiers = ['Kickstart', 'Mobilize', 'Dominate'] as const;
-	// Hand-written marketing copy per tier — the only part of this page NOT
+	// Hand-written marketing copy per tier. The only part of this page NOT
 	// sourced from the DB, since it's a pitch line, not a fact an admin edits.
 	const taglines = ['Launch your bid', 'Grow your movement', 'Command the race'];
 
 	const fmt = new Intl.NumberFormat('en-KE');
 	const fmtCap = (n: number | null) => (n === null ? 'Unlimited' : fmt.format(n));
 
-	// One monthly KES price per tier, same for every office — read from the
+	// One monthly KES price per tier, same for every office, read from the
 	// `pricing` table (the same rows /dashboard/admin/packages edits).
 	const prices = TIER_KEYS.map(
 		(tier) => data.pricing.find((p) => p.tier === tier && p.billingCycle === 'monthly')?.amount ?? 0
@@ -189,7 +189,7 @@
 	// PAYG (pay-as-you-go) credits, KES 1 each. SMS/WhatsApp costs mirror the
 	// broadcast footnote; AI chat's cost is the Sonnet 5 per-question figure
 	// (docs/ai-chat-costs.md). Prices come from platformSettings (admin Packages
-	// → Credit rates), not hardcoded — same single-source-of-truth rule as the
+	// → Credit rates), not hardcoded, same single-source-of-truth rule as the
 	// package/pricing tables above. Paid on-page placement ("Boost") is
 	// deliberately not offered: money never reorders a neutral civic surface.
 	const creditLabel = (n: number) => `KES ${n.toLocaleString('en-KE')}`;

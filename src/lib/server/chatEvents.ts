@@ -1,6 +1,6 @@
 // Live chat delivery: a tiny in-process pubsub bridging message writes
 // (chat.ts) to the open SSE connections (/api/chat/events), so a team reply
-// shows up on the citizen's page — and a citizen question on the Inbox —
+// shows up on the citizen's page, and a citizen question on the Inbox,
 // without a refresh. In-process matches how this app already runs its timers
 // (hooks.server.ts) on the single PM2 fork; going multi-process would need
 // Postgres LISTEN/NOTIFY here instead.
@@ -48,7 +48,7 @@ export async function emitChatEvent(conversationId: number): Promise<void> {
 	} satisfies ChatEvent);
 }
 
-/** Transient "someone is typing" signal (never stored) — the other side shows
+/** Transient "someone is typing" signal (never stored). The other side shows
  * a typing indicator for a few seconds. */
 export async function emitTypingEvent(conversationId: number, from: 'citizen' | 'team'): Promise<void> {
 	const conv = await threadIdentity(conversationId);

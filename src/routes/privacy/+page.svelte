@@ -1,12 +1,12 @@
 <svelte:head>
-	<title>Privacy Policy — vote.ke</title>
+	<title>Privacy Policy · vote.ke</title>
 	<meta name="description" content="How vote.ke collects, uses, and protects personal data." />
 </svelte:head>
 
 <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
 	<h1 class="text-3xl font-bold text-heading">Privacy Policy</h1>
 	<p class="mt-3 text-sm text-muted">
-		Working draft — the full policy is under legal review. Questions in the meantime:
+		Working draft. The full policy is under legal review. Questions in the meantime:
 		<a href="mailto:privacy@vote.ke" class="font-medium text-primary hover:underline">privacy@vote.ke</a>.
 	</p>
 
@@ -37,7 +37,7 @@
 			<h2 class="text-lg font-semibold text-heading">Your rights</h2>
 			<p class="mt-2 text-muted">
 				Under the Data Protection Act (2019) you may request access, correction, or deletion of
-				your data — see the
+				your data, see the
 				<a href="/data-policy" class="font-medium text-primary hover:underline">Data Policy</a> for
 				how.
 			</p>

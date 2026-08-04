@@ -1,12 +1,12 @@
 <svelte:head>
-	<title>Terms of Service — vote.ke</title>
+	<title>Terms of Service · vote.ke</title>
 	<meta name="description" content="The rules for using vote.ke." />
 </svelte:head>
 
 <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
 	<h1 class="text-3xl font-bold text-heading">Terms of Service</h1>
 	<p class="mt-3 text-sm text-muted">
-		Working draft — the full terms are under legal review. Questions in the meantime:
+		Working draft. The full terms are under legal review. Questions in the meantime:
 		<a href="mailto:hello@vote.ke" class="font-medium text-primary hover:underline">hello@vote.ke</a>.
 	</p>
 

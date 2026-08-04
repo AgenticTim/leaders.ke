@@ -26,7 +26,7 @@
 	const errorClass = () => 'border-border focus:border-primary focus:ring-ring';
 
 	// Required-field `*`s track the LIVE inputs: red while empty, muted the moment
-	// a value is typed — saving is never blocked on them (the submit widget's
+	// a value is typed. Saving is never blocked on them (the submit widget's
 	// checklist is what gates the application).
 	const liveByLabel = $derived<Record<string, string>>({
 		'Office / address': address,
@@ -70,7 +70,7 @@
 
 		const looksLikeUrl = /^https?:\/\//i.test(v) || /^(www\.)?[\w-]+\.\w{2,}(\/|$)/i.test(v);
 		if (!looksLikeUrl) {
-			// The normal case: a plain handle, not a pasted URL — just store what was typed.
+			// The normal case: a plain handle, not a pasted URL, just store what was typed.
 			socialLinks[i].value = v;
 			delete socialErrors[kind];
 			return;

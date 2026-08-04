@@ -1,5 +1,5 @@
 // Treasurer payout + reconciliation report over a campaign's donation ledger.
-// The 5% platform fee here must match the public promise on /fundraising —
+// The 5% platform fee here must match the public promise on /fundraising,
 // campaigns keep 95% of every confirmed donation, the fee is never returned.
 export const PLATFORM_FEE_RATE = 0.05;
 
@@ -68,7 +68,7 @@ function csvField(value: string | number | null): string {
 	return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-/** Full ledger as CSV — every status included so the treasurer can chase
+/** Full ledger as CSV. Every status included so the treasurer can chase
  * pendings; fee/net columns only carry values on confirmed rows. */
 export function buildTreasurerCsv(rows: DonationRow[]): string {
 	const header = ['Date', 'Donor', 'Phone', 'Status', 'Channel', 'Reference', 'Amount (KES)', 'Platform fee (KES)', 'Net (KES)'];

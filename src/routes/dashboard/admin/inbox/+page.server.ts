@@ -1,6 +1,6 @@
 // Platform inbox (plans/10-platform-wide-ai-chat.md): the site-wide Ask box's
-// threads. A platform question that couldn't be answered by AI — the asker was
-// over their limit, or answering failed — is recorded and targeted at a human,
+// threads. A platform question that couldn't be answered by AI. The asker was
+// over their limit, or answering failed, is recorded and targeted at a human,
 // so it lands here instead of dead-ending the citizen. Same shape as a
 // campaign's own Chats list, but scoped to the platform (conversations.scope
 // 'platform', scopeId null) and readable only by admins.
@@ -28,13 +28,13 @@ export const actions: Actions = {
 		const body = String(form.get('body') ?? '').trim();
 		if (!conversationId || !body) return adminActionFailed(admin.domainUser.id, 400, { error: 'Write a reply first.' });
 
-		// 'manager' is the sender kind for a non-AI, non-leader human reply — on a
+		// 'manager' is the sender kind for a non-AI, non-leader human reply, on a
 		// platform thread that human is the platform team rather than a campaign's.
 		const ok = await replyToChat(null, conversationId, 'manager', admin.domainUser.id, body);
 		if (!ok) return adminActionFailed(admin.domainUser.id, 400, { error: 'Conversation not found.' });
 
 		// The reply itself only lands in the thread, which the citizen sees when
-		// their Ask panel is open (live via SSE) or next time they open it — so a
+		// their Ask panel is open (live via SSE) or next time they open it, so a
 		// signed-in asker also gets the durable notification + email, otherwise a
 		// reply to someone who has closed the tab reaches nobody. A guest thread
 		// has no account and no email on file, so there's nothing to notify: their

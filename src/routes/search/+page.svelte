@@ -14,7 +14,7 @@
 </script>
 
 <svelte:head>
-	<title>Search{data.q ? `: ${data.q}` : ''} — vote.ke</title>
+	<title>Search{data.q ? `: ${data.q}` : ''} · vote.ke</title>
 </svelte:head>
 
 <section class="mx-auto max-w-7xl px-4 py-14 sm:px-6">
@@ -54,7 +54,7 @@
 				{#each data.experience as item, i (i)}
 					<li class="rounded-xl bg-surface-2 px-4 py-3 text-sm">
 						<a href={item.path} class="font-medium text-heading hover:text-primary">{item.leaderName}</a>
-						<span class="text-muted"> — {item.title}, {item.institution}</span>
+						<span class="text-muted"> · {item.title}, {item.institution}</span>
 					</li>
 				{/each}
 			</ul>
@@ -101,7 +101,7 @@
 				{#each data.news as article (article.path)}
 					<li class="rounded-xl bg-surface-2 px-4 py-3 text-sm">
 						<a href={article.path} class="font-medium text-heading hover:text-primary">{article.title}</a>
-						<span class="text-muted"> — {article.authorName}</span>
+						<span class="text-muted"> · {article.authorName}</span>
 						{#if article.excerpt}<p class="mt-1 text-muted">{article.excerpt}</p>{/if}
 					</li>
 				{/each}

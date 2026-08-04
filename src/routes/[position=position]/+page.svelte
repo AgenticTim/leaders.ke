@@ -76,7 +76,7 @@
 </script>
 
 <svelte:head>
-	<title>{pluralPositionTitle(data.positionTitle)} — vote.ke</title>
+	<title>{pluralPositionTitle(data.positionTitle)} · vote.ke</title>
 	<meta
 		name="description"
 		content="Every {data.positionTitle} and 2027 candidate: regions, incumbents and cleared contestants."
@@ -93,7 +93,7 @@ server-paginated. On single-region seats (President) it sits below the hub. -->
 			<PositionBadges positions={PILL_TITLES} value={data.positionTitle} {hrefFor} />
 		</div>
 		<div class="mt-4 flex flex-col flex-wrap sm:flex-row justify-between gap-2 items-start">
-			<!-- nowrap only where the row layout needs it — on phones the longest
+			<!-- nowrap only where the row layout needs it, on phones the longest
 			titles (Women Representatives) would overflow the viewport. -->
 			<p class="flex-1 mt-2 text-sm leading-relaxed text-muted sm:whitespace-nowrap">
 				Verified {pluralPositionTitle(data.positionTitle)} and 2027 contestants.

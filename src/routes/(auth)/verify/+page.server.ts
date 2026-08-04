@@ -2,7 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { requireDashboardUser } from '$lib/server/dashboard';
 import type { PageServerLoad } from './$types';
 
-// Only ever redirect to a same-origin relative path — never follow ?next anywhere else.
+// Only ever redirect to a same-origin relative path, never follow ?next anywhere else.
 function safeNext(next: string | null): string {
 	return next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard';
 }

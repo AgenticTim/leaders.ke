@@ -19,7 +19,7 @@
 	};
 
 	// Shared by /dashboard/admin/parties (with the Verify/Unverify action column)
-	// and the public /parties directory (read-only — showActions defaults false).
+	// and the public /parties directory (read-only, showActions defaults false).
 	// onEdit (admin only) adds an Edit button that hands the party id back up.
 	let {
 		parties,
@@ -133,7 +133,7 @@
 					<td class="px-4 py-2.5 text-muted">{party.memberCount}</td>
 					<td class="px-4 py-2.5 text-muted capitalize">{party.status}</td>
 					<td class="px-4 py-2.5 text-muted">{dateFmt.format(new Date(party.createdAt))}</td>
-					<td class="px-4 py-2.5 text-muted">{party.certifiedAt ? dateFmt.format(new Date(party.certifiedAt)) : '—'}</td>
+					<td class="px-4 py-2.5 text-muted">{party.certifiedAt ? dateFmt.format(new Date(party.certifiedAt)) : '-'}</td>
 					<td class="px-4 py-2.5">
 						<span
 							use:tooltip={"Confirms the party's ORPP listing was manually checked. A badge only, never a visibility gate."}

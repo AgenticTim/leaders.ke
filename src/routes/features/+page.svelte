@@ -1,7 +1,7 @@
 <script lang="ts">
 	// The full feature list, grouped by the buyer's jobs-to-be-done (see docs/PRIORITIES.md
 	// and .ignore/01-homepage-features-v1-redesign.md). `live` features are shipped; the
-	// rest are roadmap and badged "Coming soon" — the badge doubles as a demand test.
+	// rest are roadmap and badged "Coming soon". The badge doubles as a demand test.
 	// `tier` is the lowest package that includes the feature.
 
 	type Feature = {
@@ -240,7 +240,7 @@
 </script>
 
 <svelte:head>
-	<title>Features — vote.ke</title>
+	<title>Features · vote.ke</title>
 	<meta
 		name="description"
 		content="Everything a 2027 campaign needs: verified profiles, followers and broadcasts, citizen reviews, vote pledges, fundraising, PR management, AI chat and competitor analytics."

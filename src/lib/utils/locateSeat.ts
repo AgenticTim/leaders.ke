@@ -1,7 +1,7 @@
 // Extends the booth's "Use my location" beyond the county (16.5): after
 // locateCounty.ts places the point in a county, that county's boundary pack
 // (constituencies + wards with register slugs baked in, built by
-// scripts/build-boundaries.ts) is point-in-polygon tested the same way — fully
+// scripts/build-boundaries.ts) is point-in-polygon tested the same way, fully
 // offline, in the browser; coordinates never leave the device and are never
 // stored. Packs are lazy-loaded per county (50-300KB), so a visitor only ever
 // downloads their own county's boundaries.
@@ -37,7 +37,7 @@ function segDist2(px: number, py: number, a: [number, number], b: [number, numbe
 	return dx * dx + dy * dy;
 }
 
-/** Squared degree-distance to the entry's nearest outer-ring EDGE — the snap
+/** Squared degree-distance to the entry's nearest outer-ring EDGE. The snap
  * tie-breaker for points just outside every polygon. Edge (not vertex)
  * distance matters here: Douglas-Peucker leaves long straight edges whose
  * vertices sit far from a point that's only metres outside the line. */
@@ -75,7 +75,7 @@ export type DetectedSeat = { county: string | null; constituency: string | null;
  * ward may be null independently: constituencies tile their county fully so a
  * miss there gets a generous snap (~5km, boundary jitter only), while ward
  * coverage has a few real gaps (13 register wards have no boundary in the
- * source data), so the ward snap stays tight (~500m) — better to leave the
+ * source data), so the ward snap stays tight (~500m), better to leave the
  * ward step for a manual pick than to prefill a neighbour.
  */
 export async function detectSeat(lat: number, lng: number): Promise<DetectedSeat> {

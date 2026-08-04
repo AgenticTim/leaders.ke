@@ -21,7 +21,7 @@
 	let question = $state('');
 	let asking = $state(false);
 	let errorText = $state<string | null>(null);
-	// Guest allowance spent — pairs the message below with a log-in link, since
+	// Guest allowance spent, pairs the message below with a log-in link, since
 	// signing in is the actual remedy rather than retrying.
 	let limitReached = $state(false);
 	let authOpen = $state(false);
@@ -32,7 +32,7 @@
 	let scroller: HTMLDivElement | undefined = $state();
 	let input: HTMLTextAreaElement | undefined = $state();
 
-	// Starters (the plan's prompt-starter chips) — shown only on an empty thread,
+	// Starters (the plan's prompt-starter chips), shown only on an empty thread,
 	// where a blank box is hardest to start from.
 	const STARTERS = [
 		'Who is my MP?',
@@ -48,12 +48,12 @@
 			if (!res.ok) return;
 			const data = await res.json();
 			messages = data.messages ?? [];
-			// Admin-editable cap (platformSettings.askMaxChars) — the server
+			// Admin-editable cap (platformSettings.askMaxChars). The server
 			// truncates to it regardless, this just stops the textarea accepting
 			// more than will actually be used.
 			if (typeof data.maxChars === 'number') maxChars = data.maxChars;
 		} catch {
-			// Offline or a transient failure — the panel still works for new asks.
+			// Offline or a transient failure. The panel still works for new asks.
 		}
 	}
 
@@ -70,7 +70,7 @@
 	// SSE stream so a vote.ke admin's reply from the platform inbox lands in the
 	// open panel without a reload. Gated on having history because a visitor with
 	// no anon_id cookie yet has no thread to stream (the endpoint 403s), and the
-	// cookie only exists after their first ask — at which point hasThread flips
+	// cookie only exists after their first ask, at which point hasThread flips
 	// and this reconnects.
 	const hasThread = $derived(messages.length > 0);
 	$effect(() => {
@@ -112,7 +112,7 @@
 			} else if (data.answered && data.answer) {
 				messages = [...messages, { id: -Date.now() - 1, sender: 'ai', body: data.answer, createdAt: new Date().toISOString() }];
 			} else if (data.reason === 'guest-limit') {
-				// Nothing is broken here — the free guest allowance is simply spent,
+				// Nothing is broken here. The free guest allowance is simply spent,
 				// so say that plainly and point at the way to get more answers.
 				limitReached = true;
 				errorText = "You have hit your daily limit for guests.";
@@ -129,7 +129,7 @@
 	}
 
 	function onKeydown(e: KeyboardEvent) {
-		// Enter sends, Shift+Enter newlines — standard chat behavior.
+		// Enter sends, Shift+Enter newlines, standard chat behavior.
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
 			ask();

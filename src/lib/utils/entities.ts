@@ -15,6 +15,6 @@ export function decodeHtmlEntities(input: string): string {
 		if (next === out) break;
 		out = next;
 	}
-	// Non-breaking spaces read as odd gaps in excerpts — normalize to plain.
+	// Non-breaking spaces read as odd gaps in excerpts, normalize to plain.
 	return out.replace(/ /g, ' ');
 }

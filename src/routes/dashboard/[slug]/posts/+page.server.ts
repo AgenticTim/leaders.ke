@@ -18,9 +18,9 @@ import type { Actions, PageServerLoad } from './$types';
 //
 // "PR AI Agent" (mentions/sentiment/crisis banner) is a Mobilize+ perk;
 // "Pick your news sources" (which outlets are allowed to tag this person at
-// all — users.newsSourceAllowlist) is Dominate-only (/pricing). The ingestion
-// pipeline itself (newsIngest.ts) still runs for every verified person —
-// restricting collection would mean re-ingesting a leader's whole history on
+// all. Users.newsSourceAllowlist) is Dominate-only (/pricing). The ingestion
+// pipeline itself (newsIngest.ts) still runs for every verified person.
+// Restricting collection would mean re-ingesting a leader's whole history on
 // upgrade, and the crawl/classification cost is trivial next to the per-tier
 // gates that actually matter: whether mentions surface in THIS tab, and which
 // sources may produce one at all. Both gates live here, not in newsIngest.ts.
@@ -44,7 +44,7 @@ export const load: PageServerLoad = async (event) => {
 	const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 	const mentionFilter = and(eq(tags.subjectUserId, ctx.profileUser.id), isNull(tags.deletedAt), isNull(posts.deletedAt));
 
-	// Admin-toggled perks (packages.features — /dashboard/admin/packages, same
+	// Admin-toggled perks (packages.features, /dashboard/admin/packages, same
 	// facts /pricing shows) rather than hardcoded tier names: flipping a toggle
 	// changes both pages together.
 	const tier = await getPersonTier(ctx.profileUser.id);
@@ -54,7 +54,7 @@ export const load: PageServerLoad = async (event) => {
 
 	const [ownPosts, mentionRows, dayRow, negative24h, eventRows, mentionsCount] = await Promise.all([
 		db.select().from(posts).where(ownPostFilter).orderBy(desc(posts.createdAt)).limit(300),
-		// Full rows only fetched once unlocked — a locked tab shows counts only
+		// Full rows only fetched once unlocked. A locked tab shows counts only
 		// (below), never the actual coverage text, so there's nothing to upsell
 		// around by reading it for free.
 		mentionsUnlocked
@@ -72,7 +72,7 @@ export const load: PageServerLoad = async (event) => {
 			.from(tags)
 			.where(and(eq(tags.subjectUserId, ctx.profileUser.id), isNull(tags.deletedAt), gte(tags.createdAt, dayAgo)))
 			.then(([r]) => r.n),
-		// Negative-tone mentions in the same window — the second crisis trigger.
+		// Negative-tone mentions in the same window. The second crisis trigger.
 		db
 			.select({ n: count() })
 			.from(tags)
@@ -86,7 +86,7 @@ export const load: PageServerLoad = async (event) => {
 					.where(and(eq(events.campaignId, ctx.campaignId), isNull(events.deletedAt)))
 					.orderBy(desc(events.startAt))
 			: Promise.resolve([]),
-		// Lifetime mention count — shown on the locked upsell card ("37 mentions
+		// Lifetime mention count, shown on the locked upsell card ("37 mentions
 		// waiting"), cheap enough to always compute regardless of tier.
 		db
 			.select({ n: count() })
@@ -95,7 +95,7 @@ export const load: PageServerLoad = async (event) => {
 			.then(([r]) => r.n)
 	]);
 
-	// Team-tagged mentions on each own post (creatorId set — not the system-generated
+	// Team-tagged mentions on each own post (creatorId set. Not the system-generated
 	// external coverage rows), for the composer's "Mentions" field to pre-fill on edit.
 	const ownPostIds = ownPosts.map((p) => p.id);
 	const ownMentionRows = ownPostIds.length
@@ -113,7 +113,7 @@ export const load: PageServerLoad = async (event) => {
 		ownMentionsByPostId.set(r.postId, list);
 	}
 
-	// A deep link from the public article's "Edit" button (?edit=<postId>) — fetched
+	// A deep link from the public article's "Edit" button (?edit=<postId>), fetched
 	// independently of the section/filter/pagination above, since the target post
 	// might be archived or off the current page.
 	const editId = Number(event.url.searchParams.get('edit') ?? 0);
@@ -235,8 +235,8 @@ export const load: PageServerLoad = async (event) => {
 		mentions24h: dayRow,
 		negative24h,
 		// Crisis is volume OR tone: a burst of coverage, or several negative
-		// stories even at normal volume — either way, respond before it sets.
-		// Locked tiers get no crisis banner either — it's part of the same
+		// stories even at normal volume. Either way, respond before it sets.
+		// Locked tiers get no crisis banner either. It's part of the same
 		// PR AI Agent feature, not a separate free warning.
 		crisis: mentionsUnlocked && (dayRow >= CRISIS_THRESHOLD_24H || negative24h >= NEGATIVE_THRESHOLD_24H),
 		drafts: ownPosts.filter((p) => !p.public).map((d) => ({ id: d.id, title: d.title })),
@@ -245,7 +245,7 @@ export const load: PageServerLoad = async (event) => {
 };
 
 // Mentions come from two places: inline @links written in the body, and the
-// composer's standalone "Mentions" chip field (its own slug picker) — combine both.
+// composer's standalone "Mentions" chip field (its own slug picker), combine both.
 function mergeMentionSlugs(body: string, form: FormData): string[] {
 	const chipSlugs = String(form.get('mentions') ?? '')
 		.split(',')
@@ -255,7 +255,7 @@ function mergeMentionSlugs(body: string, form: FormData): string[] {
 }
 
 // Replaces a post's team-authored mention tags (creatorId set) with fresh ones
-// parsed from its current body — leaves system-generated mention rows (external
+// parsed from its current body, leaves system-generated mention rows (external
 // coverage, creatorId null) untouched.
 async function syncMentions(postId: number, creatorId: number, mentionSlugs: string[]) {
 	await db.delete(tags).where(and(eq(tags.postId, postId), isNotNull(tags.creatorId)));
@@ -270,7 +270,7 @@ export const actions: Actions = {
 	// Dominate-only (packages.features.newsSourceControl, re-checked here since
 	// the client can't be trusted to enforce the gate): which outlets may tag
 	// this person at all. null (every checkbox on) clears the allowlist rather
-	// than storing "every id" — that way a newly added source is allowed by
+	// than storing "every id". That way a newly added source is allowed by
 	// default instead of silently excluded until re-saved.
 	setNewsSources: async (event) => {
 		const { ctx } = await requireLeader(event);
@@ -321,7 +321,7 @@ export const actions: Actions = {
 		return { saved: true };
 	},
 
-	// Edits an existing post's title/body/tags/mentions in place — the slug and
+	// Edits an existing post's title/body/tags/mentions in place. The slug and
 	// creation date stay put, only ?/toggle changes public/draft state.
 	update: async (event) => {
 		const { domainUser, ctx } = await requireLeader(event);
@@ -341,7 +341,7 @@ export const actions: Actions = {
 			.where(and(eq(posts.id, postId), eq(posts.subjectUserId, ctx.profileUser.id), isNull(posts.deletedAt)));
 		if (!row) return fail(404, { error: 'Post not found.' });
 
-		// Content only — publish/unpublish stays the card's own toggle so editing
+		// Content only, publish/unpublish stays the card's own toggle so editing
 		// never accidentally flips a post's public state.
 		await db
 			.update(posts)
@@ -406,7 +406,7 @@ export const actions: Actions = {
 		return { saved: true };
 	},
 
-	// Drafts a response into the feed (unpublished) — AI-written when a key is
+	// Drafts a response into the feed (unpublished), AI-written when a key is
 	// configured, template otherwise. The team edits and publishes from here.
 	draftResponse: async (event) => {
 		const { domainUser, ctx } = await requireLeader(event);

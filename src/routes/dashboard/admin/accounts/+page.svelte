@@ -8,7 +8,7 @@
 	const totalPages = $derived(Math.max(1, Math.ceil(data.total / data.pageSize)));
 </script>
 
-<svelte:head><title>Accounts — Admin</title></svelte:head>
+<svelte:head><title>Accounts · Admin</title></svelte:head>
 
 <div>
 	<h1 class="text-xl font-bold text-heading">Accounts</h1>
@@ -40,7 +40,7 @@
 									account.isAmbassador && 'Ambassador'
 								]
 									.filter(Boolean)
-									.join(', ') || '—'}
+									.join(', ') || '-'}
 							</td>
 							<td class="px-4 py-3 text-sm text-muted">{dateFmt.format(new Date(account.createdAt))}</td>
 						</tr>

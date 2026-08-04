@@ -15,7 +15,7 @@
 	let county = $state(data.countySlug);
 	let constituency = $state(data.constituencySlug);
 	let ward = $state(data.wardSlug);
-	// Keep local values in sync with the URL (browser back/forward, direct links) —
+	// Keep local values in sync with the URL (browser back/forward, direct links),
 	// only when it actually specifies a region, same reasoning as the homepage's
 	// own GeoSelect: an empty URL isn't a deliberate "clear my location".
 	$effect(() => {
@@ -52,7 +52,7 @@
 </script>
 
 <svelte:head>
-	<title>News — vote.ke</title>
+	<title>News · vote.ke</title>
 	<meta name="description" content="Updates, announcements, and campaign news from leaders and candidates on vote.ke." />
 </svelte:head>
 

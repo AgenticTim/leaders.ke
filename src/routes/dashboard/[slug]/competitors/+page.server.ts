@@ -10,14 +10,14 @@ import type { PageServerLoad } from './$types';
 export type SentimentBreakdown = { positive: number; neutral: number; negative: number };
 
 // Competitor watch: everyone else vying for (or holding) the same seat, with
-// the public signals that matter — followers, output, coverage.
+// the public signals that matter: followers, output, coverage.
 export const load: PageServerLoad = async (event) => {
 	const { ctx } = await requireLeader(event);
 	const seatId = ctx.position?.id ?? 0;
 
 	// Sentiment Intelligence Suite (Dominate perk): the marketing claim covers
 	// rivals, not just the viewer's own coverage, so it's gated the same way
-	// here as the News tab gates the PR AI Agent — an admin-toggled feature,
+	// here as the News tab gates the PR AI Agent. An admin-toggled feature,
 	// not a hardcoded tier check.
 	const tier = await getPersonTier(ctx.profileUser.id);
 	const sentimentUnlocked = !!(await getPackageFeatures(tier))?.sentimentSuite;
@@ -63,7 +63,7 @@ export const load: PageServerLoad = async (event) => {
 		rivalByPerson.set(r.userId, { users: r.users, status: r.status, verified: !!r.verified });
 
 	// Positive/neutral/negative counts across a person's lifetime coverage
-	// (posts.sentiment — classification is paused in $lib/server/newsIngest.ts
+	// (posts.sentiment, classification is paused in $lib/server/newsIngest.ts
 	// pending a redesign, so this reads whatever's already classified from
 	// before the pause; nothing new backfills it right now).
 	// Only run when the perk is unlocked: a locked Competitors tab has nothing

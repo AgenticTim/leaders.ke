@@ -8,7 +8,7 @@ import { getPersonTier } from '$lib/server/invites';
 import { getPackageFeatures } from '$lib/server/packages';
 
 /** The package's citizen-subscriptions cap (null = unlimited): a campaign at
- * its cap takes no NEW followers until it upgrades — the tier gate the pricing
+ * its cap takes no NEW followers until it upgrades. The tier gate the pricing
  * table sells as 10,000 / 100,000 / Unlimited. Existing follows are never
  * dropped by a downgrade; only new ones are blocked. */
 async function followerCapReached(subjectUserId: number): Promise<boolean> {
@@ -29,7 +29,7 @@ export type FollowInput = {
 	contact: string;
 	county?: string;
 	ward?: string;
-	/** The followed person's users.id — or resolve it from candidateId below. */
+	/** The followed person's users.id, or resolve it from candidateId below. */
 	subjectUserId?: number;
 	/** A ballot candidateId ("campaign:<id>" or an aspirational "person:<slug>");
 	 * resolved to the person behind it. */
@@ -110,7 +110,7 @@ export async function followLeader(input: FollowInput): Promise<{ ok: true; name
 	return { ok: true, name };
 }
 
-/** Whether this account already follows this leader — lets FollowButton show
+/** Whether this account already follows this leader, lets FollowButton show
  * "Following {Name}" (and hide the button) on first render, not just after a
  * fresh submit in the same session. */
 export async function isFollowingAsAccount(domainUserId: number, subjectUserId: number): Promise<boolean> {
@@ -123,7 +123,7 @@ export async function isFollowingAsAccount(domainUserId: number, subjectUserId: 
 }
 
 /**
- * A signed-in citizen following a leader directly through their account — no
+ * A signed-in citizen following a leader directly through their account. No
  * name/contact capture or OTP confirm needed (that machinery exists only to
  * prove an anonymous contact is real; an account is already proven). One row
  * per (account, leader), same dedupe idea as the anonymous path's per-contact check.
@@ -142,11 +142,11 @@ export async function followAsAccount(domainUserId: number, subjectUserId: numbe
 		userId: domainUserId,
 		digest: 'leader',
 		digestId: subjectUserId,
-		// Same "channel doubles as opt-in" convention as the anonymous path — the
+		// Same "channel doubles as opt-in" convention as the anonymous path. The
 		// actual verified contact used to notify comes from the account, not this row.
 		email: true,
 		sms: true,
-		// The account itself is the confirmation — broadcasts only ever go to a
+		// The account itself is the confirmation, broadcasts only ever go to a
 		// confirmedAt row (see the broadcasts recipient query), so this must be
 		// set now, not left for a round-trip that will never happen.
 		confirmedAt: new Date()
@@ -154,7 +154,7 @@ export async function followAsAccount(domainUserId: number, subjectUserId: numbe
 	return { ok: true };
 }
 
-/** Undoes followAsAccount — soft-deletes the account's own follow row, if any. */
+/** Undoes followAsAccount, soft-deletes the account's own follow row, if any. */
 export async function unfollowAsAccount(domainUserId: number, subjectUserId: number): Promise<void> {
 	await db
 		.update(followers)

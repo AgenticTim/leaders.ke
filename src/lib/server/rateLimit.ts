@@ -3,7 +3,7 @@
 // records a `rate_events` row per bucket (the caller's IP, and separately their
 // contact/identifier); a new attempt is refused when any of its buckets already
 // has too many rows inside the window. Same approach as password_reset_requests,
-// generalized — no external captcha dependency, works behind the VPS.
+// generalized. No external captcha dependency, works behind the VPS.
 import { and, count, eq, gte } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { rateEvents } from '$lib/server/db/schema';
@@ -18,7 +18,7 @@ const LIMITS: Record<RateAction, { windowMs: number; max: number }> = {
 	pledge: { windowMs: 60_000, max: 5 },
 	endorse: { windowMs: 60_000, max: 5 },
 	donate: { windowMs: 60_000, max: 10 },
-	// Team-routed guest questions (free AI answers exhausted) — see aiRateLimit.ts.
+	// Team-routed guest questions (free AI answers exhausted), see aiRateLimit.ts.
 	ask: { windowMs: 60_000, max: 5 }
 };
 

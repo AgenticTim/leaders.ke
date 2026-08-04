@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { tooltip } from '$lib/effects';
 	// One-click cross-posting via the networks' share intents: opens X's or
-	// Facebook's composer prefilled with the text + link — no API keys, no
+	// Facebook's composer prefilled with the text + link. No API keys, no
 	// OAuth, works for any signed-in browser session. A future real connector
 	// (auto-posting via stored tokens) replaces these hrefs, not the UI.
 	let { text, url }: { text: string; url: string } = $props();

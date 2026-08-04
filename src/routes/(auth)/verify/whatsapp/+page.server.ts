@@ -9,7 +9,7 @@ import { hasPendingOtp, otpCooldownRemaining, sendOtp, verifyOtpWithDestination 
 import { getPlatformSettings } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
 
-// Only ever redirect to a same-origin relative path — never follow ?next anywhere else.
+// Only ever redirect to a same-origin relative path, never follow ?next anywhere else.
 function safeNext(next: string | null): string {
 	return next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard';
 }
@@ -27,7 +27,7 @@ async function verifiedByOther(ownerIds: number[], number: string): Promise<bool
 	return held.some((h) => !ownerIds.includes(h.userId) && h.verifiedAt);
 }
 
-/** Same number already OTP-verified as this account's SMS contact — no need to
+/** Same number already OTP-verified as this account's SMS contact. No need to
  * prove control of it twice. */
 async function verifiedAsOwnSms(userId: number, number: string): Promise<boolean> {
 	const [row] = await db
@@ -39,7 +39,7 @@ async function verifiedAsOwnSms(userId: number, number: string): Promise<boolean
 }
 
 // Unlike sms/email (one live value per account), a person can keep several WhatsApp
-// numbers — so this only adds/verifies the given number, never removes the others.
+// numbers, so this only adds/verifies the given number, never removes the others.
 async function applyNumberVerified(subject: DashboardUser['domainUser'], number: string) {
 	// Drop only the subject's own row for this exact value (a re-verify) so the
 	// per-user (user, channel, value) unique index can't collide. Other accounts'
@@ -78,7 +78,7 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	// Auto-send a code on arrival only if none is already outstanding for this
-	// number — so a page refresh reuses the code already sent instead of firing a
+	// number, so a page refresh reuses the code already sent instead of firing a
 	// new one. A later resend is a deliberate button click.
 	let phoneCooldown = await otpCooldownRemaining('whatsapp', number);
 	if (!(await hasPendingOtp('whatsapp', number))) {
@@ -86,7 +86,7 @@ export const load: PageServerLoad = async (event) => {
 			await sendOtp(subject.id, 'whatsapp', number);
 			phoneCooldown = (await getPlatformSettings()).otpCooldownSeconds;
 		} catch {
-			// Best-effort — the "Resend code" button still lets them retry manually.
+			// Best-effort. The "Resend code" button still lets them retry manually.
 		}
 	}
 
@@ -114,7 +114,7 @@ export const actions: Actions = {
 			return { phoneSent: true, cooldown: await otpCooldownRemaining('whatsapp', normalized) };
 		}
 		try {
-			// Stub: no WhatsApp Business API yet — reuses the same gateway/console stub
+			// Stub: no WhatsApp Business API yet, reuses the same gateway/console stub
 			// as SMS (see sendOtp -> sendSms).
 			await sendOtp(subject.id, 'whatsapp', normalized);
 		} catch (error) {

@@ -8,7 +8,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	// Signed out: send them to sign in/up first, remembering to come straight back
 	// here. Route to whichever of login/signup actually applies for this email, and
-	// lock the email field there — otherwise someone can sign up with a different
+	// lock the email field there, otherwise someone can sign up with a different
 	// address and only discover the mismatch later.
 	if (!locals.user) {
 		const next = encodeURIComponent(`/invite/${params.token}`);
@@ -22,7 +22,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	if (!invite) return { error: 'This invite link has already been used, revoked, or expired.' };
 
-	// Clicking the emailed link is the acceptance — no separate "Accept" click needed.
+	// Clicking the emailed link is the acceptance. No separate "Accept" click needed.
 	const domainUser = await getDomainUser(locals.user.id);
 	if (!domainUser) return { error: 'Sign in first.' };
 

@@ -8,8 +8,8 @@ const escapeHtml = (s: string) =>
 	s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // @mention links are written as [@Name](path) so the composer's raw markdown
-// reads unambiguously as a mention, but the rendered/plain text drops the "@" —
-// the link itself is the indicator, same convention as a normal hyperlink.
+// reads unambiguously as a mention, but the rendered/plain text drops the "@".
+// The link itself is the indicator, same convention as a normal hyperlink.
 const stripMentionAt = (label: string) => (label.startsWith('@') ? label.slice(1) : label);
 
 const inline = (s: string) =>

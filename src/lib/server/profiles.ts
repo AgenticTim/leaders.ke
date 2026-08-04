@@ -1,12 +1,12 @@
 // Admin "Profiles" tab: one row per leader PERSON, merging what used to be three
-// separate tabs — candidates (held terms + runs), verifications (run review) and
+// separate tabs. Candidates (held terms + runs), verifications (run review) and
 // claims (profile ownership). A profile is any users row that has a leaders term
 // or a 2027 run; citizens (accounts that only follow/mobilize) never appear.
 //
 // Derived columns the three old tabs each owned a piece of:
-//   status   — aspirant | current | former   (the person's lead seat)
-//   source   — seeded | applied | claimed     (how the profile came to exist)
-//   verified — null | pending | approved | rejected | deleted  (review-workflow state)
+//   status, aspirant | current | former   (the person's lead seat)
+//   source, seeded | applied | claimed     (how the profile came to exist)
+//   verified, null | pending | approved | rejected | deleted  (review-workflow state)
 import { and, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '$lib/server/db';
@@ -38,26 +38,26 @@ export type ProfileRow = {
 	adminPath: string;
 	profilePath: string; // public /[slug] or /previews/[id] when slugless
 	campaignYear: number | null;
-	// The 2027 run's own campaign id — null when no run exists yet (a held-term-only
+	// The 2027 run's own campaign id, null when no run exists yet (a held-term-only
 	// profile, or a fresh claim/application with no campaign declared).
 	campaignId: number | null;
-	// Latest subscription on record, whatever its status — the raw expiry date tells
+	// Latest subscription on record, whatever its status. The raw expiry date tells
 	// the admin whether it's actually still live, rather than this re-deriving that.
 	subscriptionTier: string | null;
 	subscriptionExpiresAt: string | null;
 	// Wallets are profile-scoped (subjectUserId), not campaign-scoped, so every
-	// profile can hold credits regardless of whether it has a declared run — 0
+	// profile can hold credits regardless of whether it has a declared run, 0
 	// until a wallet is actually granted one.
 	creditsBalance: number;
-	// The person's most recent lifecycle event (run/term/claim/manager change) — drives
+	// The person's most recent lifecycle event (run/term/claim/manager change), drives
 	// the default "recent first" sort; ISO string, epoch 0 if the person has no dated record.
 	lastActivityAt: string;
 };
 
 export type ProfilePage = { profiles: ProfileRow[]; total: number };
 
-// Sortable columns. `recent` (default) is the person's last lifecycle activity —
-// newest run/term/claim/manager change — newest first; the rest map to a visible column.
+// Sortable columns. `recent` (default) is the person's last lifecycle activity,
+// newest run/term/claim/manager change, newest first; the rest map to a visible column.
 export type ProfileSort = 'recent' | 'name' | 'position' | 'region' | 'status' | 'source' | 'verified';
 
 type Seat = { title: string; region: string; status: 'aspirant' | 'current' | 'former' };
@@ -95,7 +95,7 @@ export async function listProfiles(
 			.innerJoin(positions, eq(campaigns.positionId, positions.id))
 			.where(and(eq(campaigns.cycleYear, ACTIVE_CYCLE), isNull(campaigns.parentCampaignId), isNull(campaigns.deletedAt))),
 		// A freshly created/claimed profile has neither a leaders nor a campaigns row
-		// yet — campaign creation is intentional now, not automatic on signup/claim —
+		// yet, campaign creation is intentional now, not automatic on signup/claim,
 		// so an active manager or a claim is what makes it a "profile" here too.
 		db.select({ userId: managers.subjectUserId }).from(managers).where(and(eq(managers.isActive, true), isNull(managers.deletedAt))),
 		db.select({ userId: profileClaims.subjectUserId }).from(profileClaims)
@@ -171,12 +171,12 @@ export async function listProfiles(
 	const subscriptionBySubject = new Map<number, (typeof subscriptionRows)[number]>();
 	for (const s of subscriptionRows) if (!subscriptionBySubject.has(s.subjectUserId)) subscriptionBySubject.set(s.subjectUserId, s);
 
-	// Wallet balance keyed by profile, not campaign — a wallet exists (or not)
+	// Wallet balance keyed by profile, not campaign. A wallet exists (or not)
 	// per person regardless of whether they have a declared 2027 run.
 	const walletBySubject = new Map(walletRows.map((w) => [w.subjectUserId, w.balance]));
 
-	// Last lifecycle activity per person — max over their run/term createdAt, claim
-	// requestedAt and manager updatedAt — for the default "recent first" sort.
+	// Last lifecycle activity per person, max over their run/term createdAt, claim
+	// requestedAt and manager updatedAt, for the default "recent first" sort.
 	const lastActivityBySubject = new Map<number, number>();
 	const bump = (userId: number, at: Date | null | undefined) => {
 		if (!at) return;
@@ -196,7 +196,7 @@ export async function listProfiles(
 		const manager = managerBySubject.get(id);
 
 		// Source: a real claim always wins; else origin='seed' means seeded even if a
-		// manager exists (a demo-login self-manager — see seed-demo-logins.ts — used
+		// manager exists (a demo-login self-manager, see seed-demo-logins.ts, used
 		// to get misread as "applied" here, since a manager row alone can't tell a
 		// real applicant from a seeded profile with demo login access; origin can);
 		// else a manager (the applicant) means applied; else seeded (fallback, only
@@ -205,7 +205,7 @@ export async function listProfiles(
 
 		// Verified = the review-workflow state, keyed off source (seeded never reviewed).
 		// 'applied' is a direct admin toggle now (users.profileVerifiedAt, decoupled
-		// from any campaign) — no more submit/pending/rejected states, just verified
+		// from any campaign). No more submit/pending/rejected states, just verified
 		// or not yet.
 		let verified: ProfileVerified;
 		if (person?.deletedAt) verified = 'deleted';
@@ -227,7 +227,7 @@ export async function listProfiles(
 			regionPath: seat ? seatPath(seat.title, seat.region) : null,
 			managerName: manager ? fullName(manager) : claim ? fullName({ firstName: claim.claimantFirst, otherNames: claim.claimantOther }) : null,
 			managerId: manager?.userId ?? claim?.claimedBy ?? null,
-			// The leader's own dashboard — a slug always exists (onboarding mints it
+			// The leader's own dashboard. A slug always exists (onboarding mints it
 			// at payment time, before anyone can manage a profile at all).
 			adminPath: `/dashboard/${slug}/profile`,
 			profilePath: slug ? leaderPath({ slug }) : `/previews/${id}`,
@@ -248,7 +248,7 @@ export async function listProfiles(
 			)
 		: rows;
 
-	// Column sort — default `recent` (last activity, newest first). A tie always
+	// Column sort, default `recent` (last activity, newest first). A tie always
 	// falls back to name so the order is stable page to page.
 	const sort = opts.sort ?? 'recent';
 	const dir = opts.dir ?? (sort === 'recent' ? 'desc' : 'asc');
@@ -284,7 +284,7 @@ export async function listProfiles(
 	};
 }
 
-/** The admin control state for ONE profile — powers the leader-dashboard header
+/** The admin control state for ONE profile, powers the leader-dashboard header
  * block (source + verified badges, Deactivate/Activate, Declare Winner, Delete)
  * that a platform admin sees on any profile via the Profiles tab "Admin" button.
  * Same source/verified derivation as listProfiles, plus the graduatable run. */
@@ -294,11 +294,11 @@ export async function getProfileAdminMeta(subjectUserId: number): Promise<{
 	deactivated: boolean;
 	graduatableCampaignId: number | null;
 	// Profile badge (users.profileVerifiedAt): a direct admin toggle, same pattern
-	// as identity — no submit/review queue, decoupled from any campaign (each
+	// as identity. No submit/review queue, decoupled from any campaign (each
 	// campaign is verified individually, on its own Campaign sub-tab).
 	profileVerified: boolean;
-	// Whether the owner clicked Submit for Verification (users.verificationRequestedAt)
-	// — the control bar's Verify button only acts once this is set, so a checklist
+	// Whether the owner clicked Submit for Verification (users.verificationRequestedAt).
+	// The control bar's Verify button only acts once this is set, so a checklist
 	// still in progress reads as "Incomplete" rather than an actionable Verify.
 	profileSubmitted: boolean;
 	application: { id: number; applicantId: number; applicantName: string; email: string | null; phone: string | null } | null;
@@ -306,7 +306,7 @@ export async function getProfileAdminMeta(subjectUserId: number): Promise<{
 	// tab): a live claim to approve/reject.
 	claim: { id: number; claimantId: number; claimantName: string; email: string | null; phone: string | null } | null;
 	// An already-approved claim, once granted, has no "before" snapshot to diff
-	// against — access was immediate at payment time — so unlike claim above, this
+	// against, access was immediate at payment time, so unlike claim above, this
 	// stays reviewable indefinitely, not just while pending. Lets the control bar
 	// offer a Reject next to the "approved" badge at any point, not only up front.
 	approvedClaimId: number | null;
@@ -333,7 +333,7 @@ export async function getProfileAdminMeta(subjectUserId: number): Promise<{
 		.orderBy(desc(profileClaims.requestedAt))
 		.limit(1);
 
-	// The applicant is the managing ACCOUNT (managers.userId), not the profile subject —
+	// The applicant is the managing ACCOUNT (managers.userId), not the profile subject,
 	// prefer the admin manager (the creator/owner).
 	const [application] = await db
 		.select({ id: managers.id, applicantId: users.id, first: users.firstName, other: users.otherNames, admin: managers.roles })
@@ -377,7 +377,7 @@ export async function getProfileAdminMeta(subjectUserId: number): Promise<{
 	};
 
 	// The person's current-cycle main run, only needed here for Declare Winner
-	// eligibility (a verified, un-graduated run) — its own verifiedAt stays a
+	// eligibility (a verified, un-graduated run). Its own verifiedAt stays a
 	// separate, per-campaign concept from the profile-level badge below.
 	const [run] = await db
 		.select({ id: campaigns.id, verifiedAt: campaigns.verifiedAt, leaderId: campaigns.leaderId })
@@ -387,7 +387,7 @@ export async function getProfileAdminMeta(subjectUserId: number): Promise<{
 	const source: ProfileSource = claim ? 'claimed' : application ? 'applied' : 'seeded';
 
 	// 'applied' is a direct admin toggle now (users.profileVerifiedAt, decoupled
-	// from any campaign) — no more submit/pending/rejected states, just verified
+	// from any campaign). No more submit/pending/rejected states, just verified
 	// or not yet.
 	let verified: ProfileVerified;
 	if (person?.deletedAt) verified = 'deleted';
@@ -418,10 +418,10 @@ export type ProfileExtras = Awaited<ReturnType<typeof getProfileExtras>>;
 
 /** The review history for one profile's expandable row on the Profiles tab, fetched
  * on demand. Two independent logs, shown by source:
- *  - claimHistory: every CLAIM ever made on THIS person (past claimants + verdicts) —
+ *  - claimHistory: every CLAIM ever made on THIS person (past claimants + verdicts),
  *    for seeded/claimed profiles (an applied one can't be claimed).
  *  - applications: every verification the profile's APPLICANT submitted, across every
- *    candidate they represent (the agency view) — for applied profiles.
+ *    candidate they represent (the agency view), for applied profiles.
  * Same columns the old claims/verifications tables showed, minus team & sign-off. */
 export async function getProfileExtras(subjectUserId: number) {
 	const claimant = alias(users, 'claimant');
@@ -429,10 +429,10 @@ export async function getProfileExtras(subjectUserId: number) {
 	const applicantUser = alias(users, 'applicant');
 	const candidate = alias(users, 'candidate');
 	const verificationReviewer = alias(users, 'verification_reviewer');
-	// The applicant's manager row on each candidate — carries their self-declared role.
+	// The applicant's manager row on each candidate, carries their self-declared role.
 	const applicantManager = alias(managers, 'applicant_manager');
 
-	// The profile's controlling account — the applicant whose applications we log.
+	// The profile's controlling account. The applicant whose applications we log.
 	const [applicant] = await db
 		.select({ userId: managers.userId, first: applicantUser.firstName, other: applicantUser.otherNames })
 		.from(managers)
@@ -462,7 +462,7 @@ export async function getProfileExtras(subjectUserId: number) {
 			.leftJoin(claimReviewer, eq(profileClaims.reviewedBy, claimReviewer.id))
 			.where(eq(profileClaims.subjectUserId, subjectUserId))
 			.orderBy(desc(profileClaims.requestedAt)),
-		// Every application this applicant submitted — joined to the candidate each was
+		// Every application this applicant submitted, joined to the candidate each was
 		// for, so an agency's whole roster of applications shows here.
 		applicant
 			? db
@@ -497,7 +497,7 @@ export async function getProfileExtras(subjectUserId: number) {
 	]);
 
 	// The claimant's own contacts (their citizen account, not the profile being
-	// claimed) — falling back to their login email when they never added one.
+	// claimed). Falling back to their login email when they never added one.
 	const claimantIds = claimRows.map((h) => h.claimantId);
 	const [claimantContactRows, claimantAuthRows] = claimantIds.length
 		? await Promise.all([
@@ -558,7 +558,7 @@ export async function getProfileExtras(subjectUserId: number) {
 }
 
 /** Tells every active manager of a profile (the whole team, not just whoever's
- * signed in) when an admin flips its Deactivate/Activate state — deactivating
+ * signed in) when an admin flips its Deactivate/Activate state. Deactivating
  * takes it off the public pages, so the team finds out from a notification
  * instead of a confused "why did my page vanish?" moment. */
 export async function notifyManagersOfStatusChange(subjectUserId: number, active: boolean) {
@@ -579,7 +579,7 @@ export async function notifyManagersOfStatusChange(subjectUserId: number, active
 					? `${profileName}'s profile is public again.`
 					: `${profileName}'s profile has been deactivated by a platform admin. \nIt is hidden from the public and inaccessible to its managers until reactivated.`,
 				// A deactivated profile's own dashboard route is off-limits to its team
-				// (see getLeaderContextBySlug) — the link only makes sense once reactivated.
+				// (see getLeaderContextBySlug). The link only makes sense once reactivated.
 				href: active && subject?.slug ? `/dashboard/${subject.slug}/profile` : '/dashboard'
 			})
 		)
@@ -587,7 +587,7 @@ export async function notifyManagersOfStatusChange(subjectUserId: number, active
 }
 
 /** Tells every platform admin that a profile's checklist is complete and ready
- * for their manual Verify-campaign toggle (see getProfileAdminMeta) — the owner's
+ * for their manual Verify-campaign toggle (see getProfileAdminMeta). The owner's
  * "Submit for Verification" click has nothing else to do, since there's no
  * submit/review queue anymore, just this heads-up. */
 export async function notifyAdminsOfVerificationRequest(subjectUserId: number) {

@@ -38,7 +38,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	// Same "who may manage this profile" check as the public profile page's canEdit:
 	// a platform admin, or an active manager on the author's team (the author
-	// themselves included — they're their own first manager).
+	// themselves included. They're their own first manager).
 	const viewer = locals.user ? await getDomainUser(locals.user.id) : null;
 	let canEdit = !!viewer && (!!viewer.adminAt || viewer.id === row.author.id);
 	if (viewer && !canEdit) {

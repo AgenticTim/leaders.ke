@@ -15,7 +15,7 @@ import type { Actions, PageServerLoad } from './$types';
 // their till statement.
 export const load: PageServerLoad = async (event) => {
 	const { ctx } = await requireLeader(event);
-	// A brand-new profile with neither a held term nor a run yet has no position —
+	// A brand-new profile with neither a held term nor a run yet has no position,
 	// positionId is NOT NULL on campaigns, so there's no run to attach fundraising
 	// to until one is picked on the Leader/Campaign tab.
 	if (!ctx.position) redirectWithFlash(event.cookies, `./campaign`, 'Launch a campaign in order to Fundraise.');

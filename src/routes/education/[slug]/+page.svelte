@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.article.title} — vote.ke</title>
+	<title>{data.article.title} · vote.ke</title>
 	<meta name="description" content={data.article.summary} />
 </svelte:head>
 
@@ -21,7 +21,7 @@
 	</div>
 
 	<div class="mt-8 rounded-xl border border-border bg-surface-2 p-4 text-sm text-muted">
-		This guide is general civic education, not legal advice. Rules and dates are set by the IEBC —
+		This guide is general civic education, not legal advice. Rules and dates are set by the IEBC,
 		confirm specifics at
 		<a href="https://www.iebc.or.ke" class="underline hover:text-heading">iebc.or.ke</a>.
 	</div>

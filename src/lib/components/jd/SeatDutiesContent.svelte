@@ -1,5 +1,5 @@
 <script lang="ts">
-	// The body of a seat's job description (summary + cited duty groups) —
+	// The body of a seat's job description (summary + cited duty groups),
 	// rendered inline on the seat hub and inside the SeatJD modal. Source data
 	// is the Constitution / County Governments Act (see seatDuties.ts).
 	import type { SeatDuties } from '$lib/data/seatDuties';

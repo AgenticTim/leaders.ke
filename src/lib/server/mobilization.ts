@@ -77,7 +77,7 @@ export async function createEvent(ambassadorUserId: number, subjectUserId: numbe
 			county: input.county,
 			ward: input.ward || null,
 			scheduledFor: when,
-			// Past events default to 'held', future ones to 'planned' — the common case
+			// Past events default to 'held', future ones to 'planned'. The common case
 			// either way, still editable.
 			status: when.getTime() <= Date.now() ? 'held' : 'planned',
 			turnout: turnout === null ? null : Math.round(turnout)
@@ -86,7 +86,7 @@ export async function createEvent(ambassadorUserId: number, subjectUserId: numbe
 	return { ok: true as const, id: row.id };
 }
 
-/** Manager confirms an event physically happened — scoped to their own campaign
+/** Manager confirms an event physically happened, scoped to their own campaign
  * (subjectUserId, resolved by requireLeader). No-op if the id isn't theirs. */
 export async function confirmEvent(eventId: number, managerUserId: number, subjectUserId: number) {
 	const now = new Date();
@@ -127,7 +127,7 @@ export async function listEventsForAmbassador(ambassadorUserId: number, subjectU
 	return rows.map(toEvent);
 }
 
-/** Every ambassador's events for this campaign — the manager confirmation feed. */
+/** Every ambassador's events for this campaign. The manager confirmation feed. */
 export async function listEventsForManager(subjectUserId: number): Promise<MobilizationEvent[]> {
 	const rows = await db
 		.select({ e: mobilizationEvents, u: users })
@@ -199,7 +199,7 @@ export async function listFeedbackForAmbassador(collectedByUserId: number, subje
 	return rows.map(toFeedback);
 }
 
-/** Every ambassador's feedback for this campaign — the manager feed. */
+/** Every ambassador's feedback for this campaign. The manager feed. */
 export async function listFeedbackForManager(subjectUserId: number): Promise<FeedbackItem[]> {
 	const rows = await db
 		.select({ f: citizenFeedback, u: users })

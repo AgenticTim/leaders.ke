@@ -6,7 +6,7 @@
 
 	// The login form body, shared by the /login page and AuthModal (embedded on any
 	// page as a transitional step before follow/save-vote/etc). Every action posts
-	// to absolute /login paths, never the host page's own query string — errors are
+	// to absolute /login paths, never the host page's own query string, errors are
 	// captured locally instead of read off the page's form prop, so the component
 	// behaves identically wherever it's mounted.
 	let {

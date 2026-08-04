@@ -37,7 +37,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.title} rankings — vote.ke</title>
+	<title>{data.title} rankings · vote.ke</title>
 	<meta
 		name="description"
 		content="Kenya's {data.title.toLowerCase()}s ranked by followers, pledges, output and manifesto delivery."

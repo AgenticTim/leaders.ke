@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-	<title>Voter education — vote.ke</title>
+	<title>Voter education · vote.ke</title>
 	<meta name="description" content="Plain-language guides to registering, voting and your rights in Kenya's 2027 General Election." />
 </svelte:head>
 
@@ -30,13 +30,13 @@
 				<p class="mt-1 text-on-primary/80">
 					On 10 August 2027 you elect a President, Governor, Senator, Woman Representative, MP, and
 					MCA. The MCA who fixes your road and the Governor who runs your hospital are on the same
-					ballot as the President — down-ballot races are often decided by a handful of votes.
+					ballot as the President, down-ballot races are often decided by a handful of votes.
 				</p>
 			</div>
 			<div>
 				<h3 class="font-semibold text-on-primary">Fence-sitting is a vote too</h3>
 				<p class="mt-1 text-on-primary/80">
-					Staying home doesn't opt you out — it hands your share of the decision to whoever did show
+					Staying home doesn't opt you out. It hands your share of the decision to whoever did show
 					up. Gen Z and millennials are the largest voting bloc in Kenya; they decide every race they
 					turn up for.
 				</p>

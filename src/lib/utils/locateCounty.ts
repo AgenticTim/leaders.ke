@@ -1,7 +1,7 @@
 // Detects the visitor's county from browser coordinates, fully offline: a
 // bundled simplified boundary file (geoBoundaries KEN ADM1, coords rounded to
 // 4dp) is point-in-polygon tested in the browser. Coordinates never leave the
-// device and are never stored — under the KDPA that matters next to a ballot.
+// device and are never stored, under the KDPA that matters next to a ballot.
 // The boundary file is dynamically imported so its ~340KB only loads when the
 // visitor actually taps "Use my location".
 import { counties, geoSlug } from '$lib/data/geo';
@@ -47,8 +47,8 @@ function contains(feature: Feature, lng: number, lat: number): boolean {
 	return g.coordinates.some((rings) => inPolygon(lng, lat, rings));
 }
 
-/** Squared degree-distance from the point to the feature's nearest vertex —
- * the tie-breaker for GPS points that fall just outside every polygon
+/** Squared degree-distance from the point to the feature's nearest vertex.
+ * The tie-breaker for GPS points that fall just outside every polygon
  * (simplified boundaries + shoreline/border jitter). */
 function nearestVertexDist2(feature: Feature, lng: number, lat: number): number {
 	const g = feature.geometry;

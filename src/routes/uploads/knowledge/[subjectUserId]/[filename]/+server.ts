@@ -1,6 +1,6 @@
 // Serves Knowledge-tab source documents (see knowledgeDocuments in schema.ts) from
-// local disk. Never public — these feed the AI's grounding context, not the profile
-// page — so only an active manager of the person, the person themself, or a
+// local disk. Never public. These feed the AI's grounding context, not the profile
+// page: so only an active manager of the person, the person themself, or a
 // platform admin may fetch one.
 import { error } from '@sveltejs/kit';
 import { and, eq, isNull } from 'drizzle-orm';

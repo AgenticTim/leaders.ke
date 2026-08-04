@@ -3,7 +3,7 @@ import { getPlatformSettings } from '$lib/server/settings';
 import type { PageServerLoad } from './$types';
 
 // Single source of truth: the pricing table's prices, caps and on/off perks
-// come straight from the `pricing` and `packages` tables — the same rows
+// come straight from the `pricing` and `packages` tables. The same rows
 // /dashboard/admin/packages edits. The PAYG credit prices come from
 // platformSettings (admin Settings edits them). Nothing here is hand-maintained;
 // an admin toggle or rate change reflects on this page (and on the actual feature

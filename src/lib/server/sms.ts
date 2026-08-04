@@ -3,7 +3,7 @@ import { env } from '$env/dynamic/private';
 /**
  * Sends an SMS via Africa's Talking. With AFRICASTALKING_API_KEY set it posts to
  * their REST API; otherwise (dev) it logs the message to the console so SMS flows
- * stay testable without a provider — copy the code from the terminal.
+ * stay testable without a provider, copy the code from the terminal.
  */
 export async function sendSms(to: string, message: string): Promise<void> {
 	const apiKey = env.AFRICASTALKING_API_KEY;

@@ -10,7 +10,7 @@
 	const totalPages = $derived(Math.max(1, Math.ceil(data.total / data.pageSize)));
 </script>
 
-<svelte:head><title>Moderation — Admin</title></svelte:head>
+<svelte:head><title>Moderation · Admin</title></svelte:head>
 
 <div>
 	<h1 class="text-xl font-bold text-heading">Moderation</h1>

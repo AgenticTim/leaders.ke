@@ -13,7 +13,7 @@
 
 	// The /[leader]/[year] campaign page body, also used slugless at
 	// /previews/[userId]/[year] before an admin approval mints a slug. Every run is
-	// public and interactive regardless — leader.verified is a "Verified" badge
+	// public and interactive regardless. Leader.verified is a "Verified" badge
 	// only (see docs/URLDiscovery.md), never a gate on follow/donate/ask.
 	let { data, form }: { data: any; form?: any } = $props();
 	const leader = $derived(data.leader);
@@ -82,7 +82,7 @@
 								</span>
 							{:else}
 								<span
-									use:tooltip={'No IEBC certificate on file yet — the campaign is still public and fully interactive.'}
+									use:tooltip={'No IEBC certificate on file yet. The campaign is still public and fully interactive.'}
 									class="inline-flex items-center rounded-full border border-border bg-surface-2 px-2.5 py-1 text-xs font-semibold text-muted"
 								>
 									Unverified
@@ -223,7 +223,7 @@
 					Answers come from the manifesto and public updates, instantly.
 				</p>
 				<!-- The whole persisted thread (data.chatThread reloads after each ask
-				via enhance's update()), not just the last form result — history
+				via enhance's update()), not just the last form result, history
 				survives refreshes and team replies show up here. -->
 				<ChatThread
 					messages={data.chatThread?.messages ?? []}

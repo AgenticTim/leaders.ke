@@ -4,7 +4,7 @@
 	let { data }: PageProps = $props();
 </script>
 
-<svelte:head><title>Confirm follow — vote.ke</title></svelte:head>
+<svelte:head><title>Confirm follow · vote.ke</title></svelte:head>
 
 <section class="mx-auto max-w-md px-4 py-20 text-center">
 	{#if data.status === 'confirmed'}

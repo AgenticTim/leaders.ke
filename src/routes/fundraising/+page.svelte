@@ -1,12 +1,12 @@
 <svelte:head>
-	<title>Fundraising Rules — vote.ke</title>
+	<title>Fundraising Rules · vote.ke</title>
 	<meta name="description" content="How campaign donations work on vote.ke: fees, refunds, and compliance." />
 </svelte:head>
 
 <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6">
 	<h1 class="text-3xl font-bold text-heading">Fundraising Rules</h1>
 	<p class="mt-3 text-lg text-muted">
-		How donations to campaigns work on vote.ke — fees, refunds, and the rules both sides agree to.
+		How donations to campaigns work on vote.ke: fees, refunds, and the rules both sides agree to.
 	</p>
 
 	<div class="mt-8 space-y-6 text-sm leading-relaxed text-heading">
@@ -15,7 +15,7 @@
 			<p class="mt-2 text-muted">
 				vote.ke charges a <strong class="text-heading">5% platform fee</strong> on every confirmed
 				donation, the same rate on every package. The fee funds payment processing, fraud
-				monitoring, and running the platform — campaigns keep the remaining 95%. The fee is shown
+				monitoring, and running the platform, campaigns keep the remaining 95%. The fee is shown
 				at the point of donation, never hidden in the total.
 			</p>
 		</section>
@@ -23,8 +23,8 @@
 			<h2 class="text-lg font-semibold text-heading">Refunds</h2>
 			<p class="mt-2 text-muted">
 				A donor may request a refund of a confirmed donation through the campaign that received
-				it. The platform fee is not returned on a refund — it was spent processing the donation
-				both ways — so a refunded donation returns the amount less the fee. A donation that was
+				it. The platform fee is not returned on a refund. It was spent processing the donation
+				both ways, so a refunded donation returns the amount less the fee. A donation that was
 				never confirmed by the campaign simply lapses; nothing was collected, so there is nothing
 				to refund.
 			</p>
@@ -50,7 +50,7 @@
 				<li>Donating is voluntary and creates no obligation on the candidate.</li>
 				<li>
 					Your identity is visible to the campaign you donate to (they confirm receipt), and is
-					handled under the Data Protection Act (2019) — donations are never published with donor
+					handled under the Data Protection Act (2019), donations are never published with donor
 					names by the platform.
 				</li>
 				<li>

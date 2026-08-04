@@ -9,7 +9,7 @@ export const vector = customType<{ data: number[] }>({
 
 // Seat classification (national = President/VP; regional = Governor/Senator/MP/
 // Women Rep; ward = MCA). No longer drives pricing (pricing-v2: one flat rate
-// card for every office — see the `pricing`/`packages` tables below) — kept
+// card for every office, see the `pricing`/`packages` tables below), kept
 // purely as a seat-level grouping for now, unused elsewhere.
 export const priceBandEnum = pgEnum('price_band', ['national', 'regional', 'ward']);
 
@@ -20,23 +20,23 @@ export const positions = pgTable('positions', {
   region: varchar('region', { length: 100 }).notNull(), // e.g., 'Kiambu', 'Westlands'
   boundary: varchar('boundary', { length: 50 }).notNull(), // 'Country' | 'County' | 'Constituencies' | 'Ward'
   title: varchar('title', { length: 100 }).notNull(), // 'President', 'MP', 'MCA'
-  band: priceBandEnum('band').notNull(), // seat-level grouping only — see the comment on priceBandEnum
+  band: priceBandEnum('band').notNull(), // seat-level grouping only, see the comment on priceBandEnum
   isElected: boolean('is_elected').default(true).notNull(), // false means nominated
   currentLeaderId: integer('current_leader_id'), // Self-reference resolved in relations block
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 });
 
-// How a users row came to exist — set once at creation, never rewritten
+// How a users row came to exist, set once at creation, never rewritten
 // afterward (a seeded profile that later gets a real claim/manager stays
 // origin 'seed'; see profiles.ts's source derivation, which reads this
 // directly instead of inferring "seeded" from the absence of a claim/manager,
 // the bug that mislabeled a demo-login seeded profile as "applied").
 export const userOriginEnum = pgEnum('user_origin', ['seed', 'browser', 'mobile']);
 
-// An admin hiding a PROFILE pending review — null flagReason means publicly
+// An admin hiding a PROFILE pending review, null flagReason means publicly
 // visible; setting one takes it down without a full ban/delete workflow.
 // Distinct from reviewFlagReasonEnum below (that one flags a citizen's
-// review, spam/insult/etc — a different target and a different reason set).
+// review, spam/insult/etc. A different target and a different reason set).
 export const profileFlagReasonEnum = pgEnum('profile_flag_reason', [
   'impersonation',
   'inappropriate_content',
@@ -57,10 +57,10 @@ export const users = pgTable('users', {
   age: integer('age'), // optional, self-declared on the leader Profile tab
   bio: text('bio'),
   address: varchar('address', { length: 200 }),
-  // Where this PERSON lives — set on their own /dashboard/account, same
+  // Where this PERSON lives, set on their own /dashboard/account, same
   // county/constituency/ward shape as followers' geo columns (which already
   // power ward/constituency-targeted broadcasts). Null until they set it; not
-  // required. Plain names (not slugs) — matches $lib/data/geo.ts's County/
+  // required. Plain names (not slugs), matches $lib/data/geo.ts's County/
   // Constituency/Ward .name, resolved from GeoSelect's slugs at save time.
   county: varchar('county', { length: 100 }),
   constituency: varchar('constituency', { length: 100 }),
@@ -70,7 +70,7 @@ export const users = pgTable('users', {
   // Lives here (not on leaders) because it's the PERSON's URL: one user can have several
   // leaders rows (Track Record spanning multiple seats/terms) sharing this one slug.
   slug: varchar('slug', { length: 120 }),
-  // Per-channel verification flags — set once each contact channel's OTP succeeds.
+  // Per-channel verification flags, set once each contact channel's OTP succeeds.
   // Denormalized here (alongside the matching `contacts.verifiedAt` timestamp) so
   // dashboard/login gating reads it for free off the `users` row
   // `requireDashboardUser` already loads, no extra `contacts` query.
@@ -92,15 +92,15 @@ export const users = pgTable('users', {
   // Dominate-only perk (packages.features.newsSourceControl): which of
   // NEWS_SOURCES ($lib/server/newsIngest.ts) are allowed to tag this person in
   // a mention. null = every source allowed (the default for everyone, and the
-  // only state that matters below Dominate — the control simply isn't shown).
+  // only state that matters below Dominate. The control simply isn't shown).
   newsSourceAllowlist: jsonb('news_source_allowlist').$type<string[] | null>().default(null),
   // An admin has manually confirmed nationalId + idFrontUrl + idBackUrl + photoUrl
-  // all belong to this person — set once, reused across every profile they manage
+  // all belong to this person, set once, reused across every profile they manage
   // (identity doesn't change per profile). A badge only, like every other
   // verifiedAt (see docs/URLDiscovery.md); never a visibility gate.
   verifiedAt: timestamp('verified_at', { withTimezone: true }),
   // Profile-level application review: decoupled from any specific campaign (a
-  // person can be Profile Verified with zero campaigns — it only reflects
+  // person can be Profile Verified with zero campaigns. It only reflects
   // Profile/Contacts/Team/Documentation/Sign-off completeness). Distinct from
   // verifiedAt above (identity) and from campaigns.verifiedAt (per-campaign,
   // IEBC-cert-based, checked independently for each campaign the person runs).
@@ -108,7 +108,7 @@ export const users = pgTable('users', {
   profileVerifiedAt: timestamp('profile_verified_at', { withTimezone: true }),
   adminAt: timestamp('admin_at', { withTimezone: true }), // platform admin, set manually for now (no self-serve path)
   // Channel-level opt-in for platform notifications (new posts from followed leaders,
-  // invite alerts, etc.) — simple on/off per channel, not per notification category.
+  // invite alerts, etc.), simple on/off per channel, not per notification category.
   notificationPrefs: jsonb('notification_prefs')
     .$type<{ email: boolean; sms: boolean; whatsapp: boolean }>()
     .default({ email: true, sms: true, whatsapp: true })
@@ -120,12 +120,12 @@ export const users = pgTable('users', {
   notifyNewCandidates: boolean('notify_new_candidates').default(false).notNull(),
   // Default 'seed' covers every existing row (all pre-dating this column) and
   // every seed script's own insert without touching each one individually;
-  // the two real (non-seed) creation points — auth.ts's signup hook and
-  // leader.ts's createPhantomUser — set 'browser' explicitly.
+  // the two real (non-seed) creation points, auth.ts's signup hook and
+  // leader.ts's createPhantomUser, set 'browser' explicitly.
   origin: userOriginEnum('origin').default('seed').notNull(),
   flagReason: profileFlagReasonEnum('flag_reason'),
   flaggedAt: timestamp('flagged_at', { withTimezone: true }),
-  // Per-user opt-in/early-access flags — a new one is just a new string, no
+  // Per-user opt-in/early-access flags. A new one is just a new string, no
   // migration needed.
   features: jsonb('features').$type<string[]>().default([]).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -137,7 +137,7 @@ export const users = pgTable('users', {
 // 2.1 CONTACTS (per-channel reachable addresses; each verified independently via the otps table)
 // A real table here (not a jsonb column on users) buys three things a blob can't:
 // - Cardinality: a channel's value can change over time (old phone replaced, etc.)
-//   without losing the ability to tell "the live one" from history — soft-deleted
+//   without losing the ability to tell "the live one" from history, soft-deleted
 //   rows keep that history instead of being overwritten in place.
 // - Uniqueness: `one_value_per_user_channel` below is a real, database-enforced
 //   constraint (no duplicate live rows within one account). It is deliberately
@@ -161,7 +161,7 @@ export const contacts = pgTable('contacts', {
   // Provenance for contacts harvested from public directories (parliament.go.ke,
   // Mzalendo) rather than entered by the person themselves. A sourced-but-unverified
   // email is good enough to SEND to (e.g. the leader-accepted-claims link) but never
-  // renders as "Verified" — only an OTP sets verifiedAt.
+  // renders as "Verified", only an OTP sets verifiedAt.
   source: jsonb('source').$type<{ url: string; publisher: string; fetchedAt: string }>(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -174,7 +174,7 @@ export const contacts = pgTable('contacts', {
 ]);
 
 // 3. LEADERS (Public profiles connected to Users and positions. Tracks the service history of leaderships)
-// One person holding, or vying for, one position — the core public profile.
+// One person holding, or vying for, one position. The core public profile.
 export const leaders = pgTable('leaders', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
@@ -183,7 +183,7 @@ export const leaders = pgTable('leaders', {
   contacts: jsonb('contacts').default({}),
   status: varchar('status', { length: 30 }).default('current').notNull(), // 'current' | 'former' (a run for office is a campaign, not a leaders row)
   description: varchar('description', { length: 255 }), // short seat-name qualifier, e.g. "Former Eldoret North" when a seat was renamed/redrawn
-  // The party this SPECIFIC term was served under — a person can switch parties
+  // The party this SPECIFIC term was served under. A person can switch parties
   // between terms, so this is denormalized per term rather than inferred from
   // partyMemberships' current (live) row, which only tracks their party today.
   // Null = not recorded / independent for this term.
@@ -225,10 +225,10 @@ export const experience = pgTable('experience', {
 ]);
 
 // One concrete thing a leader delivered under a SPECIFIC term OR non-elective
-// experience (a professional/education role) — distinct from `pillars` (a
+// experience (a professional/education role), distinct from `pillars` (a
 // campaign RUN's forward-looking promises with a status). Exactly one of
 // leaderId/experienceId is set (enforced in the Delivery tab's own actions, not a
-// DB constraint — same convention as experience.positionId being conditionally
+// DB constraint, same convention as experience.positionId being conditionally
 // null). Never both null, never both set.
 export const deliveries = pgTable('deliveries', {
   id: serial('id').primaryKey(),
@@ -237,7 +237,7 @@ export const deliveries = pgTable('deliveries', {
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description'),
   // Only PINNED deliveries show on the public profile (capped at 5 per person,
-  // enforced in the Delivery tab's togglePin action, not a DB constraint) — the
+  // enforced in the Delivery tab's togglePin action, not a DB constraint). The
   // leader curates their best 5 out of however many they've logged. Order shown
   // publicly follows pin order (when they pinned it), not creation order.
   pinnedAt: timestamp('pinned_at', { withTimezone: true }),
@@ -249,7 +249,7 @@ export const deliveries = pgTable('deliveries', {
   index('deliveries_experience_idx').on(t.experienceId),
 ]);
 
-// One Q&A pair a team writes for the AI Chat feature (Knowledge tab) — on the
+// One Q&A pair a team writes for the AI Chat feature (Knowledge tab), on the
 // PERSON (not a run), same convention as `experience`. sortOrder is the team's own
 // display/priority order (also the order fed to the AI); lower first.
 export const faqEntries = pgTable('faq_entries', {
@@ -265,10 +265,10 @@ export const faqEntries = pgTable('faq_entries', {
   index('faq_entries_subject_idx').on(t.subjectUserId),
 ]);
 
-// A source document a team uploads for the AI Chat feature (Knowledge tab) —
+// A source document a team uploads for the AI Chat feature (Knowledge tab),
 // manifestos, policy briefs, position papers, etc. extractedText is what actually
 // feeds the AI's grounding context; null while a format isn't text-extractable yet
-// (see saveKnowledgeDocument) — the file itself still uploads and lists either way.
+// (see saveKnowledgeDocument). The file itself still uploads and lists either way.
 export const knowledgeDocuments = pgTable('knowledge_documents', {
   id: serial('id').primaryKey(),
   subjectUserId: integer('subject_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
@@ -304,7 +304,7 @@ export const pillars = pgTable('pillars', {
 // 4.1 PILLAR TEMPLATES (admin-curated manifesto starting points, one catalog per
 // office level, e.g. "President"). A candidate picks one on their Campaign tab's
 // manifesto section to prefill their own pillar's title/summary, or writes a
-// custom one instead — picking a template never links back to it, it's just a
+// custom one instead. Picking a template never links back to it, it's just a
 // starting draft.
 export const pillarTemplates = pgTable('pillar_templates', {
   id: serial('id').primaryKey(),
@@ -324,7 +324,7 @@ export const campaigns = pgTable('campaigns', {
   id: serial('id').primaryKey(),
   creatorId: integer('creator_id').references(() => users.id).notNull(),
   // The PERSON whose run this is. A campaign belongs to a person (their run at a
-  // seat in a cycle), not to a leaders term — an aspirant has a campaign and no
+  // seat in a cycle), not to a leaders term. An aspirant has a campaign and no
   // leaders row at all. leaderId below is set only once the run is tied to a held
   // term (a graduated winner, or an incumbent's re-election), null for a pure run.
   subjectUserId: integer('subject_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
@@ -332,8 +332,8 @@ export const campaigns = pgTable('campaigns', {
   // A campaign IS one run at one seat in one cycle, so it names them itself
   // (not via its leaders row): the seat contested and the election year.
   positionId: integer('position_id').references(() => positions.id).notNull(),
-  cycleYear: integer('cycle_year').notNull(), // e.g. 2027 — the election year of this run
-  // The party this RUN is contested under — a person can switch parties between
+  cycleYear: integer('cycle_year').notNull(), // e.g. 2027. The election year of this run
+  // The party this RUN is contested under. A person can switch parties between
   // cycles, so this is denormalized per campaign (same pattern as leaders.partyId),
   // not a person-level fact. Null = independent/not recorded.
   partyId: integer('party_id').references(() => parties.id, { onDelete: 'set null' }),
@@ -346,7 +346,7 @@ export const campaigns = pgTable('campaigns', {
   // The IEBC nomination certificate is issued per election, per seat run.
   // The person's photo and ID scans live on `users`.
   iebcCertificateUrl: text('iebc_certificate_url'),
-  fundraisingGoal: integer('fundraising_goal').default(0).notNull(), // KES — money belongs to the run, not the term
+  fundraisingGoal: integer('fundraising_goal').default(0).notNull(), // KES, money belongs to the run, not the term
   faq: jsonb('faq').default([]),
   parentCampaignId: integer('parent_campaign_id').references((): any => campaigns.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -369,24 +369,24 @@ export const managers = pgTable('managers', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').references(() => users.id).notNull(), // the manager granted access; soft delete handles detachment
   // The PERSON being managed (users, not a leaders term): one manages a person, never a
-  // single candidacy — authority spans their whole Track Record and every campaign.
+  // single candidacy, authority spans their whole Track Record and every campaign.
   subjectUserId: integer('subject_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   // Per-manager: admin flag + this manager's own sign-off (their role title and national
-  // ID number). Never shared across the team — each member attests separately. Their ID
+  // ID number). Never shared across the team. Each member attests separately. Their ID
   // images live on the manager's own users row (idFrontUrl/idBackUrl), not here.
   roles: jsonb('roles').$type<ManagerRoles>().default({}).notNull(),
   isActive: boolean('is_active').default(true).notNull(),
   // Identity verification moved to users.verifiedAt (one per PERSON, reused across
-  // every profile they manage) — this dead write-only column is gone.
+  // every profile they manage). This dead write-only column is gone.
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => [
-  // One live manager row per (manager, person) — person-scoped management can't duplicate.
+  // One live manager row per (manager, person), person-scoped management can't duplicate.
   uniqueIndex('one_manager_per_person').on(t.userId, t.subjectUserId).where(sql`${t.deletedAt} is null`),
 ]);
 
 // A person who mobilizes citizens on the ground for a candidate's campaign.
-// Attached to the PERSON (subjectUserId), not a leaders term — a pure aspirant
+// Attached to the PERSON (subjectUserId), not a leaders term. A pure aspirant
 // has no leaders row but can still take on ambassadors (they mobilize for the
 // person's run). Follows the ambassador creates are person-scoped too.
 export const ambassadors = pgTable('ambassadors', {
@@ -428,7 +428,7 @@ export const invites = pgTable('invites', {
 export const verificationOutcomeEnum = pgEnum('verification_outcome', ['approved', 'rejected']);
 
 // One run's request to be verified, with the admin's decision once reviewed. A
-// candidacy (campaign) is the verifiable unit — approval sets campaigns.verifiedAt.
+// candidacy (campaign) is the verifiable unit, approval sets campaigns.verifiedAt.
 export const verifications = pgTable('verifications', {
   id: serial('id').primaryKey(),
   campaignId: integer('campaign_id').references(() => campaigns.id, { onDelete: 'cascade' }).notNull(),
@@ -444,7 +444,7 @@ export const verifications = pgTable('verifications', {
 ]);
 
 // 6.3 PROFILE CLAIMS (onboarding.md option A: "Claim this Profile" on an existing
-// leader page. Deliberately does NOT reassign leaders.userId — that would mean
+// leader page. Deliberately does NOT reassign leaders.userId. That would mean
 // merging two people rows and everything hanging off them, real data-integrity
 // risk for a rare case. Approval instead makes the claimant an admin manager of
 // the existing profile, reusing the managers table's access-control exactly like
@@ -455,7 +455,7 @@ export const claimOutcomeEnum = pgEnum('claim_outcome', ['approved', 'rejected']
 // One signed-in user's claim to be the real person behind an existing leader profile.
 export const profileClaims = pgTable('profile_claims', {
   id: serial('id').primaryKey(),
-  // The PERSON being claimed — a claim asserts "I am / I represent this person",
+  // The PERSON being claimed. A claim asserts "I am / I represent this person",
   // never one candidacy term of theirs.
   subjectUserId: integer('subject_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   claimedBy: integer('claimed_by').references(() => users.id, { onDelete: 'cascade' }).notNull(),
@@ -465,7 +465,7 @@ export const profileClaims = pgTable('profile_claims', {
   reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
   outcome: claimOutcomeEnum('outcome'), // null = pending
   notes: text('notes'),
-  // The claimant's own "just testing" escape hatch — soft-deleted so a rejected
+  // The claimant's own "just testing" escape hatch, soft-deleted so a rejected
   // claim's decision stays in the admin's audit trail instead of disappearing.
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => [
@@ -476,7 +476,7 @@ export const profileClaims = pgTable('profile_claims', {
 
 // 6.4 NOTIFICATIONS (durable in-app notifications, e.g. "your verification was
 // approved/rejected because …". Written alongside the matching email by notifyUser
-// ($lib/server/notifications) — the flash cookie can't carry these because the
+// ($lib/server/notifications). The flash cookie can't carry these because the
 // decision happens in the ADMIN's session, not the applicant's. Unread rows banner
 // on the applicant's dashboard until dismissed. `kind: 'admin-error'` is the one
 // exception: adminActionFailed writes it to the ADMIN'S OWN notifications when one
@@ -484,7 +484,7 @@ export const profileClaims = pgTable('profile_claims', {
 export const notifications = pgTable('notifications', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(), // the recipient
-  kind: varchar('kind', { length: 30 }).notNull(), // 'verification' | 'claim' | 'moderation' — what the notification is about
+  kind: varchar('kind', { length: 30 }).notNull(), // 'verification' | 'claim' | 'moderation', what the notification is about
   title: varchar('title', { length: 255 }).notNull(),
   body: text('body').notNull(), // includes the admin's reason on rejections
   href: text('href'), // where "view" should land, e.g. the application page
@@ -516,7 +516,7 @@ export const events = pgTable('events', {
 export const posts = pgTable('posts', {
   id: serial('id').primaryKey(),
   creatorId: integer('creator_id').references(() => users.id), // system-aggregated posts can have a null creatorId
-  // The PERSON who speaks/is spoken about — a post follows them across terms.
+  // The PERSON who speaks/is spoken about. A post follows them across terms.
   // campaignId still tags a post to one run when it belongs to that campaign.
   subjectUserId: integer('subject_user_id').references(() => users.id, { onDelete: 'cascade' }),
   campaignId: integer('campaign_id').references(() => campaigns.id, { onDelete: 'cascade' }),
@@ -524,7 +524,7 @@ export const posts = pgTable('posts', {
   // Permanent /news/[slug] identity for a public web post (suffixed "-2" etc on
   // collision). Null for non-web posts (broadcasts) and aggregated mentions.
   slug: varchar('slug', { length: 160 }),
-  // Where an aggregated mention (creatorId null) was scraped from — /news links
+  // Where an aggregated mention (creatorId null) was scraped from, /news links
   // out to this instead of a local article page, since there's no slug for one.
   // Null for a team's own post, which always has a slug instead.
   sourceUrl: text('source_url'),
@@ -651,8 +651,8 @@ export const followers = pgTable('followers', {
   whatsapp: boolean('whatsapp').default(false).notNull(),
   // Double opt-in, both channels: null confirmedAt means broadcasts skip this row
   // (see the broadcasts recipient query) until it's proven. Skipped only when it's
-  // a signed-in citizen using their own already-verified account email/phone —
-  // there's nothing left to prove in that case. A guest, or a signed-in citizen
+  // a signed-in citizen using their own already-verified account email/phone.
+  // There's nothing left to prove in that case. A guest, or a signed-in citizen
   // whose account contact isn't verified yet, has to confirm: email gets a
   // click-through link (confirmToken, never cleared after confirming, so a stale
   // link stays a harmless idempotent re-confirm rather than "invalid"); phone gets
@@ -668,7 +668,7 @@ export const followers = pgTable('followers', {
   addedBy: integer('added_by').references(() => users.id),
   // One-click opt-out (5.3): a stable random token embedded in every broadcast's
   // opt-out link. Following the link stamps optedOutAt, which the broadcast
-  // recipient query excludes — replacing the manual "Reply STOP". The row stays
+  // recipient query excludes. Replacing the manual "Reply STOP". The row stays
   // (audit + dedupe), it just stops receiving.
   unsubscribeToken: varchar('unsubscribe_token', { length: 64 }),
   optedOutAt: timestamp('opted_out_at', { withTimezone: true }),
@@ -752,7 +752,7 @@ export const allianceMemberships = pgTable('alliance_memberships', {
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 });
 // pricing-v2: Kickstart < Mobilize < Dominate, one flat rate per tier for every
-// office (see `pricing`/`packages` below) — renamed from aspirant/influencer/mobilizer.
+// office (see `pricing`/`packages` below), renamed from aspirant/influencer/mobilizer.
 export const subscriptionTierEnum = pgEnum('subscription_tier', ['kickstart', 'mobilize', 'dominate']);
 export const billingCycleEnum = pgEnum('billing_cycle', ['monthly', 'annual']);
 export const subscriptionStatusEnum = pgEnum('subscription_status', ['pending', 'active', 'expired', 'cancelled']);
@@ -764,7 +764,7 @@ export const subscriptionOriginEnum = pgEnum('subscription_origin', ['new', 'ren
 export const subscriptions = pgTable('subscriptions', {
   id: serial('id').primaryKey(),
   // The PERSON the subscription is for (billing is user-scoped: a leader pays for their
-  // presence on the platform, whatever they are running for). No cascade — a financial
+  // presence on the platform, whatever they are running for). No cascade. A financial
   // record must outlive any profile row.
   subjectUserId: integer('subject_user_id').references(() => users.id).notNull(),
   payerId: integer('payer_id').references(() => users.id).notNull(), // candidate or manager who paid
@@ -795,8 +795,8 @@ export const subscriptions = pgTable('subscriptions', {
     .where(sql`${t.status} in ('active', 'pending')`),
 ]);
 
-// 15. PRICING (fix 6 — SRC-independent subscription rate card, versioned so a rate change never rewrites history)
-// pricing-v2: one flat rate card for every office — a tier costs the same whether
+// 15. PRICING (fix 6, SRC-independent subscription rate card, versioned so a rate change never rewrites history)
+// pricing-v2: one flat rate card for every office. A tier costs the same whether
 // you're running for MCA or President (see src/routes/pricing). Current subscription
 // rate for a given tier + billing cycle.
 export const pricing = pgTable('pricing', {
@@ -814,21 +814,21 @@ export const pricing = pgTable('pricing', {
     .where(sql`${t.activeTo} is null`),
 ]);
 
-// What each package INCLUDES (the caps), one row per tier — prices live in
+// What each package INCLUDES (the caps), one row per tier, prices live in
 // `pricing` above. Seeded from src/lib/data/packages.json; admin-editable on
 // /dashboard/admin/packages. null = unlimited. creditsPerMonth funds metered
-// broadcast sends (SMS/WhatsApp) — see the Packages admin page's footnote.
+// broadcast sends (SMS/WhatsApp), see the Packages admin page's footnote.
 export type PackageFeatures = {
   managers: number | null;
   ambassadors: number | null;
   subscriptions: number | null;
   creditsPerMonth: number | null;
-  // Total MB of Knowledge-tab text (files + links, extractedText characters —
+  // Total MB of Knowledge-tab text (files + links, extractedText characters,
   // see docs/ai-chat-costs.md's 1MB≈1,000,000-char rule) a leader may accumulate.
   // Bounds the per-question Anthropic cost, since the whole total rides in every
   // AI Chat prompt. null = unlimited.
   knowledgeMb: number | null;
-  // On/off perks (the /pricing comparison table's ✓/— rows). Admin-toggled on
+  // On/off perks (the /pricing comparison table's ✓/- rows). Admin-toggled on
   // /dashboard/admin/packages; code that gates a feature by tier (e.g. the News
   // tab's PR AI Agent) reads these instead of hardcoding a tier name, so the
   // toggle, the pricing page, and the actual gate are always the same fact.
@@ -850,7 +850,7 @@ export const packages = pgTable('packages', {
   uniqueIndex('one_package_per_tier').on(t.tier),
 ]);
 
-// 16. PAYMENTS (fix 5 — immutable ledger of actual charge events; subscriptions/credits reference these)
+// 16. PAYMENTS (fix 5, immutable ledger of actual charge events; subscriptions/credits reference these)
 export const paymentPurposeEnum = pgEnum('payment_purpose', ['subscription', 'credits', 'feature', 'donation']);
 export const paymentStatusEnum = pgEnum('payment_status', ['pending', 'success', 'failed', 'reversed']);
 
@@ -865,16 +865,16 @@ export const payments = pgTable('payments', {
   currency: varchar('currency', { length: 3 }).default('KES').notNull(),
   status: paymentStatusEnum('status').default('pending').notNull(),
   method: varchar('method', { length: 30 }).notNull(), // 'mpesa' | 'card' | 'bank'
-  providerReference: varchar('provider_reference', { length: 100 }).unique(), // M-Pesa receipt / gateway id — idempotent webhooks
+  providerReference: varchar('provider_reference', { length: 100 }).unique(), // M-Pesa receipt / gateway id, idempotent webhooks
   metadata: jsonb('metadata').default({}), // raw gateway callback payload
   paidAt: timestamp('paid_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-// 17. WALLETS & CREDIT LEDGER (fix 5 — prepaid credits for broadcasts/features; balance is a cache of the ledger)
+// 17. WALLETS & CREDIT LEDGER (fix 5, prepaid credits for broadcasts/features; balance is a cache of the ledger)
 // A campaign's current prepaid credit balance, one row per campaign.
-// Profile-scoped (subjectUserId), not campaign-scoped — matches subscriptions
+// Profile-scoped (subjectUserId), not campaign-scoped, matches subscriptions
 // and knowledgeDocuments, both already keyed by subjectUserId. The AI Chat
 // knowledgebase a wallet pays to query is one per person, reused across every
 // cycle/run they ever have, so a campaign-keyed wallet would strand credits
@@ -895,7 +895,7 @@ export const creditTransactions = pgTable('credit_transactions', {
   walletId: integer('wallet_id').references(() => wallets.id, { onDelete: 'cascade' }).notNull(),
   kind: creditTxnKindEnum('kind').notNull(),
   amount: integer('amount').notNull(), // signed: + for topup/refund/bonus, - for spend
-  channel: varchar('channel', { length: 20 }), // 'email' | 'sms' | 'whatsapp' | 'feature' — the rate that was applied on spend
+  channel: varchar('channel', { length: 20 }), // 'email' | 'sms' | 'whatsapp' | 'feature'. The rate that was applied on spend
   paymentId: integer('payment_id').references(() => payments.id), // topups link to the payment that funded them
   reference: varchar('reference', { length: 100 }), // e.g. the post/broadcast id a spend paid for
   balanceAfter: integer('balance_after').notNull(), // wallet balance snapshot after this row, for audit
@@ -904,7 +904,7 @@ export const creditTransactions = pgTable('credit_transactions', {
   index('credit_txn_wallet_idx').on(t.walletId),
 ]);
 
-// 18. OTPS & DEVICES (fix 7 — Safaricom OTP + fingerprinting to block single-phone farming)
+// 18. OTPS & DEVICES (fix 7, Safaricom OTP + fingerprinting to block single-phone farming)
 // Named `otps`, not `verifications`, to avoid colliding with better-auth's own
 // internal `verification` table in auth.schema.ts (unrelated email-link tokens).
 // Offers same benefits listed above contacts table
@@ -917,7 +917,7 @@ export const otps = pgTable('otps', {
   channel: otpChannelEnum('channel').notNull(),
   destination: varchar('destination', { length: 100 }).notNull(), // phone/email the code was sent to
   codeHash: varchar('code_hash', { length: 255 }).notNull(), // hashed OTP, never plaintext
-  // Short click-through alternative to typing the code (email channel only) — a
+  // Short click-through alternative to typing the code (email channel only). A
   // 32-char random token, stored raw (like invites.token) since it's never user-typed.
   linkToken: varchar('link_token', { length: 32 }),
   attempts: integer('attempts').default(0).notNull(),
@@ -952,16 +952,16 @@ export const chatTargetEnum = pgEnum('chat_target', ['leader', 'manager', 'ambas
 // One chat thread, scoped to the platform, a position, a leader, or a campaign.
 export const conversations = pgTable('conversations', {
   id: serial('id').primaryKey(),
-  scope: digestEnum('scope').notNull(), // platform | position | leader | campaign — same RAG scoping as follows
+  scope: digestEnum('scope').notNull(), // platform | position | leader | campaign, same RAG scoping as follows
   scopeId: integer('scope_id'), // the position/campaign id, or the PERSON's users.id for scope 'leader'; null for platform-wide (home) chat
   channel: chatChannelEnum('channel').notNull(),
   userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }), // null for anonymous web visitors
-  anonId: varchar('anon_id', { length: 64 }), // guest device id (the shared anon_id cookie) — lets a guest's thread survive refresh and get adopted onto userId at login
+  anonId: varchar('anon_id', { length: 64 }), // guest device id (the shared anon_id cookie), lets a guest's thread survive refresh and get adopted onto userId at login
   // Most recent address the thread was used from, refreshed on every ask, for
   // telling anonymous askers apart in the inboxes and for abuse triage. Stored
   // here rather than read back from aiAskEvents: that table only records an ask
-  // that stayed WITHIN quota, so an over-limit guest — precisely the one whose
-  // question lands in the inbox for a human — would have no address on file.
+  // that stayed WITHIN quota, so an over-limit guest, precisely the one whose
+  // question lands in the inbox for a human, would have no address on file.
   ipAddress: varchar('ip_address', { length: 45 }),
   followerId: integer('follower_id').references(() => followers.id, { onDelete: 'set null' }), // set when a WhatsApp thread starts from a follow notification
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -977,7 +977,7 @@ export const messages = pgTable('messages', {
   conversationId: integer('conversation_id').references(() => conversations.id, { onDelete: 'cascade' }).notNull(),
   sender: chatSenderEnum('sender').notNull(), // follower | ai | leader | manager | ambassador
   senderId: integer('sender_id').references(() => users.id), // null for ai replies and anonymous visitors
-  target: chatTargetEnum('target'), // from an "L:"/"M:"/"A:" prefix — which human the follower is addressing; null routes to the AI
+  target: chatTargetEnum('target'), // from an "L:"/"M:"/"A:" prefix, which human the follower is addressing; null routes to the AI
   reviewId: integer('review_id').references((): any => reviews.id, { onDelete: 'set null' }), // set when the thread responds to a citizen review
   body: text('body').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -985,18 +985,18 @@ export const messages = pgTable('messages', {
   index('messages_conversation_idx').on(t.conversationId),
 ]);
 
-// One AI Chat "ask" attempt (see $lib/server/aiRateLimit.ts) — logged purely to
+// One AI Chat "ask" attempt (see $lib/server/aiRateLimit.ts), logged purely to
 // enforce the anti-abuse rate limit (5/day per session AND per IP, whichever hits
 // first), never read back as chat history. anonId reuses the same long-lived
 // 'anon_id' device cookie the homepage ballot simulator sets, so a visitor's cap
 // persists across visits without needing an account. Global across every leader's
-// chat, not per-profile — the point is capping overall Anthropic API spend a
+// chat, not per-profile. The point is capping overall Anthropic API spend a
 // scripted burst could rack up, not any one leader's usage specifically.
 export const aiAskEvents = pgTable('ai_ask_events', {
   id: serial('id').primaryKey(),
   anonId: varchar('anon_id', { length: 32 }),
   ipAddress: varchar('ip_address', { length: 45 }),
-  // Set only for a signed-in ask — a real identity, unlike anonId (just a
+  // Set only for a signed-in ask. A real identity, unlike anonId (just a
   // cookie, cleared/rotated trivially), so a signed-in citizen's own daily cap
   // is tracked against this instead of anonId/ipAddress.
   userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
@@ -1048,7 +1048,7 @@ export const pledges = pgTable('pledges', {
 // 21.1 REVIEWS (citizen reviews of a leader: a 1-5 star rating plus a message,
 // optionally aimed at one manifesto pillar. Public by default; a flagReason
 // hides it from public view pending the leader/manager's response, but never
-// deletes it outright — flagging is reversible, unlike a reject.)
+// deletes it outright. Flagging is reversible, unlike a reject.)
 export const reviewFlagReasonEnum = pgEnum('review_flag_reason', [
   'spam',
   'insult',
@@ -1082,7 +1082,7 @@ export const reviews = pgTable('reviews', {
 // confirm flow once Daraja credentials land; reference then stores the receipt.)
 export const donationStatusEnum = pgEnum('donation_status', ['pending', 'confirmed', 'failed']);
 
-// One campaign-fundraising donation from a citizen — money belongs to the run.
+// One campaign-fundraising donation from a citizen, money belongs to the run.
 export const donations = pgTable('donations', {
   id: serial('id').primaryKey(),
   campaignId: integer('campaign_id').references(() => campaigns.id, { onDelete: 'cascade' }).notNull(),
@@ -1101,7 +1101,7 @@ export const donations = pgTable('donations', {
 
 // 23. BALLOT SIMULATIONS (the homepage booth: a single simulated ballot event per citizen, not one row
 // per level. `selections` stores a candidateId per level so the share page re-fetches live
-// candidate data instead of freezing it — a later profile update or verification shows up automatically.)
+// candidate data instead of freezing it. A later profile update or verification shows up automatically.)
 // One citizen's simulated 2027 ballot: their picks at every level, for sharing.
 export const ballotSimulations = pgTable('ballot_simulations', {
   id: serial('id').primaryKey(),
@@ -1125,7 +1125,7 @@ export const ballotSimulations = pgTable('ballot_simulations', {
   index('ballot_simulations_user_idx').on(t.userId),
 ]);
 
-// 24. PLATFORM SETTINGS (single-row config an admin can tune without a deploy —
+// 24. PLATFORM SETTINGS (single-row config an admin can tune without a deploy:
 // OTP/invite anti-abuse thresholds today, room to grow. Always id=1.)
 
 // Defaults for platformSettings.platformSystemPrompt / leaderSystemPrompt (the two
@@ -1133,30 +1133,30 @@ export const ballotSimulations = pgTable('ballot_simulations', {
 // process (scripts/lib/seed-platform-settings.ts). The platform prompt governs the
 // AI's behavior everywhere it runs; the leader prompt layers on top for answers
 // about one specific leader's profile.
-export const DEFAULT_PLATFORM_SYSTEM_PROMPT = `You are the vote.ke AI Chat assistant. Citizens across Kenya use you to understand who is running for office, what they've delivered, and what they're promising — helping people vote with real information instead of rumor or guesswork.
+export const DEFAULT_PLATFORM_SYSTEM_PROMPT = `You are the vote.ke AI Chat assistant. Citizens across Kenya use you to understand who is running for office, what they've delivered, and what they're promising. Helping people vote with real information instead of rumor or guesswork.
 
 Your mission: make Kenyan democracy more transparent and more informed, one conversation at a time. Every question you answer well is a citizen who walks into the ballot booth better equipped.
 
 How you answer:
 - Ground every claim ONLY in the material you're given for that specific leader (bio, manifesto pillars, delivery record, public updates, FAQ, and any uploaded documents). Never invent a promise, a policy position, a statistic, or a fact that isn't in front of you.
-- If the material doesn't cover what's being asked, say so plainly and warmly — something like "the campaign hasn't published a position on that yet" — then suggest a good next step: following the campaign for updates, or asking the team directly. A confident, specific "I don't know yet, here's how to find out" beats a vague or invented answer every time.
-- A source document may carry a link (e.g. a YouTube video whose transcript isn't available, or an article). If you can't fully summarize it because the text you have is incomplete, say so briefly AND share the link so the citizen can go watch/read it themselves — never just decline and leave them stuck when a direct source is sitting right there.
+- If the material doesn't cover what's being asked, say so plainly and warmly. Something like "the campaign hasn't published a position on that yet": then suggest a good next step: following the campaign for updates, or asking the team directly. A confident, specific "I don't know yet, here's how to find out" beats a vague or invented answer every time.
+- A source document may carry a link (e.g. a YouTube video whose transcript isn't available, or an article). If you can't fully summarize it because the text you have is incomplete, say so briefly AND share the link so the citizen can go watch/read it themselves, never just decline and leave them stuck when a direct source is sitting right there.
 - Stay strictly neutral and non-partisan. You represent the platform, not any candidate, party, or coalition. Never compare leaders unfavorably against each other, never take sides, and never repeat unverified claims about anyone.
-- Keep a warm, respectful, plain-language tone — most people asking you a question are not political insiders. Avoid jargon and avoid lecturing.
-- Be succinct and factual by default: trim answers to roughly 200-300 characters whenever the question allows it — a citizen skimming on a phone wants the fact, not a speech. Only go longer when the question explicitly asks for more detail or genuinely can't be answered honestly in that space.
+- Keep a warm, respectful, plain-language tone. Most people asking you a question are not political insiders. Avoid jargon and avoid lecturing.
+- Be succinct and factual by default: trim answers to roughly 200-300 characters whenever the question allows it. A citizen skimming on a phone wants the fact, not a speech. Only go longer when the question explicitly asks for more detail or genuinely can't be answered honestly in that space.
 - Be encouraging about civic participation itself: following campaigns, asking questions, showing up to vote. This platform exists because an informed electorate is a stronger democracy.
 - If asked something abusive, defamatory, or designed to manipulate you into fabricating a claim about a real person, decline kindly and redirect to what you can actually help with.`;
 
 export const DEFAULT_LEADER_SYSTEM_PROMPT = `You are now answering on behalf of one specific leader's public profile. Everything below applies on top of your platform-wide instructions.
 
-- Represent this leader accurately and generously within the bounds of truth: lead with their real, documented track record and stated plans, told in a positive and confident voice — Kenyans deserve to hear a candidate's story clearly, not buried in hedges.
+- Represent this leader accurately and generously within the bounds of truth: lead with their real, documented track record and stated plans, told in a positive and confident voice, Kenyans deserve to hear a candidate's story clearly, not buried in hedges.
 - Every fact still has to trace back to what this leader's own team has published (bio, track record, delivery log, manifesto pillars, FAQ, campaign updates, uploaded documents). Positive framing is welcome; invented facts are never acceptable, even flattering ones.
-- When a citizen asks about a delivered project or a promise, cite it specifically (what, where, when it was delivered or promised) rather than answering in vague generalities — specifics build trust, even in a short answer.
-- When a source document (e.g. a video) has a link but the full text isn't available, share the link rather than just saying you can't summarize it — pointing someone to watch the video themselves is still a genuinely useful answer.
+- When a citizen asks about a delivered project or a promise, cite it specifically (what, where, when it was delivered or promised) rather than answering in vague generalities, specifics build trust, even in a short answer.
+- When a source document (e.g. a video) has a link but the full text isn't available, share the link rather than just saying you can't summarize it. Pointing someone to watch the video themselves is still a genuinely useful answer.
 - Never attack, disparage, or speculate negatively about any other candidate or leader, even if the question invites it. Redirect gracefully: this space is for learning about this leader, not tearing others down.
 - Match the platform prompt's brevity rule: default to roughly 200-300 characters, factual and to the point. Expand only when the citizen explicitly asks for more detail.
-- If a question falls outside what's published — a rumor, a hypothetical, or a topic this leader hasn't addressed — say so honestly and warmly, then point the citizen to the FAQ, the manifesto, or a way to reach the campaign directly for a fuller answer.
-- Close answers, where it feels natural, with a small invitation to stay engaged — follow the campaign, check back for updates, or reach out with more questions. The goal is an informed citizen who feels genuinely heard, not a sales pitch.`;
+- If a question falls outside what's published: a rumor, a hypothetical, or a topic this leader hasn't addressed: say so honestly and warmly, then point the citizen to the FAQ, the manifesto, or a way to reach the campaign directly for a fuller answer.
+- Close answers, where it feels natural, with a small invitation to stay engaged: follow the campaign, check back for updates, or reach out with more questions. The goal is an informed citizen who feels genuinely heard, not a sales pitch.`;
 
 // Default for platformSettings.blockedSlugs, shared with the seed process
 // (scripts/lib/seed-platform-settings.ts backfills these into an existing row).
@@ -1165,12 +1165,12 @@ export const DEFAULT_BLOCKED_SLUGS = [
   'apply', 'account', 'admin', 'ambassador', 'citizen', 'invites', 'notifications', 'follow', 'leaders', 'pricing',
   'compare', 'rank', 'ranks', 'vote', 'voter', 'my-vote', 'search', 'parties', 'alliances', 'invite', 'claim',
   // position words: the seat-hub routes (/president, /mca/...) and the /rank
-  // plurals — no leader may take a seat name as their personal URL
+  // plurals. No leader may take a seat name as their personal URL
   'president', 'presidents', 'deputy-president', 'deputy-presidents',
   'governor', 'governors', 'senator', 'senators', 'mp', 'mps', 'mca', 'mcas',
   'woman-rep', 'woman-reps', 'women-rep', 'women-reps',
   'woman-representative', 'woman-representatives', 'women-representative', 'women-representatives',
-  // other Kenyan leadership titles (current and historical) — not routes, but a
+  // other Kenyan leadership titles (current and historical). Not routes, but a
   // personal URL like /cabinet-secretary or /chief would read as an official page
   'cabinet-secretary', 'cabinet-secretaries', 'principal-secretary', 'principal-secretaries',
   'chief-administrative-secretary', 'chief-administrative-secretaries',
@@ -1198,7 +1198,7 @@ export const DEFAULT_BLOCKED_SLUGS = [
 ];
 
 // News ingestion sources (see $lib/server/newsIngest.ts for the actual feed
-// URLs keyed by these same ids) — on by default except the state broadcaster
+// URLs keyed by these same ids), on by default except the state broadcaster
 // and Google News, both opt-in rather than platform defaults (Google News is
 // per-leader search traffic against Google's RSS endpoint, which rate-limits
 // under sustained load, so an admin opts into it deliberately).
@@ -1222,7 +1222,7 @@ export const platformSettings = pgTable('platform_settings', {
   // (leader, role, email): seconds between sends, and max sends/24h.
   otpCooldownSeconds: integer('otp_cooldown_seconds').default(60).notNull(),
   otpDailyCap: integer('otp_daily_cap').default(3).notNull(),
-  // Lifetime (not per-day) invite cap per campaign, by subscription tier — mass
+  // Lifetime (not per-day) invite cap per campaign, by subscription tier, mass
   // mobilization (many unique invitees) is intentionally uncapped day-to-day;
   // this only bounds total invites ever sent, scaled to what they paid for.
   inviteLimits: jsonb('invite_limits')
@@ -1233,7 +1233,7 @@ export const platformSettings = pgTable('platform_settings', {
   // shadow a top-level route or a /dashboard/<slug> second segment) plus words the
   // platform may want later. Numeric-only slugs (e.g. "2027") are always blocked in
   // code since ballot routes use bare years. Removing a route word here breaks the
-  // shadowing guard for it — edit with care.
+  // shadowing guard for it, edit with care.
   blockedSlugs: jsonb('blocked_slugs').$type<string[]>().default(DEFAULT_BLOCKED_SLUGS).notNull(),
   // Rows per page on every paginated dashboard list (campaign posts/reviews/
   // followers/broadcasts/PR, admin tables, citizen invites).
@@ -1245,12 +1245,12 @@ export const platformSettings = pgTable('platform_settings', {
   requiredSignoffs: integer('required_signoffs').default(1).notNull(),
   // Campaign verification gate: whether the admin's Verify-campaign action
   // requires the IEBC Certificate of Clearance to be uploaded first. Off by
-  // default — certificates aren't issued until closer to the 2027 nominations,
+  // default, certificates aren't issued until closer to the 2027 nominations,
   // so requiring one earlier would make every campaign unverifiable.
   requireIebcForVerification: boolean('require_iebc_for_verification').default(false).notNull(),
   // Onboarding gate (src/routes/onboard/+layout.server.ts): whether a citizen must
   // verify their email/phone (OTP) before they can create or claim a leader profile.
-  // On by default — off only makes sense for a demo/low-friction environment.
+  // On by default, off only makes sense for a demo/low-friction environment.
   requireEmailVerification: boolean('require_email_verification').default(true).notNull(),
   requirePhoneVerification: boolean('require_phone_verification').default(false).notNull(),
   // AI Chat behavior (see $lib/server/ai.ts): platformSystemPrompt governs the
@@ -1265,7 +1265,7 @@ export const platformSettings = pgTable('platform_settings', {
   // much bigger knowledgeMb storage cap per plan).
   maxGroundingChars: integer('max_grounding_chars').default(50_000).notNull(),
   // AI Chat ask caps (see $lib/server/aiRateLimit.ts): a guest gets this many
-  // free questions ever (lifetime, not daily — anon_id/IP are trivially
+  // free questions ever (lifetime, not daily, anon_id/IP are trivially
   // resettable, so this is a one-time taste before requiring an account, not
   // a precise meter); a signed-in citizen gets this many per day, tracked
   // against their own account instead of a spoofable cookie.
@@ -1273,20 +1273,20 @@ export const platformSettings = pgTable('platform_settings', {
   userAskDailyLimit: integer('user_ask_daily_limit').default(5).notNull(),
   // Hard cap on one question's length. Anything longer is TRUNCATED rather than
   // rejected (a citizen who over-explains still gets an answer), and it bounds
-  // what an attacker can push into a billed Anthropic call — without it a
+  // what an attacker can push into a billed Anthropic call, without it a
   // pasted 100KB block would go straight through.
   askMaxChars: integer('ask_max_chars').default(300).notNull(),
   // How many prior messages of the thread ride along as conversation context,
   // so follow-ups ("when did he take office?") resolve. Counted in individual
-  // messages, not exchanges — each one is a separate billed input on every
+  // messages, not exchanges. Each one is a separate billed input on every
   // subsequent question, so this is the main lever on per-question cost.
   askHistoryMessages: integer('ask_history_messages').default(5).notNull(),
-  // PAYG price on /pricing's Credits table (docs/ai-chat-costs.md) — spent
+  // PAYG price on /pricing's Credits table (docs/ai-chat-costs.md), spent
   // from the campaign's wallet on an AI-sourced answer (see the `ask` actions
   // on [leader]/+page.server.ts and [leader]/[year=year]/+page.server.ts); a
   // heuristic-fallback answer never calls Anthropic, so it's never charged.
   aiChatCostCredits: integer('ai_chat_cost_credits').default(5).notNull(),
-  // PAYG broadcast credit prices on /pricing's Credits table — spent per
+  // PAYG broadcast credit prices on /pricing's Credits table, spent per
   // recipient from the campaign wallet when a broadcast goes out on that channel
   // (see broadcast.ts). Email is always free (SMTP), so it has no setting.
   smsCostCredits: integer('sms_cost_credits').default(2).notNull(),
@@ -1302,14 +1302,14 @@ export const platformSettings = pgTable('platform_settings', {
   // matched against every verified leader's full name.
   newsSources: jsonb('news_sources').$type<Record<string, boolean>>().default(DEFAULT_NEWS_SOURCES).notNull(),
   // How many verified leaders' names ride in one Google News search query
-  // (an OR'd quoted-name search), instead of one request per person — cuts
+  // (an OR'd quoted-name search), instead of one request per person, cuts
   // total daily requests to news.google.com roughly by this factor, the
   // per-person request volume was risking rate-limiting/blocking. Admin-
   // tunable on Settings so it can be raised/lowered without a deploy while
   // the right value against Google's actual limits gets found empirically.
   newsBatchSize: integer('news_batch_size').default(5).notNull(),
   // Daily crawl schedule (src/hooks.server.ts): local "HH:MM" time of day the
-  // in-process scheduler fires ingestNews() — checked on a short interval
+  // in-process scheduler fires ingestNews(), checked on a short interval
   // rather than a fixed 24h-since-boot timer, so a reboot mid-day doesn't
   // trigger an extra off-schedule crawl. newsLastFetchedAt records the most
   // recent completed run (manual "Crawl now" or scheduled), so the scheduler
@@ -1320,7 +1320,7 @@ export const platformSettings = pgTable('platform_settings', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-// 25. PASSWORD RESET REQUESTS (rate-limit tracking only — better-auth owns the
+// 25. PASSWORD RESET REQUESTS (rate-limit tracking only, better-auth owns the
 // actual reset token/link via emailAndPassword.sendResetPassword in auth.ts;
 // this just records "a reset was requested for X at T" against the same
 // cooldown/daily-cap settings used everywhere else, so the form can't be
@@ -1335,7 +1335,7 @@ export const passwordResetRequests = pgTable('password_reset_requests', {
 
 // 26. MOBILIZATION (blueprint funnel A field work: an ambassador logs the events
 // they run for a campaign and the citizen feedback they gather in the field. Both
-// scope to the PERSON mobilized for (subjectUserId — the same key ambassadors and
+// scope to the PERSON mobilized for (subjectUserId. The same key ambassadors and
 // managers use), so they survive an ambassador moving between a person's held term
 // and their run. A manager confirms an event actually happened: the
 // "physical-appearance confirmation" that keeps a field claim honest before it
@@ -1345,14 +1345,14 @@ export const mobilizationEventStatusEnum = pgEnum('mobilization_event_status', [
 export const mobilizationEvents = pgTable('mobilization_events', {
   id: serial('id').primaryKey(),
   subjectUserId: integer('subject_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  // The ambassador who logged/ran it (a users row — an ambassador is a citizen
+  // The ambassador who logged/ran it (a users row. An ambassador is a citizen
   // with duties, never a separate account).
   ambassadorUserId: integer('ambassador_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   title: varchar('title', { length: 160 }).notNull(),
   description: text('description'),
   county: varchar('county', { length: 100 }),
   ward: varchar('ward', { length: 100 }),
-  // When it happens/happened — field work is logged both ahead (planned) and after.
+  // When it happens/happened, field work is logged both ahead (planned) and after.
   scheduledFor: timestamp('scheduled_for', { withTimezone: true }).notNull(),
   status: mobilizationEventStatusEnum('status').default('planned').notNull(),
   turnout: integer('turnout'), // citizens who showed, filled after the fact
@@ -1392,7 +1392,7 @@ export const citizenFeedback = pgTable('citizen_feedback', {
 
 // 27. BROADCASTS (TODO #5: a compose-once send to a follower segment, moved off
 // the inline email loop into a queue with per-recipient delivery logging so SMS
-// and WhatsApp sends — billed against the campaign credit wallet — can retry and
+// and WhatsApp sends, billed against the campaign credit wallet, can retry and
 // be audited. A `broadcasts` row is the compose + audience + running tally; each
 // intended recipient is a `broadcast_recipients` row the dispatcher walks,
 // marking sent/failed and recording the credits a paid channel spent.)
@@ -1440,7 +1440,7 @@ export const broadcastRecipients = pgTable('broadcast_recipients', {
 // 28. RATE EVENTS (TODO #5.4: one row per accepted submission of a rate-limited
 // public form (follow, pledge, endorse, donate), keyed by action + a bucket (the
 // caller's IP, and separately the contact/identifier). A sliding-window count
-// over these rows is what the guard checks — same DB-backed approach as
+// over these rows is what the guard checks, same DB-backed approach as
 // password_reset_requests, generalized.)
 export const rateEvents = pgTable('rate_events', {
   id: serial('id').primaryKey(),

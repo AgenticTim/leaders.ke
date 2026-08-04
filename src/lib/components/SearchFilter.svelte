@@ -27,7 +27,7 @@
 	const pillSelect =
 		'rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none';
 
-	// MCA seats are wards (1,450 of them) — too many to pick directly, so filter by
+	// MCA seats are wards (1,450 of them), too many to pick directly, so filter by
 	// constituency instead; the caller matches each MCA leader by their ward's
 	// parent constituency. Only constituencies that actually have a listed MCA show.
 	const allConstituencies = counties

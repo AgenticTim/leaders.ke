@@ -8,7 +8,7 @@ export const load: PageServerLoad = async () => {
 	const rows = await db.select().from(parties).where(isNull(parties.deletedAt)).orderBy(parties.name);
 
 	// Members: distinct people with a live term or run recording this party
-	// (partyId is per-term/per-run, not a person-level fact — see leaders.partyId).
+	// (partyId is per-term/per-run, not a person-level fact, see leaders.partyId).
 	const [termRows, runRows] = await Promise.all([
 		db.select({ partyId: leaders.partyId, userId: leaders.userId }).from(leaders).where(and(isNull(leaders.deletedAt), isNotNull(leaders.partyId))),
 		db

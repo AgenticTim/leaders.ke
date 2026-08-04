@@ -8,12 +8,12 @@ import { fullName } from '$lib/server/leader';
 import type { PageServerLoad } from './$types';
 
 // Step 4 of the onboarding wizard: pick one of the three packages. No profile exists
-// yet at this point (create/link happens at checkout, after payment) — this just
+// yet at this point (create/link happens at checkout, after payment). This just
 // needs a name to show and the live rate card. Everything from step 3 rides forward
 // via query params (read by +page.svelte to build the checkout link) rather than
 // round-tripping through the database.
 //
-// pricing-v2: one flat rate card for every office — no seat/band involved at all.
+// pricing-v2: one flat rate card for every office. No seat/band involved at all.
 export const load: PageServerLoad = async (event) => {
 	await requireDashboardUser(event);
 	const sp = event.url.searchParams;

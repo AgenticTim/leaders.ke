@@ -1,14 +1,14 @@
-// The "Create Your Profile" onboarding wizard (User Flows v2, step 3) — the single
+// The "Create Your Profile" onboarding wizard (User Flows v2, step 3). The single
 // entry every leader/aspirant/manager takes. The name fields feed the live Profile
 // Matcher (RHS); on submit the citizen either LINKS an existing seeded profile (a
 // claim) or CREATES a fresh one, then moves on to /onboard/plan.
 //
 // Deliberate simplifications for this step (see the flowcharts doc):
-//  - No leaders/campaigns row is written here at all — a fresh create is name +
+//  - No leaders/campaigns row is written here at all. A fresh create is name +
 //    role only. Leadership status, seats, parties, and a run are all filled in
 //    later on the dashboard's own Profile/Campaign tabs, at zero friction before
 //    payment (see docs/URLDiscovery.md "onboarding friction" note).
-//  - The slug is minted at creation, not admin approval — the page can be paid for and
+//  - The slug is minted at creation, not admin approval. The page can be paid for and
 //    published without an admin in the loop.
 import { and, eq, ilike, inArray, isNotNull, isNull, or } from 'drizzle-orm';
 import { db } from '$lib/server/db';
@@ -17,7 +17,7 @@ import { ACTIVE_CYCLE, createPhantomUser, fullName, generateLeaderSlug, leaderPa
 import { CAMPAIGN_ROLES } from '$lib/utils/campaignRoles';
 import { notifyUser } from '$lib/server/notifications';
 
-/** Every platform admin's user id — shared by the two admin-notification helpers below. */
+/** Every platform admin's user id, shared by the two admin-notification helpers below. */
 async function listAdminIds(): Promise<number[]> {
 	const rows = await db.select({ id: users.id }).from(users).where(and(isNotNull(users.adminAt), isNull(users.deletedAt)));
 	return rows.map((r) => r.id);
@@ -40,7 +40,7 @@ const initialsOf = (name: string) =>
 	name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
 /**
- * Relevance of a candidate to the typed name — higher is better. A part is any
+ * Relevance of a candidate to the typed name, higher is better. A part is any
  * whitespace-separated word the citizen typed; the person's name is their first +
  * other names. Full-name matches ("Timothy" + "Bosire" -> "Timothy Bosire") must
  * outrank a single shared word, and a prefix ("Tim" -> "Timothy") beats a mid-word
@@ -67,7 +67,7 @@ function matchScore(firstName: string, otherNames: string, parts: string[]): num
 
 /**
  * Public, claimable profiles whose name matches what the citizen typed, ranked most
- * relevant first — the Profile Matcher cards. "Claimable" = a real seeded/public
+ * relevant first. The Profile Matcher cards. "Claimable" = a real seeded/public
  * person (has a slug) with no active manager yet; an already-owned profile never
  * appears. Every typed word must appear somewhere in the person's name, so a full
  * match ("Tim" + "Bosire") lands "Timothy Bosire" at the top rather than every "Tim".
@@ -77,7 +77,7 @@ export async function findMatchingProfiles(firstName: string, otherNames: string
 	if (parts.length === 0) return [];
 
 	// Each typed word must appear in either name column (AND across words), so the
-	// candidate set is already the "all words present" set — the strongest matches.
+	// candidate set is already the "all words present" set. The strongest matches.
 	// If nothing matches every word (e.g. only a first name typed that's shared widely),
 	// fall back to any-word matches so the panel isn't empty.
 	const perPart = parts.map((p) => or(ilike(users.firstName, `%${p}%`), ilike(users.otherNames, `%${p}%`)));
@@ -100,7 +100,7 @@ export async function findMatchingProfiles(firstName: string, otherNames: string
 
 	// Lead seat + its party per person: a held non-former term beats a former one,
 	// beats an active-cycle run (bulk, no N+1). Party is per-term/per-run, not a
-	// person-level fact — this picks whichever row IS the lead seat's own party.
+	// person-level fact. This picks whichever row IS the lead seat's own party.
 	const [termRows, runRows] = await Promise.all([
 		db
 			.select({ userId: leaders.userId, status: leaders.status, title: positions.title, region: positions.region, partyId: leaders.partyId })
@@ -166,7 +166,7 @@ export type OnboardInput = {
 	myRole: string;
 };
 
-// Raw strings as they travel through form fields / query params — validated once
+// Raw strings as they travel through form fields / query params, validated once
 // on step 3 submit (fast feedback) and again at checkout's Pay action (the values
 // ride in a client-visible URL the whole way there, so re-validating before writing
 // anything to the database is defense-in-depth, not just belt-and-braces).
@@ -188,9 +188,9 @@ export function validateOnboardInput(raw: OnboardRawInput): { ok: true; input: O
 	return { ok: true, input: { firstName, otherNames, myRole } };
 }
 
-/** Whether a seeded profile is still linkable — has a slug and no active manager.
+/** Whether a seeded profile is still linkable, has a slug and no active manager.
  * Checked once for fast feedback on step 3 submit, and again (authoritatively,
- * inside a would-be race) by linkProfile itself at payment time — nothing is
+ * inside a would-be race) by linkProfile itself at payment time. Nothing is
  * granted access until then, so this can go stale between the two checks. */
 export async function assertClaimable(subjectUserId: number): Promise<{ ok: true } | { ok: false; error: string }> {
 	const [subject] = await db.select({ id: users.id, slug: users.slug }).from(users).where(and(eq(users.id, subjectUserId), isNull(users.deletedAt)));
@@ -203,16 +203,16 @@ export async function assertClaimable(subjectUserId: number): Promise<{ ok: true
 	return { ok: true };
 }
 
-/** No matching profile — mint a brand-new one the citizen owns (source=applied). Returns
+/** No matching profile, mint a brand-new one the citizen owns (source=applied). Returns
  * the new profile's slug so the wizard can carry it into plans/checkout. Name + role
- * only — no leaders/campaigns row here at all; the owner fills in leadership status,
+ * only. No leaders/campaigns row here at all; the owner fills in leadership status,
  * seat, party, and a run later on the dashboard's own Profile/Campaign tabs. */
 export async function createProfile(domainUserId: number, input: OnboardInput): Promise<{ slug: string; subjectUserId: number }> {
 	const phantom = await createPhantomUser(input.firstName, input.otherNames);
 	const slug = await generateLeaderSlug(fullName({ firstName: input.firstName, otherNames: input.otherNames }));
 	await db.update(users).set({ slug }).where(eq(users.id, phantom.id));
 
-	// The creator becomes the profile's first admin manager — the same shape the
+	// The creator becomes the profile's first admin manager. The same shape the
 	// Team tab and admin control bar read. National ID/sign-off isn't collected
 	// here anymore; it's completed later on the Team tab, per manager.
 	await db.insert(managers).values({
@@ -224,7 +224,7 @@ export async function createProfile(domainUserId: number, input: OnboardInput): 
 	return { slug, subjectUserId: phantom.id };
 }
 
-/** A matching profile was selected — link the citizen's account to it (a claim,
+/** A matching profile was selected, link the citizen's account to it (a claim,
  * source=claimed) by granting them admin manager access. Returns the profile's slug. */
 export async function linkProfile(domainUserId: number, input: OnboardInput, subjectUserId: number): Promise<{ slug: string; subjectUserId: number }> {
 	const [subject] = await db
@@ -250,14 +250,14 @@ export async function linkProfile(domainUserId: number, input: OnboardInput, sub
 	// something to actually review afterwards: it shows up pending in the profile's
 	// admin control bar (getProfileAdminMeta) until approved/rejected. Rejecting
 	// (reviewClaim) deactivates the manager row just granted and restores the
-	// profile from its seed record — there's no staged evidence here to apply on
+	// profile from its seed record. There's no staged evidence here to apply on
 	// approval like the old claim flow, access already happened at payment time.
 	await db.insert(profileClaims).values({ subjectUserId, claimedBy: domainUserId, evidence: input });
 
 	return { slug: subject.slug, subjectUserId };
 }
 
-/** Platform admins should know whenever a profile changes hands or gets created —
+/** Platform admins should know whenever a profile changes hands or gets created,
  * access (or the profile itself) already exists by the time this fires, so this is
  * purely their signal to go double-check it. Called from checkout's Pay action,
  * which is the only place that has the plan/price alongside the create/link result. */
@@ -288,9 +288,9 @@ export async function notifyAdminsOfNewProfile(opts: {
 				kind: 'claim',
 				title: opts.kind === 'claimed' ? 'A profile was claimed' : 'A new profile was created',
 				// href covers the Dashboard link (notifyUser appends it); Preview isn't
-				// otherwise linked here, so it gets its own inline link (relative — notifyUser
+				// otherwise linked here, so it gets its own inline link (relative, notifyUser
 				// rewrites it to an absolute URL for the emailed copy).
-				body: `${actorName} ${opts.kind === 'claimed' ? 'claimed' : 'created'} ${profileName}'s profile — ${tierLabel} plan (${cycleLabel}), KES ${amountLabel} paid, runs until ${endsAtLabel}.\n<a href="/${opts.slug}">Click here to view the profile</a>`,
+				body: `${actorName} ${opts.kind === 'claimed' ? 'claimed' : 'created'} ${profileName}'s profile, ${tierLabel} plan (${cycleLabel}), KES ${amountLabel} paid, runs until ${endsAtLabel}.\n<a href="/${opts.slug}">Click here to view the profile</a>`,
 				href: `/dashboard/${opts.slug}/profile`,
 				linkLabel: 'Click here to access the dashboard'
 			})
@@ -298,7 +298,7 @@ export async function notifyAdminsOfNewProfile(opts: {
 	);
 }
 
-/** Thanks the payer for their payment — same for a fresh create or a claim, since
+/** Thanks the payer for their payment, same for a fresh create or a claim, since
  * either way they just paid for this plan on this profile. Called from checkout's
  * Pay action right alongside notifyAdminsOfNewProfile (only place with both the
  * plan/price and the create/link result). */
@@ -310,7 +310,7 @@ export async function notifyPayerOfPayment(opts: {
 	cycle: string;
 	amount: number;
 	subscriptionEndsAt: Date;
-	/** Gateway reference + channel, when a real charge carries them — turns the
+	/** Gateway reference + channel, when a real charge carries them, turns the
 	 * thank-you into a proper receipt the payer can reconcile against M-Pesa/bank. */
 	reference?: string;
 	method?: string;
@@ -325,7 +325,7 @@ export async function notifyPayerOfPayment(opts: {
 
 	await notifyUser(opts.payerUserId, {
 		kind: 'claim',
-		title: 'Payment receipt — thank you',
+		title: 'Payment receipt · thank you',
 		// href covers the dashboard link (notifyUser appends it as a "Click here…" link).
 		body: `Thanks for your payment of KES ${amountLabel} for ${profileName}'s ${tierLabel} plan (${cycleLabel}). Your subscription runs until ${endsAtLabel}.${receiptLine}`,
 		href: `/dashboard/${opts.slug}/profile`,

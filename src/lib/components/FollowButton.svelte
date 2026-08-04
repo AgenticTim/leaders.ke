@@ -5,7 +5,7 @@
 	import AuthModal from '$lib/components/auth/AuthModal.svelte';
 
 	// Signed-in-only follow: posts to the current page's own "?/follow" action
-	// (see /[leader] and /[leader]/[year]'s server files) — no name/contact
+	// (see /[leader] and /[leader]/[year]'s server files). No name/contact
 	// capture or OTP confirm, the account itself is the proof. A guest gets the
 	// auth modal (back to this same page after) instead of a form.
 	let { candidateName, signedIn, isFollowing = false }: { candidateName: string; signedIn: boolean; isFollowing?: boolean } = $props();
@@ -17,7 +17,7 @@
 	let following = $state(false);
 	let unfollowing = $state(false);
 	// A fresh submit in this session counts immediately, even before the next
-	// full reload re-confirms it server-side (isFollowing) — whichever is true wins,
+	// full reload re-confirms it server-side (isFollowing), whichever is true wins,
 	// except a just-unfollowed click overrides a stale isFollowing until reload.
 	let justFollowed = $state(false);
 	let justUnfollowed = $state(false);
@@ -25,7 +25,7 @@
 	let followError = $state<string | null>(null);
 
 	// Landed back here signed in after the auth-modal detour (?follow=1 rode along
-	// on `next`) — finish the follow automatically instead of making them click
+	// on `next`), finish the follow automatically instead of making them click
 	// again, then clean the URL. Same resume idiom as the ballot page's ?save=1.
 	let followFormEl: HTMLFormElement | undefined = $state();
 	$effect(() => {

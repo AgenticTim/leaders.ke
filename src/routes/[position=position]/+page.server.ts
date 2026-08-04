@@ -9,7 +9,7 @@ import type { PageServerLoad } from './$types';
 
 const PAGE_SIZE = 30;
 
-// /[position] (plural, e.g. /governors): the position's directory — the old
+// /[position] (plural, e.g. /governors): the position's directory. The old
 // /leaders grid, one position per page, filterable and server-paginated. The
 // seat hubs live at /[position]/[region] (and /president for Country seats).
 export const load: PageServerLoad = async ({ params, url, setHeaders }) => {

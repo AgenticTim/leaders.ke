@@ -13,7 +13,7 @@
 	}: {
 		open?: boolean;
 		title: string;
-		/** Card width cap — widen for content-heavy dialogs (e.g. the seat JD). */
+		/** Card width cap, widen for content-heavy dialogs (e.g. the seat JD). */
 		maxWidthClass?: string;
 		/** Runs whenever the modal is dismissed (✕, escape, backdrop click). */
 		onclose?: () => void;

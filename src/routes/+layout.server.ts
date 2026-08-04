@@ -5,7 +5,7 @@ import type { LayoutServerLoad } from './$types';
 // plus the one-shot flash notice (consumed by hooks) for whichever page renders it.
 // googleEnabled rides along for AuthModal, which can open on any page.
 export const load: LayoutServerLoad = ({ locals, url }) => {
-	// Reference the URL so this load re-runs on every client-side navigation —
+	// Reference the URL so this load re-runs on every client-side navigation,
 	// otherwise a flash set during a redirect is consumed by hooks but never
 	// reaches the banner (stale `flash: null` from the previous navigation).
 	void url.pathname;

@@ -11,7 +11,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.positionTitle}, {data.regionLabel} — vote.ke</title>
+	<title>{data.positionTitle}, {data.regionLabel} · vote.ke</title>
 	<meta
 		name="description"
 		content="{data.positionTitle} of {data.regionLabel}: the current, the {data.cycle} contestants and the seat's history."
@@ -23,7 +23,7 @@
 		<nav class="text-sm text-muted" aria-label="Breadcrumb">
 			{#each data.breadcrumb as crumb, i (crumb.path + i)}
 				{#if i > 0}<span class="mx-1">/</span>{/if}
-				<!-- The trailing crumb is the page itself (plain text) — unless it's the
+				<!-- The trailing crumb is the page itself (plain text), unless it's the
 				only crumb (Country seats), where it links to the position directory. -->
 				{#if data.breadcrumb.length > 1 && i === data.breadcrumb.length - 1}
 					<span>{crumb.label}</span>
@@ -68,7 +68,7 @@
 			<h2 class="text-xl font-bold text-heading mb-4">{data.regime === data.cycle ? 'Current' : `${data.regime}`}</h2>
 			{#if data.current}
 				<!-- Stretched name link keeps the whole card clickable while the party
-				stays its own link on top — nesting an <a> in an <a> is invalid HTML. -->
+				stays its own link on top. Nesting an <a> in an <a> is invalid HTML. -->
 				<LeaderCard
 					path={data.current.path}
 					name={data.current.name}
@@ -126,7 +126,7 @@
 	</div>
 
 
-	<!-- Contestants: active cycle only — a past regime's holder card IS its result -->
+	<!-- Contestants: active cycle only. A past regime's holder card IS its result -->
 	{#if data.regime === data.cycle}
 	<div class="mt-6 lg:mt-8">
 		<div class="flex items-end justify-between gap-2">

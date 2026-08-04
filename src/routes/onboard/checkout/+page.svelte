@@ -38,7 +38,7 @@
 		instead of relying on the URL surviving. -->
 		<input type="hidden" name="passthrough" value={data.passthrough} />
 		<p class="rounded-xl border border-dashed border-border bg-surface-2 px-4 py-3 text-xs text-muted">
-			Online checkout (Paystack · M-Pesa / card) is being wired up. For now this records your subscription and takes your page live immediately — no card is charged.
+			Online checkout (Paystack · M-Pesa / card) is being wired up. For now this records your subscription and takes your page live immediately. No card is charged.
 		</p>
 		<button type="submit" disabled={paying} class="mt-4 w-full rounded-full bg-primary px-6 py-3 text-sm font-semibold text-on-primary transition hover:brightness-95 disabled:opacity-50">
 			{paying ? 'Processing…' : `Pay KES ${fmt.format(data.amount)}`}

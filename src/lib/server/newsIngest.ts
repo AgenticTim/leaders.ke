@@ -1,5 +1,5 @@
 // Daily news ingestion (TODO 7.1): pulls Google News RSS, batched across several
-// leaders per search, and stores matches as aggregated mention posts — the exact
+// leaders per search, and stores matches as aggregated mention posts. The exact
 // shape the seeded demo mentions use (posts with a null creatorId + a null-creator
 // tags row per mentioned person), so the PR desk, crisis banner, /news mentions and
 // profile "In the news" sections all read them with zero changes.
@@ -7,7 +7,7 @@
 // Precision over recall: an item only lands if a leader's FULL name appears in its
 // title or snippet. Unlike an earlier version, an article now tags EVERY verified
 // leader actually named in it, not just whichever search/feed happened to surface
-// it — the same person can be found via their own batched Google search, someone
+// it. The same person can be found via their own batched Google search, someone
 // else's, or a whole-site feed, and gets tagged consistently regardless of which
 // path found the article first. Dedupe is by sourceUrl (and title per matched
 // person), so re-runs are no-ops.
@@ -21,15 +21,15 @@ import { decodeHtmlEntities } from '$lib/utils/entities';
 
 const MAX_ITEMS_PER_SITE_FEED = 60; // a whole-site feed's newest items checked against every leader
 const FETCH_DELAY_MS = 400; // sequential + spaced: a polite crawler Google won't throttle
-const SENTIMENT_BATCH_SIZE = 25; // articles per Anthropic call — fewer, bigger calls beat one call per post
+const SENTIMENT_BATCH_SIZE = 25; // articles per Anthropic call, fewer, bigger calls beat one call per post
 const SENTIMENT_CONCURRENCY = 5; // Haiku calls in flight at once; Google's rate limits don't apply here
 
 // Reputable Kenyan outlets whose RSS feeds are checked against every verified
-// leader's full name each run (one fetch per feed, not per leader — cheaper
+// leader's full name each run (one fetch per feed, not per leader, cheaper
 // than the Google News batched search below). Admin-toggleable per source on
 // /dashboard/admin/settings (platformSettings.newsSources, keyed by these same
 // ids). `url: null` means the toggle exists but no working feed has been found
-// for that outlet yet — it's skipped even if turned on, so flipping it on does
+// for that outlet yet. It's skipped even if turned on, so flipping it on does
 // nothing harmful while a real URL is filled in later.
 export const NEWS_SOURCES: Record<string, { label: string; url: string | null }> = {
 	googleNews: { label: 'Google News (batched leader search)', url: null }, // handled by ingestForBatch, not the generic feed loop
@@ -47,7 +47,7 @@ export const NEWS_SOURCES: Record<string, { label: string; url: string | null }>
 
 type FeedItem = { title: string; link: string; description: string; pubDate: Date | null };
 
-/** Minimal RSS <item> extraction — Google News RSS is regular enough that a
+/** Minimal RSS <item> extraction, Google News RSS is regular enough that a
  * parser dependency isn't worth it. */
 function parseRss(xml: string): FeedItem[] {
 	const items: FeedItem[] = [];
@@ -73,7 +73,7 @@ function parseRss(xml: string): FeedItem[] {
 
 // Entity decoding is decodeHtmlEntities (entities.ts): feeds double-encode, so
 // a single XML-level pass used to leave literal `&nbsp;`/`&#039;` in stored
-// excerpts — the shared util loops until stable. Strip tags between decodes:
+// excerpts. The shared util loops until stable. Strip tags between decodes:
 // the first pass materializes any encoded markup, the second cleans what the
 // markup itself carried.
 function stripHtml(s: string): string {
@@ -85,7 +85,7 @@ function stripHtml(s: string): string {
 type VerifiedPerson = { userId: number; name: string; allowlist: string[] | null };
 
 /** Whether `sourceId` is allowed to tag this person: the Dominate-only perk
- * (newsSourceControl) is what lets a person HAVE a non-null allowlist at all —
+ * (newsSourceControl) is what lets a person HAVE a non-null allowlist at all,
  * everyone else's is null, i.e. every source allowed, matching today's
  * behavior exactly. */
 function sourceAllowed(person: VerifiedPerson, sourceId: string): boolean {
@@ -93,7 +93,7 @@ function sourceAllowed(person: VerifiedPerson, sourceId: string): boolean {
 }
 
 /** Every publicly visible person: a verified held term or a verified run this
- * cycle — the same gate the public site uses everywhere. */
+ * cycle. The same gate the public site uses everywhere. */
 async function listVerifiedPeople(): Promise<VerifiedPerson[]> {
 	const [termRows, runRows] = await Promise.all([
 		db
@@ -126,7 +126,7 @@ function chunk<T>(arr: T[], size: number): T[][] {
  * items and the FULL verified-people roster, tags each article with every
  * person actually named in it (not just whoever's search/feed produced the
  * item), subject to that person's own source allowlist. Sentiment isn't
- * classified inline here — posts land with `sentiment` null and get picked up
+ * classified inline here, posts land with `sentiment` null and get picked up
  * by classifyPendingSentiment() at the end of the run, batched instead of one
  * Anthropic call per post. Returns how many new posts were inserted. */
 async function ingestArticles(items: FeedItem[], sourceId: string, people: VerifiedPerson[]): Promise<number> {
@@ -179,7 +179,7 @@ async function ingestArticles(items: FeedItem[], sourceId: string, people: Verif
 }
 
 /** One Google News search covering a BATCH of people at once (an OR'd quoted-name
- * query) instead of one request per person — the request volume at one-per-person
+ * query) instead of one request per person. The request volume at one-per-person
  * was risking rate-limiting/blocking from Google. The full response (not just a
  * lookahead slice) is handed to ingestArticles, so a person's older, lower-ranked
  * backlog articles get a chance too, not just whatever's in the top of that day's
@@ -195,7 +195,7 @@ async function ingestForBatch(batch: VerifiedPerson[], people: VerifiedPerson[])
 	return ingestArticles(items, 'googleNews', people);
 }
 
-/** One whole-site feed, checked against every verified leader's full name — same
+/** One whole-site feed, checked against every verified leader's full name, same
  * shared multi-tag insert path as the batched Google searches. */
 async function ingestSiteFeed(sourceId: string, url: string, people: VerifiedPerson[]): Promise<number> {
 	const res = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; vote.ke-news/1.0)' } });
@@ -217,8 +217,8 @@ async function eachWithConcurrency<T>(items: T[], concurrency: number, fn: (item
 }
 
 /** Every mention post still missing a sentiment (new inserts from this run, plus
- * any backlog from before), grouped with the name(s) of everyone it's tagged to
- * — a post's sentiment is one value covering all of them, same as before. */
+ * any backlog from before), grouped with the name(s) of everyone it's tagged to.
+ * A post's sentiment is one value covering all of them, same as before. */
 async function listPendingSentimentPosts(): Promise<{ id: number; title: string; body: string; names: string[] }[]> {
 	const rows = await db
 		.select({ postId: posts.id, title: posts.title, body: posts.body, firstName: users.firstName, otherNames: users.otherNames })
@@ -239,8 +239,8 @@ async function listPendingSentimentPosts(): Promise<{ id: number; title: string;
 /** Classifies every post still missing a sentiment, SENTIMENT_BATCH_SIZE posts
  * per Anthropic call (one call per post would mean thousands of sequential
  * round trips against a backlog this size), with SENTIMENT_CONCURRENCY batches
- * in flight at once. Decoupled from the fetch/insert pipeline above — called
- * once at the end of a run rather than interleaved per-item — so a slow or
+ * in flight at once. Decoupled from the fetch/insert pipeline above, called
+ * once at the end of a run rather than interleaved per-item, so a slow or
  * failed classification never blocks or fails an actual ingest. */
 export async function classifyPendingSentiment(): Promise<{ classified: number; failed: number }> {
 	const pending = await listPendingSentimentPosts();
@@ -266,7 +266,7 @@ export async function classifyPendingSentiment(): Promise<{ classified: number; 
 }
 
 // Guards against two ingestNews() passes running at once (the scheduler firing
-// the same minute as an admin's manual "Crawl now" click) — the source_url
+// the same minute as an admin's manual "Crawl now" click). The source_url
 // unique index already makes concurrent inserts safe, but a lock avoids the
 // wasted double fetch work of a genuinely overlapping run.
 let ingestInFlight = false;

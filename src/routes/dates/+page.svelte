@@ -9,7 +9,7 @@
 </script>
 
 <svelte:head>
-	<title>Key 2027 election dates — vote.ke</title>
+	<title>Key 2027 election dates · vote.ke</title>
 	<meta name="description" content="The road to Kenya's 2027 General Election: registration, inspection, nominations, campaigns and election day." />
 </svelte:head>
 
@@ -17,7 +17,7 @@
 	<h1 class="text-3xl font-bold text-heading">Key dates</h1>
 	<p class="mt-2 text-base">
 		The road to 10 August 2027. Dates marked <span class="font-semibold">expected</span> follow the
-		usual electoral calendar but are not yet gazetted by the IEBC — confirm before planning around
+		usual electoral calendar but are not yet gazetted by the IEBC, confirm before planning around
 		them.
 	</p>
 

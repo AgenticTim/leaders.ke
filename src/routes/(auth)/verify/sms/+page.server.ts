@@ -9,7 +9,7 @@ import { hasPendingOtp, otpCooldownRemaining, sendOtp, verifyOtpWithDestination 
 import { getPlatformSettings } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
 
-// Only ever redirect to a same-origin relative path — never follow ?next anywhere else.
+// Only ever redirect to a same-origin relative path, never follow ?next anywhere else.
 function safeNext(next: string | null): string {
 	return next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard';
 }
@@ -35,7 +35,7 @@ async function verifiedByOther(ownerIds: number[], phone: string): Promise<boole
 	return held.some((h) => !ownerIds.includes(h.userId) && h.verifiedAt);
 }
 
-/** Same number already OTP-verified as this account's WhatsApp contact — no need
+/** Same number already OTP-verified as this account's WhatsApp contact. No need
  * to prove control of it twice. */
 async function verifiedAsOwnWhatsapp(userId: number, phone: string): Promise<boolean> {
 	const [row] = await db
@@ -85,7 +85,7 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	// Auto-send a code on arrival only if none is already outstanding for this
-	// number — so a page refresh reuses the code already sent instead of firing a
+	// number, so a page refresh reuses the code already sent instead of firing a
 	// new one. A later resend is a deliberate button click.
 	let phoneCooldown = await otpCooldownRemaining('sms', phone);
 	if (!(await hasPendingOtp('sms', phone))) {
@@ -93,7 +93,7 @@ export const load: PageServerLoad = async (event) => {
 			await sendOtp(subject.id, 'sms', phone);
 			phoneCooldown = (await getPlatformSettings()).otpCooldownSeconds;
 		} catch {
-			// Best-effort — the "Resend code" button still lets them retry manually.
+			// Best-effort. The "Resend code" button still lets them retry manually.
 		}
 	}
 

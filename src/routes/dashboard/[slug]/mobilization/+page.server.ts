@@ -1,6 +1,6 @@
 // Manager view of ambassador field work (TODO #17): every event ambassadors have
-// logged for this campaign, each with a Confirm button — the "physical-appearance
-// confirmation" — plus the citizen feedback feed. requireLeader gates access to
+// logged for this campaign, each with a Confirm button. The "physical-appearance
+// confirmation", plus the citizen feedback feed. requireLeader gates access to
 // this person's dashboard, so ctx.profileUser.id IS the subjectUserId to confirm
 // against; a manager can never confirm events on a campaign they don't hold.
 import { fail } from '@sveltejs/kit';

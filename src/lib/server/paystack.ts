@@ -3,7 +3,7 @@
 // signed webhook that makes fulfillment reliable even when the customer never
 // returns to the callback URL. Amounts are KES; Paystack wants subunits (x100).
 // With no PAYSTACK_SECRET_KEY set (local dev), checkout falls back to the mock
-// instant-success charge — see the checkout action.
+// instant-success charge, see the checkout action.
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { env } from '$env/dynamic/private';
 
@@ -12,7 +12,7 @@ const API_BASE = 'https://api.paystack.co';
 // Only a real SECRET key (sk_...) can authorize server-side charges. A blank
 // value or a public key (pk_...) pasted into the slot would sail past a bare
 // truthy check and then fail every charge with Paystack's abstract "Invalid
-// key" — so require the sk_ prefix and otherwise fall back to the mock path.
+// key", so require the sk_ prefix and otherwise fall back to the mock path.
 export function paystackEnabled(): boolean {
 	return !!env.PAYSTACK_SECRET_KEY?.startsWith('sk_');
 }
@@ -68,7 +68,7 @@ export async function initializeTransaction(
 	return { authorizationUrl: String(data.authorization_url) };
 }
 
-/** Direct mobile-money charge: fires a real M-Pesa STK push to the phone — no
+/** Direct mobile-money charge: fires a real M-Pesa STK push to the phone. No
  * hosted page, no redirect. Paystack answers 'pay_offline' (prompt sent, the
  * donor approves on their handset) or 'success' (rare instant settle); either
  * way the signed webhook's charge.success is what confirms the money. */
@@ -100,7 +100,7 @@ export function normalizeMpesaPhone(raw: string): string | null {
 	return null;
 }
 
-/** Server-side truth about a charge — never trust the callback query alone. */
+/** Server-side truth about a charge, never trust the callback query alone. */
 export async function verifyTransaction(reference: string): Promise<PaystackVerification> {
 	const data = await api(`/transaction/verify/${encodeURIComponent(reference)}`);
 	return {

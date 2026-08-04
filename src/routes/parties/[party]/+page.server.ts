@@ -22,7 +22,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	};
 
 	// Members are people with a live term or run recording this party (partyId is
-	// per-term/per-run, not a person-level fact — see leaders.partyId).
+	// per-term/per-run, not a person-level fact, see leaders.partyId).
 	const [termRows, runRows] = await Promise.all([
 		db
 			.select({ users, status: leaders.status, verifiedAt: leaders.verifiedAt, title: positions.title, region: positions.region })

@@ -31,7 +31,7 @@
 	const firstName = $derived(candidateName.split(/\s+/)[0]);
 	
 	// Landed back here signed in after the auth-modal detour (?pledge=<campaignId>
-	// rode along on `next`) — finish the pledge automatically instead of making
+	// rode along on `next`), finish the pledge automatically instead of making
 	// them click again, then clean the URL. Same resume idiom as FollowButton.
 	let pledgeFormEl: HTMLFormElement | undefined = $state();
 	$effect(() => {

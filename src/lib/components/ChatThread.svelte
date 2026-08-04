@@ -4,7 +4,7 @@
 	import { formatChatTime } from '$lib/utils/chatTime';
 
 	// The viewer's own persisted Ask history with one leader (questions, AI
-	// answers, team replies) — rendered above the Ask form on the profile and
+	// answers, team replies), rendered above the Ask form on the profile and
 	// campaign pages from data.chatThread (chat.ts getWebThread), so the thread
 	// survives refreshes and team replies actually reach the citizen.
 	let {
@@ -23,7 +23,7 @@
 		sender === 'ai' ? 'AI' : sender === 'follower' ? 'You' : `${leaderFirstName}'s team`;
 
 	// Live updates: an SSE ping fires when a message lands in this viewer's
-	// thread (a team reply, typically) and the loader re-fetches — so replies
+	// thread (a team reply, typically) and the loader re-fetches, so replies
 	// appear without a refresh. Connecting is gated on having history at all:
 	// a first-time guest gains an identity (anon_id) with their first ask, and
 	// hasHistory flipping true reconnects with the cookie now in place.
@@ -59,7 +59,7 @@
 </script>
 
 <script lang="ts" module>
-	/** Throttled "I'm typing" signal for the Ask textarea (oninput) — at most
+	/** Throttled "I'm typing" signal for the Ask textarea (oninput), at most
 	 * one POST every 2s; the team's Inbox shows the indicator. */
 	let lastTypingSentAt = 0;
 	export function signalTyping(personId: number, conversationId?: number) {

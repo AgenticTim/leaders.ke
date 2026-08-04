@@ -13,7 +13,7 @@
 	// The campaign family's (/dashboard/[slug]/profile) +page.server.ts shapes
 	// `data` to this contract and hosts the actions this form posts to (relative
 	// ?/action URLs). The photo is staged locally (cropped, previewed) and
-	// uploads WITH ?/save — nothing touches the server before "Save profile".
+	// uploads WITH ?/save. Nothing touches the server before "Save profile".
 	type DeliveryItem = { id: number; title: string; description: string | null; pinned: boolean };
 	type TabData = {
 		positions: { id: number; title: string; region: string }[];
@@ -41,7 +41,7 @@
 			partyName: string | null;
 		}[];
 		// Deliveries (merged in from the old Delivery tab), keyed by target string
-		// "leader:<id>" / "experience:<id>" — listed under the matching saved item.
+		// "leader:<id>" / "experience:<id>", listed under the matching saved item.
 		deliveriesByTarget?: Record<string, DeliveryItem[]>;
 		pinnedCount?: number;
 		maxPinned?: number;
@@ -72,7 +72,7 @@
 	const advanceOnSave = claimAttestation && !data.application?.profile.complete;
 
 	let saving = $state(false);
-	// Claim family only: a false-claim attestation gates the Save button — checked
+	// Claim family only: a false-claim attestation gates the Save button, checked
 	// server-side too (see the claim's ?/save action), this is just the live UI gate.
 	let attested = $state(false);
 	// Local editing state for the rich-text bio (the form posts it via name="bio").
@@ -150,7 +150,7 @@
 	let pendingExperience = $state<PendingExperience[]>([]);
 	let pendingLeadership = $state<PendingLeadership[]>([]);
 
-	// Already-saved rows staged for removal (by id) — actually deleted server-side
+	// Already-saved rows staged for removal (by id), actually deleted server-side
 	// only when "Save profile" is clicked, same deferred-save model as additions.
 	let removedExperienceIds = $state<number[]>([]);
 	let removedLeadershipIds = $state<number[]>([]);
@@ -161,7 +161,7 @@
 		data.existingLeadership.filter((l) => !removedLeadershipIds.includes(l.id))
 	);
 
-	// Inline "add" form fields — cleared after each staged entry.
+	// Inline "add" form fields, cleared after each staged entry.
 	let expTitle = $state('');
 	let expInstitution = $state('');
 	let expDescription = $state('');
@@ -175,7 +175,7 @@
 	let leadTo = $state('');
 	let leadResetKey = $state(0);
 
-	// "To" before "From" is invalid — same rule enforced again server-side.
+	// "To" before "From" is invalid, same rule enforced again server-side.
 	const expDateInvalid = $derived(!!expFrom && !!expTo && expTo < expFrom);
 	const leadDateInvalid = $derived(!!leadFrom && !!leadTo && leadTo < leadFrom);
 
@@ -229,7 +229,7 @@
 		pendingLeadership.splice(i, 1);
 	}
 	// Removing a SAVED item is destructive on the next profile save, so confirm
-	// first (unsaved/pending adds are discarded without a prompt — nothing's lost).
+	// first (unsaved/pending adds are discarded without a prompt. Nothing's lost).
 	function removeExistingExperience(id: number) {
 		if (
 			!confirm(
@@ -339,7 +339,7 @@
 
 	// Editing (pencil): reuses the same inline form the "+ Professional/Education"
 	// buttons open, pre-filled. A SAVED row's edit is staged in editedExperience
-	// (keyed by id) and applied in place on Save profile — the row id and anything
+	// (keyed by id) and applied in place on Save profile. The row id and anything
 	// delivered under it survive, unlike remove-and-re-add. A PENDING row's edit
 	// just reloads it into the add form and drops the old draft.
 	type ExpEdit = {
@@ -374,7 +374,7 @@
 		expFrom = e?.from ?? (item.from != null ? String(item.from) : '');
 		expTo = e?.to ?? (item.to != null ? String(item.to) : '');
 		// The inline edit form (below the entry) renders off editingExpId, not the
-		// bottom add form — so close any open add form / other edit.
+		// bottom add form, so close any open add form / other edit.
 		adding = null;
 		editingLeadId = null;
 		editingExpId = item.id;
@@ -426,7 +426,7 @@
 	const deliveriesFor = (target: string): DeliveryItem[] => data.deliveriesByTarget?.[target] ?? [];
 </script>
 
-<svelte:head><title>Profile — vote.ke</title></svelte:head>
+<svelte:head><title>Profile · vote.ke</title></svelte:head>
 
 <div class="">
 	<h2 class="text-xl font-bold text-heading">Leader's Profile</h2>
@@ -440,7 +440,7 @@
 		</div>
 	{/if}
 	<!-- Verification submission ("Submit Application") now lives in the layout,
-	top-right — it's gated on Profile/Contacts/Team together, not just this page,
+	top-right. It's gated on Profile/Contacts/Team together, not just this page,
 	so it can't live inside a single tab. -->
 
 	<!-- The profile fields form. The experience section (below) is deliberately
@@ -469,7 +469,7 @@
 					stagedPhotoUrl = null;
 					if (photoInput) photoInput.value = '';
 					// Claim family: the first save unlocks Contacts/Signoff (see the layout's
-					// tab gating) — move the claimant there instead of leaving them on a
+					// tab gating), move the claimant there instead of leaving them on a
 					// tab whose only job just finished. A later re-edit (e.g. after a
 					// rejection) stays put so they can keep tweaking the profile.
 					if (advanceOnSave) {
@@ -698,7 +698,7 @@
 							title="{v.positionTitle}, {v.region}"
 							subtitle={v.partyName}
 							description={v.description}
-							dateLabel="{v.from}–{v.to ?? 'present'}"
+							dateLabel="{v.from} to {v.to ?? 'present'}"
 							unsaved={!!editedLeadership[item.id]}
 							onEdit={() => startEditLeadership(item)}
 							onRemove={() => removeExistingLeadership(item.id)}
@@ -711,7 +711,7 @@
 							title={item.positionLabel}
 							subtitle={item.partyName}
 							description={item.description}
-							dateLabel="{item.from}–{item.to ?? 'present'}"
+							dateLabel="{item.from} to {item.to ?? 'present'}"
 							unsaved
 							pending
 							onEdit={() => editPendingLeadership(i)}
@@ -733,7 +733,7 @@
 							title={v.title}
 							subtitle={v.institution}
 							description={v.description}
-							dateLabel="{v.from}{v.to ? `–${v.to}` : ''}"
+							dateLabel="{v.from}{v.to ? `-${v.to}` : ''}"
 							unsaved={!!editedExperience[item.id]}
 							onEdit={() => startEditExperience(item)}
 							onRemove={() => removeExistingExperience(item.id)}
@@ -747,7 +747,7 @@
 								title={item.title}
 								subtitle={item.institution}
 								description={item.description}
-								dateLabel="{item.from}{item.to ? `–${item.to}` : ''}"
+								dateLabel="{item.from}{item.to ? `-${item.to}` : ''}"
 								unsaved
 								pending
 								onEdit={() => editPendingExperience(i)}
@@ -770,7 +770,7 @@
 							title={v.title}
 							subtitle={v.institution}
 							description={v.description}
-							dateLabel="{v.from}{v.to ? `–${v.to}` : ''}"
+							dateLabel="{v.from}{v.to ? `-${v.to}` : ''}"
 							unsaved={!!editedExperience[item.id]}
 							onEdit={() => startEditExperience(item)}
 							onRemove={() => removeExistingExperience(item.id)}
@@ -784,7 +784,7 @@
 								title={item.title}
 								subtitle={item.institution}
 								description={item.description}
-								dateLabel="{item.from}{item.to ? `–${item.to}` : ''}"
+								dateLabel="{item.from}{item.to ? `-${item.to}` : ''}"
 								unsaved
 								pending
 								onEdit={() => editPendingExperience(i)}
@@ -829,7 +829,7 @@
 			</div>
 
 			<!-- One add/edit form each, as snippets: rendered here for ADD (the +
-			buttons), and inline above an entry for EDIT (the pencil) — see the lists
+			buttons), and inline above an entry for EDIT (the pencil), see the lists
 			above. The Save/Add button + Cancel key off editingExpId / editingLeadId. -->
 			{#if adding === 'leadership'}
 				<div class="mt-4">{@render leadForm()}</div>
@@ -1031,7 +1031,7 @@ Save/Add + Cancel key off editingExpId. -->
 {/snippet}
 
 <!-- Deliveries under one experience item (target = "leader:<id>" / "experience:<id>").
-Standalone POST forms — outside #profile-form — so each saves immediately. -->
+Standalone POST forms, outside #profile-form, so each saves immediately. -->
 {#snippet deliveryFooter(target: string)}
 	<div class="mt-2 border-t border-border/60 pt-2">
 		{#if deliveriesFor(target).length > 0}
@@ -1040,14 +1040,14 @@ Standalone POST forms — outside #profile-form — so each saves immediately. -
 					<li class="flex items-start gap-2 text-xs">
 						<span class="flex-1 text-heading">
 							{d.title}{#if d.description}
-								<span class="text-muted">— {d.description}</span>{/if}
+								<span class="text-muted">· {d.description}</span>{/if}
 						</span>
 						<form method="post" action="?/togglePinDelivery" use:enhance>
 							<input type="hidden" name="id" value={d.id} />
 							<button
 								type="submit"
 								aria-label={d.pinned ? 'Unpin from public profile' : 'Pin to public profile'}
-								use:tooltip={d.pinned ? 'Pinned — shows on public profile' : 'Pin to public profile'}
+								use:tooltip={d.pinned ? 'Pinned, shows on public profile' : 'Pin to public profile'}
 								class="{d.pinned ? 'text-primary' : 'text-muted'} hover:text-primary"
 							>
 								<svg

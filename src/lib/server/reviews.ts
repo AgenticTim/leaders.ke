@@ -32,7 +32,7 @@ export type ReviewItem = {
 	public: boolean;
 	createdAt: string;
 	response: { body: string; createdAt: string } | null;
-	// Only ever set on the viewer's own review — everyone else's flagged
+	// Only ever set on the viewer's own review, everyone else's flagged
 	// reviews are excluded from the query entirely, not just marked.
 	flagReason: ReviewFlagReason | null;
 };
@@ -84,7 +84,7 @@ export type ModerationReviewItem = {
 /** Public, live reviews for a person (users.id), newest first. Reviews follow the
  * person across every seat they've held or vied for, not just their current one.
  * Visibility: the viewer's own review (`viewerUserId`) always shows, flagged or
- * private or not — so they can see and delete it. Everyone else only sees
+ * private or not, so they can see and delete it. Everyone else only sees
  * reviews that are public AND unflagged; a private or flagged review from
  * someone else is excluded entirely, not just anonymized. The campaign team
  * sees every review regardless, via listReviewsForModeration. */
@@ -129,8 +129,8 @@ export async function listApprovedReviews(
 			message: r.message,
 			pillarTitle: r.pillarTitle,
 			likes: r.likes,
-			// Every row that reaches here is either public, or the viewer's own —
-			// there's no third "someone else's private review" case to anonymize.
+			// Every row that reaches here is either public, or the viewer's own.
+			// There's no third "someone else's private review" case to anonymize.
 			authorName: fullName({ firstName: r.firstName, otherNames: r.otherNames }),
 			public: r.public,
 			createdAt: r.createdAt.toISOString(),
@@ -140,7 +140,7 @@ export async function listApprovedReviews(
 	});
 }
 
-/** Counts of this person's flagged (hidden) reviews, by reason — shown publicly
+/** Counts of this person's flagged (hidden) reviews, by reason, shown publicly
  * as a transparency signal so a leader flagging reviews isn't invisible to citizens,
  * even though the flagged content itself stays hidden. */
 export async function getFlaggedReviewCounts(
@@ -210,7 +210,7 @@ export async function listReviewPillarOptions(campaignId: number) {
  * REVIEW_MESSAGE_MAX_LENGTH chars). Goes public immediately. A second
  * submission by the same user updates their existing review instead of
  * inserting a duplicate, but only while it's unflagged and the candidate's
- * team hasn't responded yet — either one locks the review's content in
+ * team hasn't responded yet. Either one locks the review's content in
  * place; delete it and post a new one instead.
  */
 export async function handleReviewAction(event: RequestEvent, subjectId: number, campaignId: number) {
@@ -289,7 +289,7 @@ export async function handleDeleteReviewAction(event: RequestEvent, subjectId: n
 }
 
 /** One page of live reviews of a person, newest first, for the leader/manager
- * moderation queue — plus the total for the pager. */
+ * moderation queue, plus the total for the pager. */
 export async function listReviewsForModeration(
 	subjectId: number,
 	page: number,

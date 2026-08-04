@@ -32,7 +32,7 @@
 		/** Hides the Verify/✓ affordances entirely. */
 		verifiable?: boolean;
 		/** Addresses this user already verified elsewhere (e.g. their citizen
-		 * account) — typing one shows ✓ immediately, preventing a double OTP. */
+		 * account). Typing one shows ✓ immediately, preventing a double OTP. */
 		verifiedValues?: string[];
 		/** When set, Verify opens the host's VerifyEmailModal (with the typed value)
 		 * instead of navigating to /verify/email. Lives on the host because this
@@ -46,11 +46,11 @@
 		(verified && value === original) || verifiedValues.includes(value.trim().toLowerCase())
 	);
 
-	// Same rough shape check the servers apply — flags typos before a wasted OTP.
+	// Same rough shape check the servers apply, flags typos before a wasted OTP.
 	const invalid = $derived(value.length > 0 && !/^\S+@\S+\.\S+$/.test(value));
 
 	// next = the page we're on, so verifying returns here (e.g. mid leader-profile
-	// creation or a claim) instead of the default /dashboard/account — but if THIS
+	// creation or a claim) instead of the default /dashboard/account, but if THIS
 	// page was itself reached via its own ?next= (e.g. the onboarding gate sent us
 	// to /dashboard/account?next=/onboard/profile...), chase that further destination
 	// instead of looping back to this page.

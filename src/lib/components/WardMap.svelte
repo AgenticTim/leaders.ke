@@ -23,16 +23,16 @@
 		unit: string;
 		/** What `total` counts, e.g. "voters". */
 		totalLabel?: string;
-		/** What the color scale buckets on: 'rate' (value/total — the voter
+		/** What the color scale buckets on: 'rate' (value/total. The voter
 		 * heatmap's pledge penetration, where areas genuinely differ) or
-		 * 'value' (raw magnitude — demographics' gen-z count, where the
+		 * 'value' (raw magnitude, demographics' gen-z count, where the
 		 * per-capita RATE is a single county-wide constant applied to every
 		 * ward by construction, so bucketing by rate there would color wards
 		 * by rounding noise instead of the real, size-driven variation). */
 		colorBy?: 'rate' | 'value';
 		/** Whether the tooltip shows "X% of total" alongside the raw value.
 		 * Off for maps where that rate is a single constant repeated on every
-		 * area (same root cause as colorBy='value') — showing it there reads
+		 * area (same root cause as colorBy='value'). Showing it there reads
 		 * as a per-area stat but is really just echoing the shared input. */
 		showRate?: boolean;
 		selectedSlug?: string | null;
@@ -63,7 +63,7 @@
 	const byValue = $derived(new Map(rows.map((r) => [r.slug, r.value])));
 	const byTotal = $derived(new Map(rows.map((r) => [r.slug, r.total])));
 
-	// Sequential scale, one hue (the brand primary), light→dark steps — never a
+	// Sequential scale, one hue (the brand primary), light→dark steps, never a
 	// rainbow. Areas with a nonzero value are bucketed into quartiles of
 	// whatever colorBy measures (so the scale reflects THIS map's own spread,
 	// not a fixed global one); zero-value areas get a flat neutral "no data"
@@ -73,7 +73,7 @@
 	const STEPS = ['30%', '53%', '77%', '100%'];
 	// Quartile boundaries (p25/p50/p75) split the non-zero measures into 4
 	// bins; the max always falls in the last bin since nothing exceeds p75 by
-	// definition — a fixed max-as-boundary would instead trap the top area in
+	// definition. A fixed max-as-boundary would instead trap the top area in
 	// the second-to-last step forever.
 	const thresholds = $derived.by(() => {
 		const measures = rows

@@ -25,7 +25,7 @@
 	// ?/create) and carries the postId along. Null means a fresh post.
 	let editingId = $state<number | null>(null);
 
-	// Standalone "Mentions" chip field (MentionPicker) — separate from the inline
+	// Standalone "Mentions" chip field (MentionPicker), separate from the inline
 	// @links the RichTextEditor inserts into the body; picking here never touches
 	// composerBody. Leader chips feed the `tags` rows server-side (see
 	// mergeMentionSlugs); party chips have no user row to tag and aren't persisted.
@@ -95,7 +95,7 @@
 	];
 </script>
 
-<svelte:head><title>News — vote.ke</title></svelte:head>
+<svelte:head><title>News · vote.ke</title></svelte:head>
 
 {#if data.crisis}
 	<div class="mb-6 rounded-2xl border border-primary bg-primary-soft p-5">
@@ -112,13 +112,13 @@
 	</div>
 {/if}
 {#if !data.mentionsUnlocked && data.mentionsCount > 0}
-	<!-- PR AI Agent (mentions, sentiment, crisis alerts) is a Mobilize+ perk —
-	the ingestion still runs for every leader, so the count is real, but the
+	<!-- PR AI Agent (mentions, sentiment, crisis alerts) is a Mobilize+ perk.
+	The ingestion still runs for every leader, so the count is real, but the
 	coverage itself stays hidden until upgrade. -->
 	<div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface-2 p-5">
 		<div>
 			<p class="font-semibold text-heading">
-				{data.mentionsCount} press mention{data.mentionsCount === 1 ? '' : 's'} found — locked
+				{data.mentionsCount} press mention{data.mentionsCount === 1 ? '' : 's'} found, locked
 			</p>
 			<p class="mt-1 text-sm text-muted">
 				The PR AI Agent (daily news research, sentiment, crisis alerts) is a Mobilize/Dominate feature.
@@ -131,7 +131,7 @@
 {/if}
 {#if data.mentionsUnlocked}
 	<!-- News source picker: Dominate-only (packages.features.newsSourceControl).
-	Mobilize sees the mentions feed but not this control — every source is
+	Mobilize sees the mentions feed but not this control. Every source is
 	allowed to tag them, same as everyone below Dominate. -->
 	<div class="mb-6 rounded-2xl border border-border bg-surface p-5">
 		<div class="flex flex-wrap items-center justify-between gap-3">
@@ -275,7 +275,7 @@
 			</div>
 		{:else if navSection === 'gallery'}
 			<div class="mt-3 rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted">
-				Gallery is coming soon — a media library for post images and event photos.
+				Gallery is coming soon. A media library for post images and event photos.
 			</div>
 		{/if}
 	</div>

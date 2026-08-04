@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-	<title>Alliances — vote.ke</title>
+	<title>Alliances · vote.ke</title>
 	<meta name="description" content="Informal political alliances and coalitions ahead of the 2027 General Elections." />
 </svelte:head>
 

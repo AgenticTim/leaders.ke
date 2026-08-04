@@ -2,7 +2,7 @@
 // callback page and the webhook so whichever arrives first wins and the other
 // becomes a no-op. The pending `payments` row (written at initialize time)
 // carries everything needed in metadata; claiming it with a status-guarded
-// UPDATE is what makes fulfillment idempotent — only the claimer proceeds to
+// UPDATE is what makes fulfillment idempotent, only the claimer proceeds to
 // create the profile and subscription.
 import { and, eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
@@ -110,7 +110,7 @@ export async function fulfillSubscriptionPayment(
 			.update(payments)
 			.set({ metadata: { ...meta, fulfillError: message } })
 			.where(eq(payments.id, payment.id));
-		console.error(`[checkout] paid but unfulfilled: ${reference} — ${message}`);
+		console.error(`[checkout] paid but unfulfilled: ${reference}, ${message}`);
 		return { ok: false, error: `Your payment was received, but setting up the profile hit a snag (${message}). Our team has been alerted.` };
 	}
 }

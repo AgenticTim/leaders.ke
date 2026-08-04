@@ -11,7 +11,7 @@ import { saveLeaderDocument, type UploadKind } from '$lib/server/storage';
 import type { Actions, PageServerLoad } from './$types';
 
 // Each manager's own ID images live on their OWN users row (an identity follows the
-// person — joining a second team never re-uploads), keyed by which side was uploaded.
+// person. Joining a second team never re-uploads), keyed by which side was uploaded.
 const USER_COLUMN_BY_KIND = { 'id-front': 'idFrontUrl', 'id-back': 'idBackUrl' } as const;
 
 export const load: PageServerLoad = async (event) => {
@@ -36,8 +36,8 @@ export const load: PageServerLoad = async (event) => {
 		isCampaignAdmin(domainUser.id, ctx)
 	]);
 
-	// The sign-off block is embedded under the current user's OWN manager entry —
-	// it's their personal attestation, so it reads (and writes) only their own
+	// The sign-off block is embedded under the current user's OWN manager entry.
+	// It's their personal attestation, so it reads (and writes) only their own
 	// manager row. Other managers see their own under their own entry; nobody sees
 	// anyone else's. Shows only while the campaign is still an application.
 	const mineRoles = (managerRows.find((r) => r.managers.userId === domainUser.id)?.managers.roles ?? {}) as ManagerRoles;
@@ -169,8 +169,8 @@ export const actions: Actions = {
 		const form = await event.request.formData();
 		const inviteId = Number(form.get('inviteId') ?? 0);
 
-		// Check the invite's actual role from the DB, not the form's hidden field —
-		// a non-admin manager could otherwise submit role=ambassador against a
+		// Check the invite's actual role from the DB, not the form's hidden field.
+		// A non-admin manager could otherwise submit role=ambassador against a
 		// manager invite's id to dodge the admin gate below.
 		const [invite] = await db
 			.select({ role: invites.role })
@@ -201,10 +201,10 @@ export const actions: Actions = {
 			.where(and(eq(managers.id, memberId), eq(managers.subjectUserId, ctx.profileUser.id)));
 		if (!member) return fail(404, { error: 'Manager not found.' });
 
-		// Only admins reduce the admin count — removing a plain manager never needs this check.
+		// Only admins reduce the admin count. Removing a plain manager never needs this check.
 		const targetIsAdmin = !!(member.roles as { admin?: boolean } | null)?.admin;
 		if (targetIsAdmin) {
-			// roles is jsonb (no direct SQL predicate on it here) — filter in JS.
+			// roles is jsonb (no direct SQL predicate on it here), filter in JS.
 			const activeRows = await db
 				.select({ roles: managers.roles })
 				.from(managers)

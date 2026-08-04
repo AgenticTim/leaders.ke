@@ -15,7 +15,7 @@
 	// Bar length is relative to the area with the most pledges (a raw-count
 	// "where the volume is" read); color intensity is relative to pledge RATE
 	// against that area's real 2022 electorate (a "how deep does it run"
-	// read) — the two together are what "graphically show pledges/potential
+	// read). The two together are what "graphically show pledges/potential
 	// voters per region" actually needs, not just a bare number list. The
 	// rows are the seat's own wards when the seat sits within one county
 	// (data.wardHeat), else the national county map.
@@ -23,7 +23,7 @@
 		data.wardHeat ?? data.heatmap.map((r) => ({ area: r.county, slug: r.slug, pledges: r.pledges, registeredVoters: r.registeredVoters }))
 	);
 	// Selecting a shape on the map highlights + scrolls to its row in the list,
-	// and vice versa — one shared selection between the two views of the same data.
+	// and vice versa. One shared selection between the two views of the same data.
 	let selectedSlug = $state<string | null>(null);
 	function selectArea(slug: string) {
 		selectedSlug = selectedSlug === slug ? null : slug;
@@ -46,7 +46,7 @@
 	}
 </script>
 
-<svelte:head><title>Followers — vote.ke</title></svelte:head>
+<svelte:head><title>Followers · vote.ke</title></svelte:head>
 
 {#if form?.invited}
 	<div class="mb-6 rounded-xl bg-primary-soft p-4 text-sm font-medium text-on-primary">
@@ -158,7 +158,7 @@ the Competitors tab's Sentiment Intelligence Suite banner. -->
 		</p>
 
 		<!-- Votes-to-win benchmark (rough by design: ~65% turnout, two-horse
-		split — the label says so) plus penetration against the seat's own
+		split. The label says so) plus penetration against the seat's own
 		electorate. -->
 		{#if data.seatStats}
 			<div class="mt-4 grid grid-cols-3 gap-3">
@@ -176,7 +176,7 @@ the Competitors tab's Sentiment Intelligence Suite banner. -->
 				</div>
 			</div>
 			<p class="mt-1.5 text-xs text-muted">
-				"Votes to win" assumes ~{Math.round(data.seatStats.turnoutAssumption * 100)}% turnout and a two-way race — a planning benchmark, not a prediction.
+				"Votes to win" assumes ~{Math.round(data.seatStats.turnoutAssumption * 100)}% turnout and a two-way race. A planning benchmark, not a prediction.
 			</p>
 		{/if}
 
@@ -209,12 +209,12 @@ the Competitors tab's Sentiment Intelligence Suite banner. -->
 				/>
 			</div>
 
-			<!-- One bar per area (the seat's wards, or all 47 counties nationally —
+			<!-- One bar per area (the seat's wards, or all 47 counties nationally,
 			even at 0 pledges, so the map reads as "here's the ground, here's how
 			much of it you've reached" from day one). Bar LENGTH is this area's
 			share of pledges relative to your top area (where the raw volume is);
 			bar COLOR intensity is pledge rate against its registered voters (how
-			deep it runs there) — an area can be short-but-dark (few pledges, high
+			deep it runs there). An area can be short-but-dark (few pledges, high
 			rate in a small electorate) or long-but-pale (many pledges, thin
 			against a big one). -->
 			<ul class="max-h-100 space-y-2.5 overflow-y-auto pr-1">

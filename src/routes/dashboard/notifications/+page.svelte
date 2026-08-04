@@ -12,7 +12,7 @@
 	const roleLabel = (role: string) => (role === 'manager' ? 'Manager' : role === 'ambassador' ? 'Ambassador' : 'Follower');
 </script>
 
-<svelte:head><title>Notifications — vote.ke</title></svelte:head>
+<svelte:head><title>Notifications · vote.ke</title></svelte:head>
 
 <div>
 	<h1 class="text-xl font-bold text-heading">Notifications</h1>

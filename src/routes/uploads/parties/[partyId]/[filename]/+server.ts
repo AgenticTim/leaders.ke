@@ -1,5 +1,5 @@
-// Serves party logos from local disk. Logos are public — they render on the
-// public /parties directory and each party page — so no auth, just a traversal
+// Serves party logos from local disk. Logos are public. They render on the
+// public /parties directory and each party page, so no auth, just a traversal
 // guard and a long cache.
 import { error } from '@sveltejs/kit';
 import { readFile } from 'node:fs/promises';
@@ -17,7 +17,7 @@ const EXT_CONTENT_TYPE: Record<string, string> = {
 export const GET: RequestHandler = async (event) => {
 	const partyId = Number(event.params.partyId);
 	const filename = event.params.filename;
-	// No path separators in either segment — blocks directory traversal.
+	// No path separators in either segment, blocks directory traversal.
 	if (!partyId || !filename || /[/\\]/.test(filename) || filename.includes('..')) {
 		error(404, 'Not found');
 	}

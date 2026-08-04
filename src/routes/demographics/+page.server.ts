@@ -89,7 +89,7 @@ export const load: PageServerLoad = async ({ url }) => {
 					})
 					.sort((a, b) => b.genZEst - a.genZEst),
 		// The choropleth's own metric: estimated 2027 voting-age POPULATION
-		// magnitude (not gen-z, not a rate) — how many people, not what share.
+		// magnitude (not gen-z, not a rate), how many people, not what share.
 		// National: votingAge2027 read straight off each county's own census
 		// bands, a real figure, no estimation. County/ward: no sub-county
 		// census exists, so the county's voting-age share of its OWN

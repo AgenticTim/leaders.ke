@@ -22,7 +22,7 @@
 	let openConstituency = $state<string | null>(null);
 
 	// Choropleth rows: 2027 voting-age population magnitude (data.votingAgeMap,
-	// built server-side), not gen-z — how many people, not what share.
+	// built server-side), not gen-z, how many people, not what share.
 	const mapRows = $derived(data.votingAgeMap.rows);
 	let selectedSlug = $state<string | null>(null);
 	// Clicking a county on the national map navigates into it, same as the
@@ -147,7 +147,7 @@
 				Each county's registered voters with the estimated gen-z among them (county age share × 2022 register), largest first.
 			</p>
 			<!-- The table is gen-z; the map beside it is a different metric on
-			purpose (2027 voting-age population magnitude, not gen-z) — click
+			purpose (2027 voting-age population magnitude, not gen-z), click
 			either to open that county. -->
 			<div class="mt-4 grid gap-5 lg:grid-cols-2">
 				<div>
@@ -203,16 +203,16 @@
 				County age share ({pct(data.stats.genZShare2027)}) applied to each seat's 2022 registered voters, an estimate, since sub-county age data isn't published.
 			</p>
 			<!-- The accordion is gen-z; the map beside it is 2027 voting-age
-			population magnitude, not gen-z — click either to highlight/open.
+			population magnitude, not gen-z, click either to highlight/open.
 			colorBy="value": within one county the age share is a single
 			constant applied to every ward, so bucketing by RATE would color
-			wards by rounding noise, not real variation — the raw population
+			wards by rounding noise, not real variation. The raw population
 			count (driven by ward size) is what actually differs ward to ward. -->
 			<div class="mt-4 grid gap-5 lg:grid-cols-2">
 				<div>
 					<!-- showRate=false: the ward-level "% of registered voters" is a
 					single county-wide constant repeated on every ward (see colorBy
-					note above) — not a per-ward stat, so it's dropped from the tooltip. -->
+					note above). Not a per-ward stat, so it's dropped from the tooltip. -->
 					<WardMap mapKey={data.wardMapKey} rows={mapRows} unit="voting-age resident" colorBy="value" showRate={false} {selectedSlug} onSelect={selectWard} />
 					<p class="mt-2 text-xs text-muted">
 						Estimated 2027 voting-age population by ward (county age share × 2022 register). Darker = more voting-age residents.

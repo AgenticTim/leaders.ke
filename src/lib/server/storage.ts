@@ -2,14 +2,14 @@
 // (photo, ID front/back, IEBC certificate). Writes under STORAGE_LOCAL_DIR
 // (default .uploads, kept outside src/ and gitignored) and returns a URL served
 // by src/routes/uploads/[...path]/+server.ts. Swap for real S3 presigned uploads
-// later — STORAGE_ENDPOINT/BUCKET/keys are already in .env for that, just unused so far.
+// later, STORAGE_ENDPOINT/BUCKET/keys are already in .env for that, just unused so far.
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { env } from '$env/dynamic/private';
 import { extractText, getDocumentProxy } from 'unpdf';
 
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB — generous for a phone photo/scan or a short PDF
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB, generous for a phone photo/scan or a short PDF
 
 export type UploadKind = 'photo' | 'id-front' | 'id-back' | 'iebc-certificate';
 
@@ -28,7 +28,7 @@ const EXT_BY_MIME: Record<string, string> = {
 };
 
 /** Saves an uploaded document for a PERSON (users.id) + document kind, returning
- * the public URL to persist. Keyed by the person — documents follow them across
+ * the public URL to persist. Keyed by the person, documents follow them across
  * terms and runs, and a pure aspirant has no leaders row to key on. Rejects the
  * wrong file type/size before anything touches disk. */
 export async function saveLeaderDocument(subjectUserId: number, kind: UploadKind, file: File): Promise<string> {
@@ -87,9 +87,9 @@ const KNOWLEDGE_MIME: Record<string, string> = {
 /** Saves a Knowledge-tab source document (see faqEntries/knowledgeDocuments in
  * schema.ts) and returns its URL plus whatever text could be extracted for the AI
  * grounding context. Text formats (.txt/.md) extract immediately; PDFs are parsed
- * via unpdf (pure-JS, no native binary — safe for a serverless/edge deploy target).
+ * via unpdf (pure-JS, no native binary, safe for a serverless/edge deploy target).
  * extractedText is null only when a PDF has no extractable text (e.g. a scanned
- * image with no text layer) — the file still uploads and lists either way. */
+ * image with no text layer). The file still uploads and lists either way. */
 export async function saveKnowledgeDocument(
 	subjectUserId: number,
 	file: File

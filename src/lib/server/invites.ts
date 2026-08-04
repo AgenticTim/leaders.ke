@@ -26,7 +26,7 @@ export async function getPersonTier(subjectUserId: number): Promise<'kickstart' 
 	return row?.tier ?? 'kickstart';
 }
 
-/** Whether an auth account already exists for this email — decides whether an
+/** Whether an auth account already exists for this email, decides whether an
  * invited email should land on /login or /signup, both with the email locked in. */
 export async function emailHasAccount(email: string): Promise<boolean> {
 	const [row] = await db.select({ id: authUsers.id }).from(authUsers).where(eq(authUsers.email, email.trim().toLowerCase()));
@@ -35,13 +35,13 @@ export async function emailHasAccount(email: string): Promise<boolean> {
 
 /**
  * If this email already belongs to an active manager OR ambassador of this same
- * person, grant the new role directly (no invite/email) — they're already a
+ * person, grant the new role directly (no invite/email). They're already a
  * known, trusted member of the team, just missing this one role. Returns null if
  * they're not an existing team member here (caller should fall back to a normal
  * emailed invite).
  */
 /** The package's active-role cap (managers 2/5/∞, ambassadors 10/100/∞ per the
- * pricing table). Counts ACTIVE role rows, not invites — freeing a seat by
+ * pricing table). Counts ACTIVE role rows, not invites. Freeing a seat by
  * deactivating someone makes room again. Throws the upgrade prompt on a full team. */
 export async function assertRoleCapacity(subjectUserId: number, role: 'manager' | 'ambassador'): Promise<void> {
 	const tier = await getPersonTier(subjectUserId);
@@ -114,10 +114,10 @@ export type InviteDetails = {
 };
 
 /** Creates a fresh invite for this email, revoking any invite still open for the
- * same (person, role, email) first — one live link per invitee — and emails it
+ * same (person, role, email) first. One live link per invitee, and emails it
  * (dev: sendEmail logs the link to the console when no Postmark token is set).
  * Throws if: re-inviting the same (person, role, email) too soon/too often (spam
- * guard — mass mobilization to *unique* emails is never rate-limited), or the
+ * guard, mass mobilization to *unique* emails is never rate-limited), or the
  * person has hit their lifetime invite cap for their subscription tier. */
 export async function createInvite(
 	subjectUserId: number,
@@ -234,7 +234,7 @@ export type ReceivedInvite = {
 };
 
 /** One page of invites (any person, any role) addressed to this email that are
- * still open and unexpired — powers the citizen dashboard's Invites tab. Expiry is
+ * still open and unexpired, powers the citizen dashboard's Invites tab. Expiry is
  * filtered in SQL so it composes correctly with pagination; the inviting person's
  * seat (their active term) is resolved per row, the page is small. */
 export async function listInvitesForEmail(
@@ -273,7 +273,7 @@ export async function listInvitesForEmail(
 		invites: await Promise.all(
 			rows.map(async (r) => {
 				const term = await activeTermForPerson(r.subjectUserId);
-				// A pure aspirant (no leaders row yet) has only a run — fall back to its
+				// A pure aspirant (no leaders row yet) has only a run, fall back to its
 				// seat so the invite still shows a position/region instead of blanks.
 				let positionTitle = term?.positions.title ?? '';
 				let region = term?.positions.region ?? '';
@@ -340,7 +340,7 @@ export async function getInviteByToken(token: string): Promise<InviteDetails | n
 
 /** Accepts an invite: creates the active managers/ambassadors/followers row and
  * marks the token used (single-use). Requires the signed-in email to match who it
- * was sent to — the link itself isn't the only secret, the invite is bound to a person. */
+ * was sent to. The link itself isn't the only secret, the invite is bound to a person. */
 export async function acceptInvite(token: string, userId: number, signedInEmail: string) {
 	const [invite] = await db.select().from(invites).where(eq(invites.token, token));
 	if (!invite || invite.usedBy || invite.deletedAt) {
@@ -359,7 +359,7 @@ export async function acceptInvite(token: string, userId: number, signedInEmail:
 			.from(managers)
 			.where(and(eq(managers.userId, userId), eq(managers.subjectUserId, invite.subjectUserId), isNull(managers.deletedAt)));
 		if (!existing) {
-			// The roster may have filled between invite and acceptance — the seat
+			// The roster may have filled between invite and acceptance. The seat
 			// cap holds at the door too, not just at invite time.
 			try {
 				await assertRoleCapacity(invite.subjectUserId, 'manager');
@@ -410,7 +410,7 @@ export async function acceptInvite(token: string, userId: number, signedInEmail:
 		.from(users)
 		.where(eq(users.id, invite.subjectUserId));
 
-	// The team's dashboard home — a slug always exists (onboarding mints it at
+	// The team's dashboard home. A slug always exists (onboarding mints it at
 	// payment time, before anyone can be invited onto the team).
 	const dashboardBase = `/dashboard/${person.slug}`;
 

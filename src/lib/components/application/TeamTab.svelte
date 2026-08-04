@@ -9,7 +9,7 @@
 	let { data, form }: { data: any; form: any } = $props();
 
 	// The applicant's sign-off (role, national ID, ID images) is embedded under
-	// their own manager entry while the campaign is still an application — once
+	// their own manager entry while the campaign is still an application, once
 	// verified there's nothing left to attest, so it drops away.
 	const showSignoff = $derived(!data.verified);
 
@@ -40,7 +40,7 @@
 	}
 </script>
 
-<svelte:head><title>Team — vote.ke</title></svelte:head>
+<svelte:head><title>Team · vote.ke</title></svelte:head>
 
 {#if form?.error}
 	<div

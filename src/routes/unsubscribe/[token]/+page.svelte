@@ -3,7 +3,7 @@
 	let { data }: PageProps = $props();
 </script>
 
-<svelte:head><title>Opted out — vote.ke</title></svelte:head>
+<svelte:head><title>Opted out · vote.ke</title></svelte:head>
 
 <section class="mx-auto max-w-md px-4 py-20 text-center">
 	<div class="rounded-2xl border border-border bg-surface p-8">

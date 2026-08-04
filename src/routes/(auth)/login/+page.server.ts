@@ -12,7 +12,7 @@ import { clearFlash } from '$lib/server/flash';
 import { APIError } from 'better-auth/api';
 import type { Actions, PageServerLoad } from './$types';
 
-// Only ever redirect to a same-origin relative path — never follow ?next
+// Only ever redirect to a same-origin relative path, never follow ?next
 // anywhere else, that's an open-redirect vector. Citizen is the default landing
 // mode; a manager/ambassador/admin switches into their other mode(s) from there.
 function safeNext(next: string | null): string {
@@ -33,7 +33,7 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	// ?email= (set by /invite/[token] when the invited address already has an
-	// account) locks the email field — prevents signing in with a different email
+	// account) locks the email field, prevents signing in with a different email
 	// and only discovering the invite mismatch after clicking Accept.
 	const lockedEmail = event.url.searchParams.get('email');
 
@@ -41,8 +41,8 @@ export const load: PageServerLoad = async (event) => {
 	// profile"). hooks only peeks it on /login and /signup, so it survives
 	// switching between the two forms; the action clears it on success.
 	// ?message= lets any link explain the ask inline (e.g. the for-leaders CTA:
-	// /signup?next=/onboard/profile&message=...). Plain text, length-capped —
-	// it renders as our own banner, so never let a crafted URL turn it into an essay.
+	// /signup?next=/onboard/profile&message=...). Plain text, length-capped.
+	// It renders as our own banner, so never let a crafted URL turn it into an essay.
 	const notice = event.locals.flash ?? event.url.searchParams.get('message')?.slice(0, 160) ?? null;
 
 	return dev
@@ -57,7 +57,7 @@ export const actions: Actions = {
 	google: async (event) => {
 		const form = await event.request.formData();
 		const next = safeNext(form.get('next')?.toString() ?? null);
-		// Managers should land on their own campaign dash, not the citizen Overview —
+		// Managers should land on their own campaign dash, not the citizen Overview,
 		// only meaningful when next is the plain default, never on an explicit
 		// destination like an invite link (see flagPostLogin/postLoginRedirectTarget).
 		if (next === '/dashboard') flagPostLogin(event.cookies);
@@ -99,13 +99,13 @@ export const actions: Actions = {
 			return fail(500, { message: 'Unexpected error' });
 		}
 
-		// Signed in — drop the peeked pre-auth notice so it can't resurface on the next page.
+		// Signed in, drop the peeked pre-auth notice so it can't resurface on the next page.
 		clearFlash(event.cookies);
 
 		let [domainUser] = await db.select().from(users).where(eq(users.authUserId, authUser.id));
 
 		// Arriving via an invite link already proves this inbox is theirs (the invite
-		// email had to match to get here) — skip the OTP round-trip and verify it now.
+		// email had to match to get here), skip the OTP round-trip and verify it now.
 		if (lockedEmail && domainUser && !domainUser.verified.email) {
 			await db.update(authUsers).set({ emailVerified: true }).where(eq(authUsers.id, authUser.id));
 			[domainUser] = await db
@@ -123,7 +123,7 @@ export const actions: Actions = {
 			return redirect(302, `/verify/email?email=${email}&next=${encodeURIComponent(next)}`);
 		}
 
-		// Managers should land on their own campaign dash, not the citizen Overview —
+		// Managers should land on their own campaign dash, not the citizen Overview,
 		// only for the plain default destination, never an explicit one (invite link etc).
 		if (next === '/dashboard') flagPostLogin(event.cookies);
 

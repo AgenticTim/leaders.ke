@@ -8,7 +8,7 @@
 	// Form state (kept in $state so the live matcher and the confirm gate can react).
 	// Prefilled from data.defaults, which is itself either: what step-back carried
 	// forward in the URL (see the layout stepper + this page's load), the claim
-	// target's name (?profile=<slug>), or the citizen's own — no client-side
+	// target's name (?profile=<slug>), or the citizen's own. No client-side
 	// persistence needed, the server already resolved which one applies.
 	let firstName = $state(form?.values?.firstName ?? data.defaults.firstName);
 	let otherNames = $state(form?.values?.otherNames ?? data.defaults.otherNames);
@@ -53,7 +53,7 @@
 					matches = (await res.json()).matches;
 					// Drop a stale selection if the matched set no longer contains it.
 					if (selectedSubjectId && !matches.some((m) => m.subjectUserId === selectedSubjectId)) selectedSubjectId = null;
-					// Arrived via "Claim this profile" — auto-select that card once it
+					// Arrived via "Claim this profile", auto-select that card once it
 					// surfaces in the matcher, so the claimant just confirms + submits.
 					if (data.preselectSubjectId && !selectedSubjectId && matches.some((m) => m.subjectUserId === data.preselectSubjectId)) {
 						selectedSubjectId = data.preselectSubjectId;
@@ -71,7 +71,7 @@
 		legalConfirmed = false;
 	}
 
-	// Can't submit — claim or fresh create — until the legal box is ticked.
+	// Can't submit, claim or fresh create, until the legal box is ticked.
 	const canSubmit = $derived(legalConfirmed);
 </script>
 
@@ -121,7 +121,7 @@
 			{:else if matching && matches.length === 0}
 				<p class="text-sm text-muted">Searching…</p>
 			{:else if matches.length === 0}
-				<p class="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted">No matching profile — we'll create a new one for you.</p>
+				<p class="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted">No matching profile. We'll create a new one for you.</p>
 			{:else}
 				<p class="text-sm text-muted">Select a card below if it matches your profile.</p>
 				<div class="space-y-2">

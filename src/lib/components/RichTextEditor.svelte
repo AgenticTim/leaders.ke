@@ -22,7 +22,7 @@
 		required?: boolean;
 		invalidClass?: string;
 		// Typing "@name" searches /api/mention-search and, on pick, replaces it with
-		// a real [@Name](/slug) link — dashboard-only (leader search needs the
+		// a real [@Name](/slug) link, dashboard-only (leader search needs the
 		// viewer signed in), so off by default for public-facing bios/platforms.
 		enableMentions?: boolean;
 	} = $props();
@@ -48,7 +48,7 @@
 			return;
 		}
 		const query = match[1];
-		// Include the "@" itself in the replaced span — the picked link's label is
+		// Include the "@" itself in the replaced span. The picked link's label is
 		// plain (no "@"), so leaving the typed "@" out here would double it up.
 		mentionRange = { start: caret - query.length - 1, end: caret };
 		clearTimeout(mentionTimer);

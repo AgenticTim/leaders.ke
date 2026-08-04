@@ -101,7 +101,7 @@ async function computeLeaderMetrics(
 	} satisfies LeaderMetrics;
 }
 
-/** A partyId resolved to its name, or null — party is per-term/per-run, not a
+/** A partyId resolved to its name, or null, party is per-term/per-run, not a
  * person-level fact (see docs on leaders.partyId/campaigns.partyId). */
 async function partyName(partyId: number | null): Promise<string | null> {
 	if (!partyId) return null;
@@ -110,7 +110,7 @@ async function partyName(partyId: number | null): Promise<string | null> {
 }
 
 /**
- * Metrics for a single leader by their flat URL path (/<slug>) — used by /compare,
+ * Metrics for a single leader by their flat URL path (/<slug>), used by /compare,
  * which only ever needs two leaders, so it fetches exactly those instead of
  * computing the whole register and discarding all but two. resolveCurrentTerm
  * picks the same canonical (non-former) term the full listing dedups to, so the
@@ -188,7 +188,7 @@ export type RankedLeaderMetrics = {
 /**
  * One position's leaders (every status: current, aspirant, former) ranked by
  * engagement score, paginated server-side. Batched: 5 queries total
- * no matter how many leaders the position has — the whole set must be scored to
+ * no matter how many leaders the position has. The whole set must be scored to
  * rank it, but only the requested page's rows ship to the client.
  */
 export async function listPositionMetrics(
@@ -212,7 +212,7 @@ export async function listPositionMetrics(
 		.innerJoin(users, eq(leaders.userId, users.id))
 		.where(and(isNull(leaders.deletedAt), isNotNull(leaders.verifiedAt), isNull(users.deletedAt), eq(positions.title, positionTitle)));
 
-	// 2027 runs (campaigns) at this position — the aspirants.
+	// 2027 runs (campaigns) at this position. The aspirants.
 	const runRows = await db
 		.select({
 			userId: users.id,
@@ -252,7 +252,7 @@ export async function listPositionMetrics(
 	if (people.length === 0) return { total: 0, leaders: [] };
 	const personIds = people.map((p) => p.userId);
 
-	// The four score inputs, each one grouped query over the whole position — all
+	// The four score inputs, each one grouped query over the whole position. All
 	// PERSON-scoped now (follows/posts on the person; pledges/pillars on the person's runs).
 	const [followerRows, pledgeRows, postRows, pillarRows] = await Promise.all([
 		db

@@ -22,7 +22,7 @@
 	const pct = (n: number, total: number) => (total ? Math.round((n / total) * 100) : 0);
 
 	// Color for a per-bucket delta: more positive coverage is good (green), more
-	// negative coverage is bad (red) — same direction never means the same
+	// negative coverage is bad (red), same direction never means the same
 	// thing for both, so `bad` flips which sign is red. Neutral has no
 	// good/bad direction, so it's passed with bad: null and never colors.
 	const deltaColor = (d: number, bad: 'above' | 'below' | null) => {
@@ -95,7 +95,7 @@ isolation. -->
 	{/if}
 {/snippet}
 
-<svelte:head><title>Competitors — vote.ke</title></svelte:head>
+<svelte:head><title>Competitors · vote.ke</title></svelte:head>
 
 <h2 class="text-lg font-semibold text-heading">The race for {data.seat}</h2>
 <p class="mt-1 text-sm text-muted">
@@ -255,7 +255,7 @@ rivals', a locked tab gets an upsell instead of the breakdown/column below. -->
 								<span class="text-xs">({dateFmt.format(new Date(rival.latestPost.createdAt))})</span
 								>
 							{:else}
-								—
+								-
 							{/if}
 						</td>
 					</tr>

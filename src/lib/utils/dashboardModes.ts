@@ -10,13 +10,13 @@ export type DashboardModesInput = {
 	isAdmin?: boolean;
 	leaderContext?: { basePath: string } | null;
 	// Set only when a platform admin is viewing a profile they don't personally
-	// manage (the admin control bar's bypass) — without this, no entry's key
+	// manage (the admin control bar's bypass), without this, no entry's key
 	// matches currentKey, so the switcher falls back to modes[0] ("Citizen"),
 	// which is wrong: the admin IS on that profile's dashboard, just not as its manager.
 	adminViewingProfileName?: string | null;
 };
 
-/** Which dashboard "mode" a URL belongs to — outside /dashboard this degrades to
+/** Which dashboard "mode" a URL belongs to, outside /dashboard this degrades to
  * 'campaign' harmlessly (myCampaigns is empty there anyway). */
 function modeFor(pathname: string): 'admin' | 'citizen' | 'campaign' {
 	const second = pathname.split('/')[2];

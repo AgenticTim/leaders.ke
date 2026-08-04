@@ -4,7 +4,7 @@ import { resolveCampaignRun, loadCampaignWorkspaceData } from '$lib/server/campa
 import type { PageServerLoad } from './$types';
 
 // /previews/[userId]/[year]: the campaign workspace of an application with no
-// public slug yet — the slugless twin of /[leader]/[year], keyed by the person's
+// public slug yet. The slugless twin of /[leader]/[year], keyed by the person's
 // user id since there's no slug to resolve by until an admin approves one. Public,
 // same as everywhere else (see docs/URLDiscovery.md). Read-only: the public
 // follow/donate/review/ask actions belong to the live /[leader]/[year].
@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const viewer = locals.user ? await getDomainUser(locals.user.id) : null;
 	const row = await resolveCampaignRun(Number(params.userId));
 	if (!row) error(404, 'Campaign not found');
-	// Once approved the run is public — hand off to the canonical /[slug]/[year] URL.
+	// Once approved the run is public, hand off to the canonical /[slug]/[year] URL.
 	if (row.verified && row.users.slug) redirect(302, campaignPath({ slug: row.users.slug }, Number(params.year)));
 
 	const workspace = await loadCampaignWorkspaceData(row, viewer?.id);
@@ -36,8 +36,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			status: row.status,
 			verified: row.verified,
 			followers: workspace.followers,
-			// The run's own pitch (Campaign tab), not the person's general profile bio —
-			// this workspace is about the 2027 campaign specifically.
+			// The run's own pitch (Campaign tab), not the person's general profile bio.
+			// This workspace is about the 2027 campaign specifically.
 			campaignTitle: workspace.title,
 			campaignDescription: workspace.description,
 			pillars: workspace.pillars

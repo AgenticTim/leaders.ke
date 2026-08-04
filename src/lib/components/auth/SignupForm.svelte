@@ -7,7 +7,7 @@
 
 	// The signup form body, shared by the /signup page and AuthModal (embedded on
 	// any page as a transitional step before follow/save-vote/etc). Every action
-	// posts to absolute /signup paths, never the host page's own query string —
+	// posts to absolute /signup paths, never the host page's own query string,
 	// errors are captured locally so the component behaves identically wherever
 	// it's mounted. Email signups still detour through /verify/email before `next`.
 	let {
@@ -24,7 +24,7 @@
 		onVerifyEmail?: (email: string) => void;
 	} = $props();
 
-	// Dev convenience only — never prefilled in a production build.
+	// Dev convenience only, never prefilled in a production build.
 	let firstName = $state(dev ? 'X' : '');
 	let otherNames = $state(dev ? 'Test' : '');
 	let email = $state(lockedEmail ?? (dev ? 'x@vote.ke' : ''));

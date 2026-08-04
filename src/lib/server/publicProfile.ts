@@ -1,9 +1,9 @@
-// Shared data loader behind the public /[leader] page — extracted so admin
+// Shared data loader behind the public /[leader] page, extracted so admin
 // previews (a pending application's live profile, a pending claim's staged
 // overlay) can render through the exact same LeaderProfile component instead of
 // a bespoke admin-only layout. Every non-deactivated profile is public;
 // verifiedAt is a "Verified" badge only (see docs/URLDiscovery.md), not a
-// visibility gate — an application goes live as soon as it exists.
+// visibility gate. An application goes live as soon as it exists.
 import { and, asc, count, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { campaigns, contacts, deliveries, experience, followers, managers, parties, pillars, pledges, positions, posts, tags } from '$lib/server/db/schema';
@@ -17,7 +17,7 @@ export type PublicProfileData = NonNullable<Awaited<ReturnType<typeof loadPublic
 
 export async function loadPublicProfileData(
 	// A public slug, or a person's user id for a slugless preview (an application
-	// that hasn't been approved yet has no slug — see /previews/[userId]).
+	// that hasn't been approved yet has no slug, see /previews/[userId]).
 	idOrSlug: string | number,
 	opts: { viewerId?: number; isAdmin?: boolean } = {}
 ) {
@@ -26,7 +26,7 @@ export async function loadPublicProfileData(
 	if (!resolved) return null;
 	const { row, terms, currentTerm, activeRun } = resolved;
 
-	// Whether the viewer manages this profile — used for `canClaim`/`canEdit` below
+	// Whether the viewer manages this profile, used for `canClaim`/`canEdit` below
 	// (editing access), not for visibility (every non-deactivated profile is public).
 	const viewerIsManager = opts.viewerId
 		? opts.viewerId === row.users.id ||
@@ -38,7 +38,7 @@ export async function loadPublicProfileData(
 			)[0]
 		: false;
 
-	// Only seeded/unowned profiles are claimable — an applied (or already-claimed)
+	// Only seeded/unowned profiles are claimable. An applied (or already-claimed)
 	// profile has an active manager, so "claim this" must not appear for it.
 	const hasActiveManager = !!(
 		await db
@@ -55,7 +55,7 @@ export async function loadPublicProfileData(
 	if (!leadPosition) return null;
 
 	let leadCampaignId = 0;
-	// The office this cycle's campaign is actually FOR — distinct from leadPosition
+	// The office this cycle's campaign is actually FOR, distinct from leadPosition
 	// when a sitting officeholder (currentTerm) is running for something else (e.g.
 	// a Governor running for President): leadPosition stays their held seat, but the
 	// campaign card still needs to name what they're campaigning for.
@@ -65,7 +65,7 @@ export async function loadPublicProfileData(
 		campaignPosition = { title: activeRun!.positions.title, region: activeRun!.positions.region };
 	} else if (currentTerm) {
 		// Campaigns are person+cycle scoped (subjectUserId), same key as an
-		// aspirant's activeRun — leaderId on `campaigns` is only ever a nullable
+		// aspirant's activeRun, leaderId on `campaigns` is only ever a nullable
 		// secondary link (seed-campaigns.ts never sets it), never the lookup key.
 		const [c] = await db
 			.select({ id: campaigns.id, title: positions.title, region: positions.region })
@@ -95,7 +95,7 @@ export async function loadPublicProfileData(
 			.select({ n: count() })
 			.from(followers)
 			.where(and(eq(followers.digest, 'leader'), eq(followers.digestId, row.users.id), isNull(followers.deletedAt))),
-		// Verified 2027 runs at this exact seat — same definition seatHub uses for
+		// Verified 2027 runs at this exact seat, same definition seatHub uses for
 		// its own contestants list (aspirants only; a graduated run's leaderId is
 		// set, so it's the current holder now, not a contestant).
 		db
@@ -111,7 +111,7 @@ export async function loadPublicProfileData(
 					isNull(campaigns.deletedAt)
 				)
 			),
-		// Person-scoped across every campaign they've run (not just the lead one) —
+		// Person-scoped across every campaign they've run (not just the lead one),
 		// same convention as the campaign workspace's own pledgeCount.
 		db
 			.select({ n: count() })
@@ -147,7 +147,7 @@ export async function loadPublicProfileData(
 	]);
 
 	// Party is per-term/per-run (leaders.partyId / campaigns.partyId), not a
-	// person-level fact — a person can switch parties between terms. Batch-resolve
+	// person-level fact. A person can switch parties between terms. Batch-resolve
 	// every partyId this profile needs: the lead seat's own (headline badge) plus
 	// each historical Track Record entry's own (shown "as of" that term, not today's).
 	const leadPartyId = leadsWithRun ? activeRun!.campaigns.partyId : (currentTerm?.leaders.partyId ?? null);
@@ -159,7 +159,7 @@ export async function loadPublicProfileData(
 	const myReview = opts.viewerId ? await getMyReview(row.users.id, opts.viewerId) : null;
 
 	// Delivery tab items (concrete things delivered, tied to a specific term or
-	// non-elective experience — see the dashboard's Delivery tab) — distinct from
+	// non-elective experience, see the dashboard's Delivery tab), distinct from
 	// `delivery` below, which is the manifesto pillar completion rollup. Only
 	// PINNED deliveries are public (capped at 5, enforced when pinning), ordered
 	// by when the leader pinned them.
@@ -260,7 +260,7 @@ export async function loadPublicProfileData(
 					}))
 			].sort((a, b) => (b.from ?? -Infinity) - (a.from ?? -Infinity))
 		},
-		// isVying alone doesn't mean a campaign exists — seeding no longer
+		// isVying alone doesn't mean a campaign exists. Seeding no longer
 		// auto-creates one (see scripts/lib/people.ts), so a vying person with no
 		// `campaigns` row yet gets `campaign: null` and the "No campaign listed"
 		// placeholder, not a link into an empty workspace.
@@ -287,12 +287,12 @@ export async function loadPublicProfileData(
 		flaggedReviewCounts,
 		myReview,
 		canClaim: !viewerIsManager && !hasActiveManager,
-		// Someone else already manages this profile — a visitor sees "Claimed &
+		// Someone else already manages this profile. A visitor sees "Claimed &
 		// Managed" instead of the claim button (the manager viewing their own
 		// public page doesn't need telling).
 		isManaged: !viewerIsManager && hasActiveManager,
 		// A platform admin, or one of the profile's own managers, already has
-		// dashboard access — shown an "Edit this profile" shortcut instead of the
+		// dashboard access, shown an "Edit this profile" shortcut instead of the
 		// citizen-facing "Is this you?" claim flow.
 		canEdit: !!opts.isAdmin || viewerIsManager,
 		signedIn: !!opts.viewerId,
@@ -306,10 +306,10 @@ export async function loadPublicProfileData(
 			seatPath: leadPosition.boundary === 'Country' ? `/${SINGULAR_SLUG_BY_TITLE[leadPosition.title]}` : `/${positionSlug(leadPosition.title)}/${slugify(leadPosition.region)}`,
 			seatCyclePath: `/${positionSlug(leadPosition.title)}/${slugify(leadPosition.region)}`
 		},
-		// Not rendered by the public page — exposed so admin previews (verification/
+		// Not rendered by the public page, exposed so admin previews (verification/
 		// claim) can pull the run's iebcCertificateUrl without a second resolve.
 		leadCampaignId,
-		// The person behind the profile (users.id) — chat threads key on this.
+		// The person behind the profile (users.id), chat threads key on this.
 		subjectId: row.users.id
 	};
 }

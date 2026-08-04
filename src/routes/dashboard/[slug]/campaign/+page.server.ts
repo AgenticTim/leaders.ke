@@ -1,5 +1,5 @@
 // Campaign tab: a person may run zero, one, or (across different election years)
-// two campaigns — DB-enforced at most one per person per cycle year — each fully
+// two campaigns, DB-enforced at most one per person per cycle year. Each fully
 // independent: its own seat, platform, IEBC certificate, manifesto pillars, and
 // verification. "Add Campaign" creates a new one; ?campaign=<id> picks which
 // existing one is open, defaulting to the first. Reachable once a profile is saved.
@@ -13,7 +13,7 @@ import { listTemplatesForLevel } from '$lib/server/adminPillars';
 import { saveLeaderDocument } from '$lib/server/storage';
 import type { Actions, PageServerLoad } from './$types';
 
-// Cycle options: the active election year and the next one — a person can have
+// Cycle options: the active election year and the next one. A person can have
 // at most one campaign per year (DB-enforced), so at most 2 campaigns ever.
 const CYCLES = [ACTIVE_CYCLE, ACTIVE_CYCLE + 5];
 
@@ -75,7 +75,7 @@ export const load: PageServerLoad = async (event) => {
 					cycleYear: selected.cycleYear,
 					description: selected.description,
 					iebcCertificateUrl: selected.iebcCertificateUrl,
-					// Party is per-run (campaigns.partyId), not a person-level fact — a
+					// Party is per-run (campaigns.partyId), not a person-level fact. A
 					// person can contest under a different party than the one they held
 					// their last term under.
 					partyId: selected.partyId,
@@ -170,7 +170,7 @@ export const actions: Actions = {
 			if (!existing) return fail(404, { error: 'Campaign not found.' });
 
 			// A verified campaign keeps its seat/cycle (it's public/on the ballot);
-			// only its title/platform/party/certificate change — EXCEPT a platform
+			// only its title/platform/party/certificate change, EXCEPT a platform
 			// admin, who can correct the seat/cycle even on a verified run.
 			const updates: Record<string, unknown> = { title, description, partyId, updatedAt: new Date() };
 			if (!existing.verifiedAt || isAdmin) {

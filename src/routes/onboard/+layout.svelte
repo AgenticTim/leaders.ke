@@ -4,7 +4,7 @@
 
 	let { children }: LayoutProps = $props();
 
-	// The wizard's 3 steps — forward-only. Each step's own submit is what unlocks
+	// The wizard's 3 steps, forward-only. Each step's own submit is what unlocks
 	// and navigates to the next (onboard -> plans -> checkout); this header is a
 	// progress indicator, not a nav control, so only a COMPLETED step links back.
 	const steps = [

@@ -58,7 +58,7 @@
 	<Footer />
 </div>
 
-<!-- Global toast host (toast.ts wraps svelte-toasts) — mounted once here so any
+<!-- Global toast host (toast.ts wraps svelte-toasts), mounted once here so any
 page/component can call toast.info/success/warn/error without its own container. -->
 <ToastContainer let:data={data} showProgress={true} duration={5000}>
 	<FlatToast {data} />

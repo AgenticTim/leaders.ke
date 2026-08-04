@@ -11,7 +11,7 @@ export const load: PageServerLoad = async ({ url }) => {
 
 	const like = `%${q}%`;
 	const nameConcat = sql`${users.firstName} || ' ' || ${users.otherNames}`;
-	// Ranks a row so a name match always beats a mere bio/position substring hit —
+	// Ranks a row so a name match always beats a mere bio/position substring hit,
 	// without this, a common word in many bios (e.g. "test") buries the person
 	// actually named that above everyone else, in whatever order postgres feels
 	// like returning unordered rows.
@@ -21,7 +21,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		when ${users.firstName} ilike ${like} or ${users.otherNames} ilike ${like} or ${nameConcat} ilike ${like} then 2
 		else 3
 	end`;
-	// Mirrors nameRank in JS — held-leader and aspirant-run results come from two
+	// Mirrors nameRank in JS, held-leader and aspirant-run results come from two
 	// separate queries that get merged below, so ranking has to happen post-merge,
 	// not just per-query, or an aspirant matching by name still loses to every held
 	// leader that only matched by a common word in their bio.
@@ -101,9 +101,9 @@ export const load: PageServerLoad = async ({ url }) => {
 		};
 	});
 
-	// 2027 runs (campaigns) matching by name/bio — aspirants with no leaders row.
-	// Merged with the held-office results by rank below, not just appended after —
-	// a name match here should still outrank a held leader that only matched by a
+	// 2027 runs (campaigns) matching by name/bio, aspirants with no leaders row.
+	// Merged with the held-office results by rank below, not just appended after.
+	// A name match here should still outrank a held leader that only matched by a
 	// common word in their bio.
 	const heldSlugs = new Set(matchedLeaders.map((r) => r.users.slug));
 	const runMatches = await db
@@ -157,7 +157,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		});
 	}
 	// Stable sort: same-rank rows keep their SQL order (each query was already
-	// ordered by rank, held-leaders first for ties — matches the old convention).
+	// ordered by rank, held-leaders first for ties, matches the old convention).
 	leaderResults.sort((a, b) => a.rank - b.rank);
 	leaderResults.length = Math.min(leaderResults.length, 15);
 
@@ -216,8 +216,8 @@ export const load: PageServerLoad = async ({ url }) => {
 		path: `/alliances/${slugify(a.title)}`
 	}));
 
-	// Team-authored, published /news articles from a publicly visible person —
-	// same gate as the /news list itself. Title/body match only — a tag match
+	// Team-authored, published /news articles from a publicly visible person,
+	// same gate as the /news list itself. Title/body match only. A tag match
 	// surfaces as its own Topics entry below, not the (unrelated) post title.
 	const publicPostGate = (idCol: typeof users.id) =>
 		or(
@@ -252,9 +252,9 @@ export const load: PageServerLoad = async ({ url }) => {
 		};
 	});
 
-	// Topic tags matching the query, from publicly visible posts — the actual tag
+	// Topic tags matching the query, from publicly visible posts. The actual tag
 	// is the result, not the post title it happens to live on.
-	// posts.tags is a jsonb string array — matches if any tag itself contains the query.
+	// posts.tags is a jsonb string array, matches if any tag itself contains the query.
 	const tagMatch = sql`exists (select 1 from jsonb_array_elements_text(${posts.tags}) as t(tag) where t.tag ilike ${like})`;
 	const tagRows = await db
 		.select({ tags: posts.tags })

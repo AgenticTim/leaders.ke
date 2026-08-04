@@ -10,7 +10,7 @@ import { reviewClaim } from '$lib/server/claims';
 import { getPlatformSettings } from '$lib/server/settings';
 import type { RequestHandler } from './$types';
 
-// The admin control bar on any leader dashboard posts here — the lifecycle actions
+// The admin control bar on any leader dashboard posts here. The lifecycle actions
 // (Deactivate/Activate, Declare Winner, Delete, Verify Profile) and the inline
 // claim decision form. Each campaign's own Verify/Unverify control (per-campaign,
 // IEBC-cert-gated) also posts here, carrying its own campaignId. A plain POST +
@@ -29,7 +29,7 @@ export const POST: RequestHandler = async (event) => {
 		redirect(303, next);
 	}
 	// An already-approved claim (access granted at payment time) stays reviewable
-	// indefinitely, not just while pending — this is the "Reject" button next to
+	// indefinitely, not just while pending. This is the "Reject" button next to
 	// the profile's "approved" badge, not the pending-claim decision form above.
 	if (action === 'rejectApprovedClaim') {
 		await reviewClaim(Number(form.get('claimId')), domainUser.id, 'rejected', '');
@@ -52,20 +52,20 @@ export const POST: RequestHandler = async (event) => {
 		await db.update(leaders).set({ deletedAt: now }).where(and(eq(leaders.userId, profileId), isNull(leaders.deletedAt)));
 		await db.update(campaigns).set({ deletedAt: now }).where(and(eq(campaigns.subjectUserId, profileId), isNull(campaigns.deletedAt)));
 		await db.update(profileClaims).set({ deletedAt: now }).where(and(eq(profileClaims.subjectUserId, profileId), isNull(profileClaims.deletedAt)));
-		// The profile is gone from every leader surface — send the admin back to the roster.
+		// The profile is gone from every leader surface, send the admin back to the roster.
 		redirectWithFlash(event.cookies, '/dashboard/admin/profiles', 'Profile deleted.');
 	} else if (action === 'declareWinner') {
 		const meta = await getProfileAdminMeta(profileId);
 		if (meta.graduatableCampaignId) await graduateCampaign(meta.graduatableCampaignId);
 	} else if (action === 'verifyProfile') {
-		// Direct toggle, same pattern as identity — no submit/review queue. Decoupled
+		// Direct toggle, same pattern as identity. No submit/review queue. Decoupled
 		// from any campaign (each campaign is verified individually, below).
 		await db.update(users).set({ profileVerifiedAt: new Date(), verificationRequestedAt: null }).where(eq(users.id, profileId));
 	} else if (action === 'unverifyProfile') {
 		await db.update(users).set({ profileVerifiedAt: null, verificationRequestedAt: null }).where(eq(users.id, profileId));
 	} else if (action === 'verifyRunCampaign') {
 		// Per-campaign toggle (one of this person's campaign rows, not necessarily
-		// the active cycle) — the IEBC certificate is only required when
+		// the active cycle). The IEBC certificate is only required when
 		// platform_settings turns that gate on (off by default).
 		const campaignId = Number(form.get('campaignId') ?? 0);
 		const [run] = await db

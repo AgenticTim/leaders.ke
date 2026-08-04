@@ -1,6 +1,6 @@
 <script lang="ts">
 	// "Continue with Google" for the login and signup pages. Posts to a ?/google
-	// action, which starts the OAuth flow and 302s to Google — so this is a plain
+	// action, which starts the OAuth flow and 302s to Google, so this is a plain
 	// form (no use:enhance), letting the browser follow the external redirect
 	// natively. `next` rides along as a hidden field since ?/google drops the
 	// page's own query string. `action` is overridable with an absolute path

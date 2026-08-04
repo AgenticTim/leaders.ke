@@ -1,7 +1,7 @@
 // Platform-wide Ask (plans/10-platform-wide-ai-chat.md): the header's sparkle
 // button posts here. An API endpoint rather than a form action because the Ask
 // panel is mounted in the shared Header, so it has no page of its own to own
-// the action — every route on the site would otherwise need to re-declare it.
+// the action. Every route on the site would otherwise need to re-declare it.
 //
 //   GET   → the viewer's own platform thread (history survives refresh)
 //   POST  → { question } → records it, answers it, returns the answer
@@ -37,7 +37,7 @@ export const POST: RequestHandler = async (event) => {
 
 	// Truncated, not rejected: an over-long question still gets answered on its
 	// first askMaxChars. Enforced here rather than trusting the textarea's own
-	// maxlength, which a direct POST bypasses — this is the boundary that keeps
+	// maxlength, which a direct POST bypasses. This is the boundary that keeps
 	// an arbitrarily large paste out of a billed Anthropic call.
 	const settings = await getPlatformSettings();
 	const question = raw.slice(0, settings.askMaxChars);
@@ -54,7 +54,7 @@ export const POST: RequestHandler = async (event) => {
 		clientAddress(event)
 	);
 
-	// Free AI answers spent (guest only — a signed-in citizen over their daily
+	// Free AI answers spent (guest only. A signed-in citizen over their daily
 	// quota gets a 429 above instead). The question is still captured and routed
 	// to the platform inbox, but `reason` lets the client say plainly that the
 	// free allowance is used up and signing in is how to get more, rather than

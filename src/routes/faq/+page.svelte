@@ -18,12 +18,12 @@
 					a: 'Open their public page and follow with just your name and a phone or email. The channel you provide becomes how their campaign updates reach you, and every message carries an opt-out.'
 				},
 				{
-					q: 'Where are the voter tools — ballot simulator, voter education, key dates?',
+					q: 'Where are the voter tools: ballot simulator, voter education, key dates?',
 					a: 'Right here. The homepage is the ballot simulator: pick your county, constituency and ward and cast a full six-seat simulated ballot. Voter education lives under Learn, with key 2027 dates, registration drives, and a registration checker alongside.'
 				},
 				{
 					q: 'Can I review a leader?',
-					a: "Yes — rate and review any leader on their public page, organized around their manifesto pillars. Campaigns can respond in the review's thread and flag abuse; platform admins arbitrate flags."
+					a: "Yes, rate and review any leader on their public page, organized around their manifesto pillars. Campaigns can respond in the review's thread and flag abuse; platform admins arbitrate flags."
 				},
 				{
 					q: 'Will anyone see my political choices?',
@@ -52,7 +52,7 @@
 				},
 				{
 					q: 'Can an AI answer my constituents?',
-					a: 'Yes — campaign pages carry a chat grounded in your manifesto, answering constituent questions 24/7. Persistent conversations and WhatsApp as a channel are in the pipeline.'
+					a: 'Yes, campaign pages carry a chat grounded in your manifesto, answering constituent questions 24/7. Persistent conversations and WhatsApp as a channel are in the pipeline.'
 				},
 				{
 					q: 'Can I raise funds through my page?',
@@ -65,7 +65,7 @@
 			items: [
 				{
 					q: 'Can I run a campaign without the candidate?',
-					a: "Yes. Managers can create the campaign, complete the application, and run the whole dashboard — the candidate never has to touch it. You'll appear with a \"Managing\" badge."
+					a: "Yes. Managers can create the campaign, complete the application, and run the whole dashboard. The candidate never has to touch it. You'll appear with a \"Managing\" badge."
 				},
 				{
 					q: 'How do I build a team?',
@@ -77,7 +77,7 @@
 				},
 				{
 					q: 'What happens if a manager or ambassador leaves?',
-					a: 'Their recruits stay attached to the campaign — removing a manager keeps their ambassadors, and removing an ambassador keeps the followers they signed up.'
+					a: 'Their recruits stay attached to the campaign. Removing a manager keeps their ambassadors, and removing an ambassador keeps the followers they signed up.'
 				}
 			]
 		},
@@ -86,7 +86,7 @@
 			items: [
 				{
 					q: 'What does it cost?',
-					a: 'Citizens pay nothing. Campaigns subscribe monthly on one of three packages (Kickstart, Mobilize, Dominate) at one flat rate for every office — see the Pricing page.'
+					a: 'Citizens pay nothing. Campaigns subscribe monthly on one of three packages (Kickstart, Mobilize, Dominate) at one flat rate for every office, see the Pricing page.'
 				},
 				{
 					q: 'When do I pay?',
@@ -98,7 +98,7 @@
 				},
 				{
 					q: 'Can I be featured on the homepage?',
-					a: 'Featured placement (your profile pinned for every visitor) is in the pipeline — the rail exists, the purchase flow is coming.'
+					a: 'Featured placement (your profile pinned for every visitor) is in the pipeline. The rail exists, the purchase flow is coming.'
 				}
 			]
 		},
@@ -107,7 +107,7 @@
 			items: [
 				{
 					q: 'Is vote.ke neutral?',
-					a: 'Yes — every campaign gets the same tools on the same terms, verification is against IEBC records, voter education never carries paid placement, and the platform endorses no one.'
+					a: 'Yes: every campaign gets the same tools on the same terms, verification is against IEBC records, voter education never carries paid placement, and the platform endorses no one.'
 				},
 				{
 					q: 'What laws does the platform follow?',
@@ -139,7 +139,7 @@
 </script>
 
 <svelte:head>
-	<title>FAQ — vote.ke</title>
+	<title>FAQ · vote.ke</title>
 	<meta name="description" content="Frequently asked questions about vote.ke, for citizens, leaders, campaign teams, billing, and data." />
 </svelte:head>
 
@@ -174,7 +174,7 @@
 		</section>
 	{:else}
 		<p class="mt-8 rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted">
-			Nothing matches "{query}" — try another word, or <a href="/contact-us" class="font-medium text-primary hover:underline">ask us directly</a>.
+			Nothing matches "{query}", try another word, or <a href="/contact-us" class="font-medium text-primary hover:underline">ask us directly</a>.
 		</p>
 	{/each}
 </div>

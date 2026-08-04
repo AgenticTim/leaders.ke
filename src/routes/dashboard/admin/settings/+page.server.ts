@@ -56,7 +56,7 @@ export const actions: Actions = {
 		if (!leaderSystemPrompt) return adminActionFailed(admin.domainUser.id, 400, { error: 'The leader system prompt cannot be empty.' });
 
 		// Comma/whitespace-separated words, normalized to lowercase and deduped.
-		// These block new leader slugs only — existing slugs are untouched.
+		// These block new leader slugs only. Existing slugs are untouched.
 		const blockedSlugs = [
 			...new Set(
 				String(form.get('blockedSlugs') ?? '')
@@ -117,7 +117,7 @@ export const actions: Actions = {
 	},
 
 	// How many leaders' names ride in one Google News search query (see
-	// newsBatchSize on newsIngest.ts's runIngest) — tunable without a deploy
+	// newsBatchSize on newsIngest.ts's runIngest), tunable without a deploy
 	// while the right value against Google's actual rate limits gets found.
 	saveNewsBatchSize: async (event) => {
 		const admin = await requireAdmin(event);

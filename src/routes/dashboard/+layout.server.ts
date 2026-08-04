@@ -29,21 +29,21 @@ export const load: LayoutServerLoad = async (event) => {
 
 	const ambassadorAssignments = await listAmbassadorAssignments(domainUser.id);
 
-	// A profile goes live at payment, no submission/review step — `application` is
+	// A profile goes live at payment, no submission/review step, `application` is
 	// pure form-completeness validation: it names the exact missing field per tab so
 	// the UI can flag which tab (a `*` on its title) and which field (listed below
 	// each tab's save button) still needs attention.
 	let applicationComplete = false;
 	let application: ApplicationChecklist | null = null;
 	let verificationRequestedAt: Date | null = null;
-	// Decoupled from ctx.verified (a held term/campaign being publicly live) —
-	// this checklist is about the PROFILE's own application review, which a
+	// Decoupled from ctx.verified (a held term/campaign being publicly live).
+	// This checklist is about the PROFILE's own application review, which a
 	// person with no campaign at all can still complete and submit.
 	if (ctx && !ctx.profileUser.profileVerifiedAt) {
 		({ application, applicationComplete, verificationRequestedAt } = await getApplicationChecklist(ctx));
 	}
 
-	// Every profile the viewer manages — the switcher lists them ALL, not just the
+	// Every profile the viewer manages. The switcher lists them ALL, not just the
 	// first-resolved context. Shared with /api/switcher (the lazy client-side fetch
 	// used outside /dashboard) so the two never drift.
 	const { myCampaigns } = await getSwitcherProfiles(domainUser.id);
@@ -51,7 +51,7 @@ export const load: LayoutServerLoad = async (event) => {
 	// A platform admin viewing a SPECIFIC leader's dashboard gets the header control
 	// block (source/verified badges, lifecycle actions, decision forms). Gated on the
 	// route FAMILY (a campaign slug or the apply flow), derived from the path rather
-	// than event.params — a layout load doesn't reliably carry the deeper [id]/[slug].
+	// than event.params. A layout load doesn't reliably carry the deeper [id]/[slug].
 	// Otherwise the citizen pages' fallback ctx (the admin's own/first-managed profile)
 	// would leak the bar onto /dashboard.
 	const isLeaderFamily = !['admin', 'mobilize', 'account', 'notifications', undefined, ''].includes(family);
@@ -62,7 +62,7 @@ export const load: LayoutServerLoad = async (event) => {
 
 	return {
 		firstName: domainUser.firstName,
-		// Shown next to the citizen "Welcome" header (dashboard/+layout.svelte) —
+		// Shown next to the citizen "Welcome" header (dashboard/+layout.svelte),
 		// set on /dashboard/account, optional.
 		county: domainUser.county,
 		constituency: domainUser.constituency,
@@ -90,7 +90,7 @@ export const load: LayoutServerLoad = async (event) => {
 					region: ctx.position?.region ?? '',
 					status: (ctx.leader?.status ?? 'aspirant'),
 					verified: !!ctx.verified,
-					// The PROFILE review flag (users.profileVerifiedAt) — what the Submit
+					// The PROFILE review flag (users.profileVerifiedAt), what the Submit
 					// for Verification button and its badge key on. Distinct from
 					// `verified` above (a held term/campaign being publicly live).
 					profileVerified: !!ctx.profileUser.profileVerifiedAt,

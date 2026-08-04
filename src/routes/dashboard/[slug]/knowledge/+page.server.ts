@@ -1,7 +1,7 @@
-// The Knowledge tab (/dashboard/[slug]/knowledge) — what a verified team curates to
+// The Knowledge tab (/dashboard/[slug]/knowledge), what a verified team curates to
 // ground the AI Chat feature's answers (see $lib/server/ai.ts): an FAQ builder plus
 // source-document uploads. Verified-only (unlike every other manager tab, which is
-// always reachable regardless of verification — see the comment on `sections` in
+// always reachable regardless of verification, see the comment on `sections` in
 // dashboard/+layout.svelte) because the AI only ever answers on a leader's PUBLIC
 // profile, which itself only exists once verified. Each add/remove saves
 // immediately, same convention as the Delivery tab.
@@ -21,11 +21,11 @@ import type { Actions, PageServerLoad } from './$types';
 /** Throws once this leader's total extracted-text characters (existing docs,
  * minus the one being edited if any, plus what's about to be saved) would
  * cross their plan's knowledgeMb storage cap (admin-editable on
- * /dashboard/admin/packages; null = unlimited) — the paid-tier gate. This is
+ * /dashboard/admin/packages; null = unlimited). The paid-tier gate. This is
  * a storage limit only: how much AI Chat actually reads per question is a
  * separate, much smaller budget (platformSettings.maxGroundingChars) that
  * groundingText() in $lib/server/ai.ts silently trims to at ask-time, not
- * enforced here — the Knowledge tab just shows how much of that budget is
+ * enforced here. The Knowledge tab just shows how much of that budget is
  * used and highlights what won't fit, it never blocks a save over it. 1 MB ≈
  * 1,000,000 characters of plain text (docs/ai-chat-costs.md). */
 async function assertWithinKnowledgeCap(subjectUserId: number, addedChars: number, excludeDocId?: number): Promise<void> {
@@ -79,8 +79,8 @@ export const load: PageServerLoad = async (event) => {
 	return {
 		faqs: faqRows,
 		documents: documentRows.map((d) => ({ id: d.id, title: d.title, fileUrl: d.fileUrl, mimeType: d.mimeType, text: d.text ?? '', textReady: !!d.text })),
-		// Live usage against the per-question grounding cap (docs/ai-chat-costs.md) —
-		// the Knowledge tab highlights whatever's over this and warns it'll be
+		// Live usage against the per-question grounding cap (docs/ai-chat-costs.md).
+		// The Knowledge tab highlights whatever's over this and warns it'll be
 		// trimmed from AI answers, but never blocks saving past it (unlike the
 		// plan's knowledgeMb storage cap, which does).
 		knowledgeUsage: { used: usedChars, cap: settings.maxGroundingChars }
@@ -116,7 +116,7 @@ export const actions: Actions = {
 	},
 
 	// Step 1 of the file flow, mirrors previewLink: writes the file to disk and
-	// extracts its text, but doesn't save a knowledgeDocuments row yet — the team
+	// extracts its text, but doesn't save a knowledgeDocuments row yet. The team
 	// reviews (and can edit) the title/text below before it becomes AI grounding.
 	previewDocument: async (event) => {
 		const { ctx } = await requireLeader(event);
@@ -146,7 +146,7 @@ export const actions: Actions = {
 	// Step 2, shared by both the file and link flows: commits the (possibly
 	// hand-edited) preview as a document. sourceUrl is the saved file's own
 	// /uploads/knowledge/... URL for an upload, or the original page/video link for
-	// a link — either way there's nothing left to fetch, just save what's shown.
+	// a link. Either way there's nothing left to fetch, just save what's shown.
 	saveDocument: async (event) => {
 		const { ctx } = await requireLeader(event);
 		if (!ctx.verified) return fail(400, { error: 'Verify your profile first.' });
@@ -170,7 +170,7 @@ export const actions: Actions = {
 	},
 
 	// Edits an already-saved document's title/text in place (opened by clicking its
-	// title in the list) — the underlying file/link (fileUrl, mimeType) doesn't change.
+	// title in the list). The underlying file/link (fileUrl, mimeType) doesn't change.
 	updateDocument: async (event) => {
 		const { ctx } = await requireLeader(event);
 		const form = await event.request.formData();
@@ -203,7 +203,7 @@ export const actions: Actions = {
 		return { saved: true };
 	},
 
-	// Step 1 of the link flow: fetch and extract, but don't save yet — the team
+	// Step 1 of the link flow: fetch and extract, but don't save yet. The team
 	// reviews (and can edit) what was pulled out before it becomes grounding
 	// content the AI actually quotes from. YouTube links get title + description +
 	// a best-effort transcript (see $lib/server/linkExtract); anything else gets
@@ -223,5 +223,5 @@ export const actions: Actions = {
 		}
 	}
 	// Step 2 (saving the link's preview) is the same `saveDocument` action the
-	// file flow uses above — sourceUrl is the link itself, mimeType 'text/plain'.
+	// file flow uses above, sourceUrl is the link itself, mimeType 'text/plain'.
 };

@@ -1,6 +1,6 @@
 // Live chat pings (SSE): a connection per open chat view. When a message
 // lands in a matching thread the client gets a ping (data = conversation id)
-// and re-fetches its own thread data (invalidate('chat:thread')) — the stream
+// and re-fetches its own thread data (invalidate('chat:thread')). The stream
 // carries no message content, so there's nothing to leak and auth stays with
 // the loaders.
 //
@@ -8,7 +8,7 @@
 //                                   own thread with that leader (session user
 //                                   or anon_id device cookie)
 //   ?person=<users.id>&role=team    team view (Inbox): pings for every
-//                                   thread of that leader — admin or active
+//                                   thread of that leader. Admin or active
 //                                   manager only
 //   ?scope=platform                 citizen view of the header's site-wide Ask
 //                                   thread (conversations.scopeId null)
@@ -24,7 +24,7 @@ import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 	// Platform threads have no scopeId, so they're selected by ?scope=platform
-	// rather than a person id — matched against ChatEvent.personId === null.
+	// rather than a person id, matched against ChatEvent.personId === null.
 	const platform = url.searchParams.get('scope') === 'platform';
 	const personId = Number(url.searchParams.get('person') ?? 0);
 	if (!platform && !personId) error(400, 'person is required');
@@ -55,7 +55,7 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 					)[0]);
 		if (!allowed) error(403, platform ? 'Admins only.' : 'Not a team member for this profile.');
 	} else if (!viewer && !anonId) {
-		// A guest with no device cookie has no thread to stream yet — the cookie
+		// A guest with no device cookie has no thread to stream yet. The cookie
 		// is minted by their first ask, after which the page reconnects.
 		error(403, 'No chat identity yet.');
 	}
@@ -84,7 +84,7 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 					if (!mine) return;
 				}
 				if (e.kind === 'typing') {
-					// Only the OTHER side's keyboard matters — no echo of your own.
+					// Only the OTHER side's keyboard matters. No echo of your own.
 					if (team ? e.from !== 'citizen' : e.from !== 'team') return;
 					send(`event: typing\ndata: ${e.conversationId}\n\n`);
 					return;

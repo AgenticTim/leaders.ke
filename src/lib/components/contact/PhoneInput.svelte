@@ -30,7 +30,7 @@
 		/** Hides the Verify/✓ affordances entirely. */
 		verifiable?: boolean;
 		/** Numbers (254… form) this user already verified elsewhere (e.g. their
-		 * citizen account) — typing one shows ✓ immediately, preventing a double OTP. */
+		 * citizen account). Typing one shows ✓ immediately, preventing a double OTP. */
 		verifiedValues?: string[];
 		/** When set, Verify opens the host's VerifyContactModal (with the normalized
 		 * 254… number) instead of navigating to /verify/[field]. Lives on the host
@@ -52,7 +52,7 @@
 	);
 	// The verify routes read different param names: /verify/sms?phone= vs /verify/whatsapp?number=.
 	// next = the page we're on, so verifying returns here (e.g. mid leader-profile
-	// creation on /dashboard/contacts) instead of the default /dashboard/account — but
+	// creation on /dashboard/contacts) instead of the default /dashboard/account, but
 	// if THIS page was itself reached via its own ?next= (e.g. the onboarding gate sent
 	// us to /dashboard/account?next=/onboard/profile...), chase that further destination
 	// instead of looping back to this page.

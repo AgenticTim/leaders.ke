@@ -1,4 +1,4 @@
-// Shared loader behind the /[leader]/[year] campaign workspace — extracted so an
+// Shared loader behind the /[leader]/[year] campaign workspace, extracted so an
 // admin preview and the real public page render through the exact same Campaign
 // component, reached via LeaderProfile's "Open campaign" link. Every non-deactivated
 // run is public; verifiedAt is a "Verified" badge only (see docs/URLDiscovery.md).
@@ -10,12 +10,12 @@ import { getFlaggedReviewCounts, getMyReview, listApprovedReviews, listReviewPil
 import { isFollowingAsAccount } from '$lib/server/follow';
 
 /** Resolves the seat + run a /[leader]/[year] workspace leads with (the run itself
- * whenever one exists — even for an incumbent running for a different seat than
- * they hold — else the held term, for a pure officeholder with no declared run).
+ * whenever one exists, even for an incumbent running for a different seat than
+ * they hold, else the held term, for a pure officeholder with no declared run).
  * Null only when the person has neither a held term nor a run. */
 export async function resolveCampaignRun(
 	// A public slug, or a person's user id for a slugless preview (see
-	// /previews/[userId]/[year] — an application has no slug until an admin
+	// /previews/[userId]/[year]. An application has no slug until an admin
 	// approves it and mints one, regardless of the verifiedAt badge).
 	idOrSlug: string | number
 ) {
@@ -24,14 +24,14 @@ export async function resolveCampaignRun(
 	if (!resolved) return null;
 	const { row, currentTerm, activeRun } = resolved;
 	// This page is specifically about the 2027 RUN, not the person's general "lead
-	// identity" (that distinction belongs to the /[leader] profile page instead) —
+	// identity" (that distinction belongs to the /[leader] profile page instead),
 	// so an existing run always wins here, even for an incumbent running for a
 	// different/higher seat than the one they currently hold (e.g. a sitting
 	// Senator running for President shows President here, not Senator).
 	const leadsWithRun = !!activeRun;
 	const verified = leadsWithRun ? !!activeRun!.campaigns.verifiedAt : !!currentTerm?.leaders.verifiedAt;
 
-	// Nothing to show at all (no held term, no run) — 404, same as /[leader].
+	// Nothing to show at all (no held term, no run) to 404, same as /[leader].
 	if (!currentTerm && !activeRun) return null;
 
 	const stillLeadsWithRun = !!activeRun;
@@ -47,7 +47,7 @@ export async function resolveCampaignRun(
 		position = currentTerm!.positions;
 		status = currentTerm!.leaders.status;
 		leaderId = currentTerm!.leaders.id;
-		// Person+cycle scoped (subjectUserId), same key as an aspirant's activeRun —
+		// Person+cycle scoped (subjectUserId), same key as an aspirant's activeRun,
 		// leaderId on `campaigns` is only ever a nullable secondary link, never the
 		// lookup key (seed-campaigns.ts never sets it).
 		const [c] = await db
@@ -57,7 +57,7 @@ export async function resolveCampaignRun(
 		campaignId = c?.id ?? 0;
 	}
 
-	// The seat this person actually HOLDS right now, if any — independent of which
+	// The seat this person actually HOLDS right now, if any, independent of which
 	// run this workspace is about (an incumbent Senator running for President still
 	// currently holds Senator; a pure aspirant holds nothing yet, so this is null).
 	const currentPosition =
@@ -69,7 +69,7 @@ export async function resolveCampaignRun(
 export type CampaignRun = NonNullable<Awaited<ReturnType<typeof resolveCampaignRun>>>;
 
 /** Everything the campaign workspace page renders: manifesto/delivery, updates,
- * reviews, pledges and fundraising — the same shape whether it's the real public
+ * reviews, pledges and fundraising. The same shape whether it's the real public
  * page or an admin/applicant preview of a not-yet-verified run. */
 export async function loadCampaignWorkspaceData(row: CampaignRun, viewerId?: number) {
 	const campaignId = row.campaignId;
@@ -114,7 +114,7 @@ export async function loadCampaignWorkspaceData(row: CampaignRun, viewerId?: num
 	const myReview = viewerId ? await getMyReview(row.users.id, viewerId) : null;
 	const isFollowing = viewerId ? await isFollowingAsAccount(viewerId, row.users.id) : false;
 
-	// Party is per-run (campaigns.partyId), not a person-level fact — this page is
+	// Party is per-run (campaigns.partyId), not a person-level fact. This page is
 	// specifically about the RUN (see resolveCampaignRun), so it's this run's own.
 	const [partyRow] = mainCampaign?.partyId
 		? await db.select({ name: parties.name }).from(parties).where(eq(parties.id, mainCampaign.partyId))

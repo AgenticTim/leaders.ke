@@ -18,7 +18,7 @@
 	let fetchingLink = $state(false);
 	let savingReview = $state(false);
 	// Scroll-syncs the reviewForm's highlight backdrop to the real textarea
-	// (only one review is ever open at a time, so one shared ref is enough) —
+	// (only one review is ever open at a time, so one shared ref is enough),
 	// without this the red span can sit far down in a long document, past
 	// what's visible in the ~8-row textarea, and never scroll into view since
 	// the backdrop is a separate, otherwise-static layer.
@@ -35,7 +35,7 @@
 		| { mode: 'edit'; id: number; title: string; content: string };
 	let review = $state<Review | null>(null);
 
-	// Live usage against the per-question grounding cap (see load()) — purely
+	// Live usage against the per-question grounding cap (see load()), purely
 	// informational (the progress bar at the bottom of the page), never blocks
 	// saving: the actual enforcement is groundingText() silently trimming
 	// whatever's over budget at ask-time, not this tab.
@@ -46,7 +46,7 @@
 	// everything else already stored. Editing an existing document excludes
 	// that document's own current stored length first (it's being replaced,
 	// not added on top of). Drives the red highlight over whatever part of the
-	// textarea's content won't fit (see the reviewForm snippet) — informational
+	// textarea's content won't fit (see the reviewForm snippet), informational
 	// only, saving past it is still allowed, it just won't all reach the AI.
 	function availableFor(r: Review): number {
 		const excludeExisting = r.mode === 'edit' ? (data.documents.find((d) => d.id === r.id)?.text.length ?? 0) : 0;

@@ -3,7 +3,7 @@ import { getDomainUser } from '$lib/server/leader';
 import { countUnreadNotifications } from '$lib/server/notifications';
 import type { RequestHandler } from './$types';
 
-// Lazy-loaded by the Header's notification bell, on any page — same rationale as
+// Lazy-loaded by the Header's notification bell, on any page, same rationale as
 // /api/switcher: only the unread count is worth fetching on every page view. The
 // full history (and open invites) lives on the /dashboard/notifications tab,
 // loaded server-side there instead.

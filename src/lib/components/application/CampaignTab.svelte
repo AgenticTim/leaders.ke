@@ -7,7 +7,7 @@
 
 	// The campaign family's (/dashboard/[slug]/campaign) +page.server.ts shapes
 	// `data` and hosts ?/save plus the manifesto pillar actions. A person may have
-	// zero, one, or (one per election year) two campaigns — each fully independent
+	// zero, one, or (one per election year) two campaigns. Each fully independent
 	// and individually verified. The pills bar picks which one is open; "Add
 	// Campaign" opens a blank form for a not-yet-taken year.
 	type Pillar = { id: number; title: string; summary: string; deliveryStatus: string; evidence: string };
@@ -39,7 +39,7 @@
 
 	let saving = $state(false);
 	// Showing a blank form for a not-yet-saved campaign instead of the selected
-	// existing one — client-side only until the first save creates a real row.
+	// existing one. Client-side only until the first save creates a real row.
 	// Starts closed even with zero campaigns: just the empty state + Add button
 	// until the user actually asks to add one.
 	let creatingNew = $state(false);
@@ -52,7 +52,7 @@
 	let partyOther = $state('');
 
 	// Resyncs the locally-edited fields whenever a different campaign becomes
-	// active — switching tabs (a new `data.campaign`) or entering/leaving "new".
+	// active. Switching tabs (a new `data.campaign`) or entering/leaving "new".
 	$effect(() => {
 		description = activeCampaign?.description ?? '';
 		partyId = activeCampaign?.partyId ? String(activeCampaign.partyId) : '';
@@ -70,11 +70,11 @@
 	// Manifesto pillars: one editable at a time; null means all rows show read-only.
 	let editingPillarId = $state<number | null>(null);
 
-	// Picking a template just prefills these — it isn't a link back to the template.
+	// Picking a template just prefills these. It isn't a link back to the template.
 	let newPillarTitle = $state('');
 	let newPillarSummary = $state('');
 	// Svelte binds <option value={number}> as the actual number (not its string form),
-	// so this has to stay a number to match — comparing via String() never found a hit.
+	// so this has to stay a number to match. Comparing via String() never found a hit.
 	let selectedTemplateId = $state<number | ''>('');
 
 	function onTemplateChange() {
@@ -83,7 +83,7 @@
 		newPillarSummary = template?.summary ?? '';
 	}
 
-	// Local, reorderable copy of the list — reordered on drop before the server
+	// Local, reorderable copy of the list, reordered on drop before the server
 	// round-trip finishes, so dragging feels instant. Resyncs whenever the server
 	// data changes underneath it (add/edit/delete, or the reorder save itself).
 	let orderedPillars = $state(data.pillars);
@@ -123,7 +123,7 @@
 		await invalidateAll();
 	}
 
-	// Admin-only per-campaign Verify/Unverify — posts to the shared admin control
+	// Admin-only per-campaign Verify/Unverify, posts to the shared admin control
 	// endpoint (same one the dashboard layout's control bar uses), scoped to this
 	// one campaign, then reloads this tab.
 	let verifying = $state(false);
@@ -190,11 +190,11 @@
 	{:else}
 		{#if activeCampaign?.verified && !data.isAdmin}
 			<p class="mt-4 rounded-xl border border-border px-4 py-2 text-sm text-muted">
-				This run is verified and live — the seat and cycle are locked. You can still edit the title, platform and certificate.
+				This run is verified and live. The seat and cycle are locked. You can still edit the title, platform and certificate.
 			</p>
 		{:else if activeCampaign?.verified && data.isAdmin}
 			<p class="mt-4 rounded-xl border border-border px-4 py-2 text-sm text-muted">
-				Admin: this run is verified and live. Changing the seat or cycle moves it on the ballot — edit with care.
+				Admin: this run is verified and live. Changing the seat or cycle moves it on the ballot, edit with care.
 			</p>
 		{/if}
 		{#if data.isAdmin && activeCampaign}
@@ -271,7 +271,7 @@
 				<p class="-mt-3 text-sm font-medium text-red-500">{form?.error}</p>
 			{/if}
 
-			<!-- Party contested under: per-run, not per-person — can differ from the party
+			<!-- Party contested under: per-run, not per-person, can differ from the party
 			this person last held a term under. -->
 			{#if data.parties}
 				<label class="block">
@@ -355,7 +355,7 @@
 			<div class="mt-10 border-t border-border pt-8">
 				<h2 class="text-lg font-semibold text-heading">Manifesto</h2>
 				<p class="mt-1 text-sm text-muted">
-					The promises for this run — what you plan to do, in the order you add them. {#if orderedPillars.length > 1} Drag to reorder. {/if}
+					The promises for this run, what you plan to do, in the order you add them. {#if orderedPillars.length > 1} Drag to reorder. {/if}
 					Already delivered something? Log it on the Delivery tab instead.
 				</p>
 

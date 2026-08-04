@@ -20,13 +20,13 @@ export async function getGroundingExtras(subjectUserId: number) {
 	]);
 	return {
 		faqs: faqRows,
-		// Only documents with extracted text are useful grounding — a PDF still
+		// Only documents with extracted text are useful grounding. A PDF still
 		// pending text extraction (see saveKnowledgeDocument) has nothing to quote.
-		// url rides along ONLY for link-sourced documents (an absolute http(s) URL —
+		// url rides along ONLY for link-sourced documents (an absolute http(s) URL,
 		// see addLink in the Knowledge tab) so the AI can point a citizen straight at
 		// the source (e.g. a YouTube video whose transcript isn't available) instead
 		// of just declining. An uploaded FILE's fileUrl is our own auth-gated
-		// /uploads/knowledge/... route — never public, so it's never handed to the AI.
+		// /uploads/knowledge/... route, never public, so it's never handed to the AI.
 		documents: docRows
 			.filter((d): d is { title: string; extractedText: string; fileUrl: string } => !!d.extractedText)
 			.map((d) => ({ title: d.title, text: d.extractedText, url: d.fileUrl.startsWith('http') ? d.fileUrl : null }))

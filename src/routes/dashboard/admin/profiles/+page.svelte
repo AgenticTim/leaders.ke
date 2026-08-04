@@ -14,7 +14,7 @@
 	// Grant-credits modal: which profile it's open for (null = closed).
 	let grantingFor = $state<{ profileId: number; profileName: string } | null>(null);
 	// bind:value on a type="number" input yields a real number (or '' when
-	// empty), never a string with a .trim() method — typed accordingly.
+	// empty), never a string with a .trim() method, typed accordingly.
 	let grantAmount = $state<number | ''>('');
 	let granting = $state(false);
 
@@ -23,7 +23,7 @@
 	let switchingId = $state<number | null>(null);
 
 	// Click a row to expand its review history (claims on this profile + verification
-	// requests on its runs), fetched on demand and cached — so a full page of rows
+	// requests on its runs), fetched on demand and cached, so a full page of rows
 	// doesn't pay for all their histories up front.
 	type Extras = {
 		applicantName: string | null;
@@ -60,7 +60,7 @@
 		return `?${params}`;
 	}
 
-	// Clicking a column header sorts by it — toggling asc/desc if it's already the
+	// Clicking a column header sorts by it. Toggling asc/desc if it's already the
 	// active column, else ascending. Search is preserved; paging resets to page 1.
 	function sortHref(col: string) {
 		const params = new URLSearchParams();
@@ -71,10 +71,10 @@
 	}
 	const sortArrow = (col: string) => (data.sort === col ? (data.dir === 'asc' ? '↑' : '↓') : '');
 
-	// Hover explanations for the derived pills (they aren't stored — see profiles.ts).
+	// Hover explanations for the derived pills (they aren't stored, see profiles.ts).
 	const SOURCE_HELP = 'How the profile came to exist: has a claim → claimed; else has an active manager → applied; else → seeded.';
 	const VERIFIED_HELP =
-		'Review-workflow state, keyed off source: seeded → —; claimed → latest claim outcome (pending/approved/rejected); applied → run verified → approved, else latest verification request outcome; soft-deleted person → deleted.';
+		'Review-workflow state, keyed off source: seeded → -; claimed → latest claim outcome (pending/approved/rejected); applied → run verified → approved, else latest verification request outcome; soft-deleted person → deleted.';
 
 	// Colour the source + verified pills.
 	const sourceClass: Record<string, string> = {
@@ -90,7 +90,7 @@
 	}
 </script>
 
-<svelte:head><title>Profiles — Admin</title></svelte:head>
+<svelte:head><title>Profiles · Admin</title></svelte:head>
 
 <div>
 	<h1 class="text-xl font-bold text-heading">Profiles</h1>
@@ -145,7 +145,7 @@
 										<span class="font-medium">{p.managerId}</span>
 									</div>
 								{:else}
-									—
+									-
 								{/if}
 							</td>
 							<td class="px-4 py-3 text-sm text-heading">
@@ -170,7 +170,7 @@
 								<span use:tooltip={SOURCE_HELP} class="cursor-help rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize {sourceClass[p.source]}">{p.source}</span>
 							</td>
 							<td class="px-4 py-3 text-sm">
-								<span use:tooltip={VERIFIED_HELP} class="cursor-help rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize {verifiedClass(p.verified)}">{p.verified ?? '—'}</span>
+								<span use:tooltip={VERIFIED_HELP} class="cursor-help rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize {verifiedClass(p.verified)}">{p.verified ?? '-'}</span>
 							</td>
 							<td class="px-4 py-3 text-sm text-muted" onclick={(e) => e.stopPropagation()}>
 								<div class="flex flex-col gap-2">
@@ -267,16 +267,16 @@
 																{#each extras.claimHistory as h (h.id)}
 																	<tr class="border-t border-border">
 																		<td class="px-3 py-2 text-xs text-muted">{h.id}</td>
-																		<td class="px-3 py-2 text-xs text-muted">{h.role ?? '—'}</td>
+																		<td class="px-3 py-2 text-xs text-muted">{h.role ?? '-'}</td>
 																		<td class="px-3 py-2 text-xs text-heading">{h.claimantName}</td>
-																		<td class="px-3 py-2 text-xs text-muted">{h.email ?? '—'}</td>
-																		<td class="px-3 py-2 text-xs text-muted">{h.phone ?? '—'}</td>
-																		<td class="px-3 py-2 text-xs text-muted">{h.nationalId ?? '—'}</td>
+																		<td class="px-3 py-2 text-xs text-muted">{h.email ?? '-'}</td>
+																		<td class="px-3 py-2 text-xs text-muted">{h.phone ?? '-'}</td>
+																		<td class="px-3 py-2 text-xs text-muted">{h.nationalId ?? '-'}</td>
 																		<td class="px-3 py-2 text-xs text-muted">{dateFmt.format(new Date(h.requestedAt))}</td>
-																		<td class="px-3 py-2 text-xs text-muted">{h.reviewedAt ? dateFmt.format(new Date(h.reviewedAt)) : '—'}</td>
-																		<td class="px-3 py-2 text-xs text-muted">{h.reviewerName ?? '—'}</td>
+																		<td class="px-3 py-2 text-xs text-muted">{h.reviewedAt ? dateFmt.format(new Date(h.reviewedAt)) : '-'}</td>
+																		<td class="px-3 py-2 text-xs text-muted">{h.reviewerName ?? '-'}</td>
 																		<td class="px-3 py-2 text-xs capitalize text-heading">{h.deleted ? 'withdrawn' : (h.outcome ?? 'pending')}</td>
-																		<td class="px-3 py-2 text-xs text-muted">{h.notes ?? '—'}</td>
+																		<td class="px-3 py-2 text-xs text-muted">{h.notes ?? '-'}</td>
 																	</tr>
 																{/each}
 															</tbody>
@@ -289,7 +289,7 @@
 											{/if}
 
 											<!-- Application history: every application the profile's APPLICANT submitted,
-											across every candidate they represent — for applied profiles only. -->
+											across every candidate they represent, for applied profiles only. -->
 											{#if p.source === 'applied'}
 											<div>
 												<h3 class="text-sm font-semibold text-heading">Applications by {extras.applicantName ?? 'the applicant'}</h3>
@@ -312,13 +312,13 @@
 																{#each extras.applications as h (h.id)}
 																	<tr class="border-t border-border">
 																		<td class="px-3 py-2 text-xs text-heading">{h.candidateName}</td>
-																		<td class="px-3 py-2 text-xs text-muted">{h.role ?? '—'}</td>
-																		<td class="px-3 py-2 text-xs text-muted">{h.nationalId ?? '—'}</td>
+																		<td class="px-3 py-2 text-xs text-muted">{h.role ?? '-'}</td>
+																		<td class="px-3 py-2 text-xs text-muted">{h.nationalId ?? '-'}</td>
 																		<td class="px-3 py-2 text-xs text-muted">{dateFmt.format(new Date(h.requestedAt))}</td>
-																		<td class="px-3 py-2 text-xs text-muted">{h.reviewedAt ? dateFmt.format(new Date(h.reviewedAt)) : '—'}</td>
-																		<td class="px-3 py-2 text-xs text-muted">{h.reviewerName ?? '—'}</td>
+																		<td class="px-3 py-2 text-xs text-muted">{h.reviewedAt ? dateFmt.format(new Date(h.reviewedAt)) : '-'}</td>
+																		<td class="px-3 py-2 text-xs text-muted">{h.reviewerName ?? '-'}</td>
 																		<td class="px-3 py-2 text-xs capitalize text-heading">{h.outcome ?? 'pending'}</td>
-																		<td class="px-3 py-2 text-xs text-muted">{h.notes ?? '—'}</td>
+																		<td class="px-3 py-2 text-xs text-muted">{h.notes ?? '-'}</td>
 																	</tr>
 																{/each}
 															</tbody>

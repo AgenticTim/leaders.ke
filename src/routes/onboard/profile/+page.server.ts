@@ -9,14 +9,14 @@ import { CAMPAIGN_ROLES } from '$lib/utils/campaignRoles';
 import type { Actions, PageServerLoad } from './$types';
 
 // Step 3 of the onboarding wizard: describe the leader, match against seeded profiles,
-// then create or link one. Submit lands on /onboard/plan (step 4). Name + role only —
+// then create or link one. Submit lands on /onboard/plan (step 4). Name + role only,
 // leadership status, seat, party, and a run are all filled in later on the dashboard's
 // own Profile/Campaign tabs, at zero friction before payment.
 export const load: PageServerLoad = async (event) => {
 	const { domainUser } = await requireDashboardUser(event);
 	const sp = event.url.searchParams;
 
-	// "Claim this profile" on a public page arrives here as ?profile=<slug> — prefill
+	// "Claim this profile" on a public page arrives here as ?profile=<slug>. Prefill
 	// the name from THAT profile (not the citizen's own) and hand the client its id so
 	// the Matching Profiles panel can auto-select it once the (debounced) match lands.
 	const claimSlug = sp.get('profile');
@@ -25,7 +25,7 @@ export const load: PageServerLoad = async (event) => {
 		: [];
 
 	// Stepping BACK here from Plan/Checkout carries every field this step collected
-	// as query params (see the layout stepper) — no client-side persistence needed,
+	// as query params (see the layout stepper). No client-side persistence needed,
 	// the URL already has it all. These win over both the claim-target and the
 	// citizen's-own-name defaults below.
 	const isStepBack = !!sp.get('myRole');
@@ -40,8 +40,8 @@ export const load: PageServerLoad = async (event) => {
 
 	return {
 		roles: CAMPAIGN_ROLES,
-		// Stepping back wins; else the claim target's name; else the citizen's own —
-		// the common case is a leader onboarding themselves. Same shape every branch
+		// Stepping back wins; else the claim target's name; else the citizen's own.
+		// The common case is a leader onboarding themselves. Same shape every branch
 		// so the client can read every field uniformly regardless of how this page
 		// was reached.
 		defaults: stepBack ?? {
@@ -56,7 +56,7 @@ export const load: PageServerLoad = async (event) => {
 };
 
 export const actions: Actions = {
-	// Validates only — nothing is written to the database yet. Creating a phantom
+	// Validates only. Nothing is written to the database yet. Creating a phantom
 	// profile (or granting claim access) here, before the citizen has actually paid,
 	// would litter the namespace with abandoned drafts every time someone bails at
 	// Plan or Checkout. The actual create/link happens in checkout's Pay action;
@@ -81,7 +81,7 @@ export const actions: Actions = {
 			if (!claimable.ok) return fail(400, { error: claimable.error, values });
 		}
 
-		// Carry everything into Plan (step 4) as query params — Checkout's Pay action
+		// Carry everything into Plan (step 4) as query params, Checkout's Pay action
 		// re-validates and actually creates/links the profile once payment succeeds.
 		const params = new URLSearchParams({ firstName: validated.input.firstName, otherNames: validated.input.otherNames, myRole: validated.input.myRole });
 		if (linkSubjectId) params.set('linkSubjectId', String(linkSubjectId));

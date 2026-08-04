@@ -15,7 +15,7 @@ import type { Actions, PageServerLoad } from './$types';
 // Resolves + authorizes the checkout selection (plan + the onboard step 3 fields
 // carried in via query params), and reads the live rate for it. Shared by the load
 // (reads the URL's query) and the Pay action (reads the same query string re-posted
-// as a single hidden field — action="?/pay" REPLACES the whole query string per
+// as a single hidden field, action="?/pay" REPLACES the whole query string per
 // URL-resolution rules, so reading event.url there directly would find nothing).
 async function resolveSelection(sp: URLSearchParams) {
 	const tier = String(sp.get('tier') ?? '');
@@ -35,7 +35,7 @@ async function resolveSelection(sp: URLSearchParams) {
 
 	let subjectName: string;
 	if (linkSubjectId) {
-		// Re-check the link target is still claimable — it may have been taken by
+		// Re-check the link target is still claimable. It may have been taken by
 		// someone else since step 3 (the authoritative check is linkProfile's own
 		// race guard at Pay time; this one is just for a clean error here).
 		const claimable = await assertClaimable(linkSubjectId);
@@ -123,7 +123,7 @@ export const actions: Actions = {
 		}
 
 		// Mock charge (dev fallback): creates/links the profile (slug minted here,
-		// not before — an abandoned wizard never leaves a phantom profile behind),
+		// not before. An abandoned wizard never leaves a phantom profile behind),
 		// then records an active subscription + a successful payment.
 		let result: { slug: string; subjectUserId: number };
 		try {
@@ -169,7 +169,7 @@ export const actions: Actions = {
 		});
 
 		// Admins get the same notification whether this was a brand-new profile or a
-		// claim on a seeded one — checkout is the only place that has the plan/price
+		// claim on a seeded one, checkout is the only place that has the plan/price
 		// alongside the create/link result, so it fires here rather than in onboard.ts.
 		await notifyAdminsOfNewProfile({
 			kind: sel.linkSubjectId ? 'claimed' : 'created',
@@ -191,7 +191,7 @@ export const actions: Actions = {
 			subscriptionEndsAt: endsAt
 		});
 
-		// Straight to the leader's own dashboard once paid — no /dashboard/account detour.
+		// Straight to the leader's own dashboard once paid. No /dashboard/account detour.
 		redirectWithFlash(event.cookies, `/dashboard/${result.slug}/profile`, "Your payment was successful! Welcome to your leader's dashboard.");
 	}
 };

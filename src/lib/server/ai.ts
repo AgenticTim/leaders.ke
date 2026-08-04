@@ -13,12 +13,12 @@ export type LeaderGrounding = {
 	bio: string;
 	pillars: { title: string; summary: string; deliveryStatus?: string; evidence?: string | null }[];
 	posts: { title: string; body: string }[];
-	// Knowledge tab (see $lib/server/knowledge.ts) — a team-curated FAQ plus
+	// Knowledge tab (see $lib/server/knowledge.ts). A team-curated FAQ plus
 	// extracted text from uploaded source documents. Optional: older call sites
 	// that haven't been updated to fetch these still work, just with less grounding.
 	faqs?: { question: string; answer: string }[];
 	// url is set only for a link-sourced document (an external http(s) source, e.g.
-	// a YouTube video or article — see $lib/server/knowledge.ts) so the AI can point
+	// a YouTube video or article, see $lib/server/knowledge.ts) so the AI can point
 	// a citizen straight at it. Null for an uploaded file, which has no public URL.
 	documents?: { title: string; text: string; url?: string | null }[];
 };
@@ -28,7 +28,7 @@ export type ConstituentAnswer = {
 	source: 'ai' | 'heuristic';
 };
 
-// Anthropic's own account (ours, not the leader's) is out of credits — a
+// Anthropic's own account (ours, not the leader's) is out of credits. A
 // platform-wide outage, not a per-leader one. Thrown instead of silently
 // falling back to the heuristic answer (see answerConstituentQuestion) so the
 // caller can surface it plainly rather than quietly degrading every answer
@@ -36,10 +36,10 @@ export type ConstituentAnswer = {
 export class PlatformOutOfCreditsError extends Error {}
 
 // Per-question grounding cap (docs/ai-chat-costs.md), admin-editable as
-// platformSettings.maxGroundingChars (Settings → AI Chat), default 50,000 —
-// the figure the PAYG credit price is costed against. Without this, a
+// platformSettings.maxGroundingChars (Settings → AI Chat), default 50,000.
+// The figure the PAYG credit price is costed against. Without this, a
 // leader's stored knowledgebase (gated separately, per plan, by the much
-// bigger knowledgeMb cap — see knowledge/+page.server.ts) goes into the
+// bigger knowledgeMb cap, see knowledge/+page.server.ts) goes into the
 // prompt unbounded on every single question, which is what actually blows
 // past this per-question budget.
 function groundingText(leader: LeaderGrounding, maxChars: number): string {
@@ -53,14 +53,14 @@ function groundingText(leader: LeaderGrounding, maxChars: number): string {
 	const faqs = (leader.faqs ?? []).map((f) => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n');
 
 	// Profile, manifesto, posts and FAQ: the identity of the leader, never
-	// truncated — a citizen's basic "who is this person" answer must never go
+	// truncated. A citizen's basic "who is this person" answer must never go
 	// missing because of an unrelated document upload.
 	const core = [
 		`Leader: ${leader.name}, ${leader.status} for ${leader.positionTitle}, ${leader.regionLabel}, Kenya.`,
 		leader.bio ? `Bio: ${leader.bio}` : '',
 		pillars ? `Manifesto pillars:\n${pillars}` : 'No manifesto published yet.',
 		posts ? `Recent public updates:\n${posts}` : 'No public updates yet.',
-		// FAQs take priority over free-form documents — a team member wrote these
+		// FAQs take priority over free-form documents. A team member wrote these
 		// answers exactly as they want a citizen to read them.
 		faqs ? `Team-written FAQ (prefer this wording when it answers the question):\n${faqs}` : ''
 	]
@@ -96,7 +96,7 @@ async function askClaude(leader: LeaderGrounding, question: string, history: Cha
 		response = await client.messages.create({
 			// Sonnet 5 over Opus: ~7-8x cheaper per message (roughly $9 vs $65 per 1000
 			// messages at typical grounding-context lengths) for a feature that's already
-			// instructed to answer in 200-300 characters — not worth Opus's premium here.
+			// instructed to answer in 200-300 characters. Not worth Opus's premium here.
 			model: 'claude-sonnet-5',
 			max_tokens: 1024,
 			thinking: { type: 'adaptive' },
@@ -120,7 +120,7 @@ async function askClaude(leader: LeaderGrounding, question: string, history: Cha
 		// Anthropic's documented shape for our account being out of credits: a 400
 		// invalid_request_error whose message mentions the credit balance. No
 		// dedicated error class for it, so this is a message-content check, not a
-		// status-code one — the only reliable way the SDK currently exposes it.
+		// status-code one. The only reliable way the SDK currently exposes it.
 		if (err instanceof Anthropic.APIError && err.status === 400 && /credit balance/i.test(err.message)) {
 			throw new PlatformOutOfCreditsError('The AI provider account is out of credits.');
 		}
@@ -134,7 +134,7 @@ async function askClaude(leader: LeaderGrounding, question: string, history: Cha
 }
 
 // Dev fallback: rank FAQs/pillars/posts by word overlap with the question and quote
-// the best matches. FAQs win when they match — a team member wrote that answer
+// the best matches. FAQs win when they match. A team member wrote that answer
 // specifically for this question.
 function heuristicAnswer(leader: LeaderGrounding, question: string): string {
 	const words = question
@@ -193,7 +193,7 @@ export async function answerConstituentQuestion(
 /** Answers a site-wide civic/platform question against whatever the retrieval
  * router pulled (platformAsk.ts), rather than one leader's knowledgebase.
  * Shares the platform system prompt with the per-leader chat but NOT the leader
- * one — its instructions are about representing a single campaign, which is
+ * one. Its instructions are about representing a single campaign, which is
  * wrong for a platform-scope answer. Throws PlatformOutOfCreditsError the same
  * way, so the caller can route the question to the platform inbox instead of
  * silently degrading. Returns null when there's no API key at all: unlike the
@@ -250,7 +250,7 @@ export async function answerPlatformQuestion(
 			system: [
 				{
 					type: 'text',
-					text: `${settings.platformSystemPrompt}\n\nYou are answering a PLATFORM-WIDE question — about Kenyan civics, elections, or how vote.ke itself works — not a question about one candidate. Ground every claim only in the retrieved material below. Where a source carries a URL or a site path (e.g. /pricing, /demographics), point the citizen to it so they can go deeper — write site paths exactly as given, starting with "/", never prefixed with a domain name. When the material genuinely doesn't answer the question, say so plainly and suggest the closest useful next step on vote.ke.`,
+					text: `${settings.platformSystemPrompt}\n\nYou are answering a PLATFORM-WIDE question: about Kenyan civics, elections, or how vote.ke itself works: not a question about one candidate. Ground every claim only in the retrieved material below. Where a source carries a URL or a site path (e.g. /pricing, /demographics), point the citizen to it so they can go deeper, write site paths exactly as given, starting with "/", never prefixed with a domain name. When the material genuinely doesn't answer the question, say so plainly and suggest the closest useful next step on vote.ke.`,
 					cache_control: { type: 'ephemeral' }
 				},
 				{ type: 'text', text: groundingText, cache_control: { type: 'ephemeral' } }
@@ -290,13 +290,13 @@ function heuristicSentiment(text: string): MentionSentiment {
 }
 
 /** Classifies a BATCH of news mentions' tone TOWARD their named leader(s) in one
- * Haiku call instead of one call per post — with the ingested backlog now in the
+ * Haiku call instead of one call per post, with the ingested backlog now in the
  * thousands, one-call-per-post would mean thousands of sequential round trips.
  * `leaderName` may be several names joined ("A, B") for a post tagging more than
  * one person, matching how sentiment is stored: one value per POST, not per
  * tagged person. Falls back to the keyword heuristic per item, both when there's
  * no API key at all and per-item when the model's response is missing or
- * unparseable for that line — sentiment must never make ingestion itself fail. */
+ * unparseable for that line, sentiment must never make ingestion itself fail. */
 export async function classifyMentionSentimentBatch(items: { leaderName: string; title: string; body: string }[]): Promise<MentionSentiment[]> {
 	const texts = items.map((it) => `${it.title}\n${it.body}`.slice(0, 1000));
 	const heuristicResults = () => texts.map(heuristicSentiment);
@@ -309,7 +309,7 @@ export async function classifyMentionSentimentBatch(items: { leaderName: string;
 			model: 'claude-haiku-4-5-20251001',
 			max_tokens: items.length * 10,
 			system:
-				'You classify Kenyan political news coverage. Below are several numbered articles. For EACH one, reply on its own line as "N: word" where word is positive, neutral, or negative — the tone of that article TOWARD its named politician (not the story\'s general mood). One line per article, in order, nothing else.',
+				'You classify Kenyan political news coverage. Below are several numbered articles. For EACH one, reply on its own line as "N: word" where word is positive, neutral, or negative. The tone of that article TOWARD its named politician (not the story\'s general mood). One line per article, in order, nothing else.',
 			messages: [{ role: 'user', content: prompt }]
 		});
 		const text = response.content.find((b) => b.type === 'text')?.text ?? '';

@@ -15,13 +15,13 @@
 		regimes: { year: number; label: string }[];
 		/** Base for year links (`${basePath}/${year}`); optional when hrefFor is given. */
 		basePath?: string;
-		/** The hub itself (the active cycle's link) — differs from basePath on
+		/** The hub itself (the active cycle's link), differs from basePath on
 		 * Country-wide seats (/president vs /presidents/2027). */
 		hubPath?: string;
 		/** Custom link builder (e.g. ?regime= query links on directories);
 		 * overrides basePath/hubPath entirely. */
 		hrefFor?: (year: number) => string;
-		/** The active election cycle — its link is the hub itself. */
+		/** The active election cycle. Its link is the hub itself. */
 		cycle: number;
 		/** The regime currently on screen (highlighted). */
 		regime: number;

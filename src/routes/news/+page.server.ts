@@ -47,7 +47,7 @@ export const load: PageServerLoad = async (event) => {
 	const constituency = county && constituencySlug ? findConstituencyBySlug(constituencySlug) : undefined;
 	const ward = constituency && wardSlug ? findWardBySlug(wardSlug) : undefined;
 
-	// "Following": signed-in only, folded in from the old /dashboard feed — one
+	// "Following": signed-in only, folded in from the old /dashboard feed. One
 	// button per leader actually followed (see followedAuthors below), not a
 	// single catch-all toggle. ?author=<personId> filters to just that one.
 	const domainUser = event.locals.user ? await getDomainUser(event.locals.user.id) : undefined;
@@ -56,7 +56,7 @@ export const load: PageServerLoad = async (event) => {
 	const activeAuthor = followedAuthors.some((a) => a.personId === activeAuthorRaw) ? activeAuthorRaw : 0;
 
 	// Only posts about/from a publicly visible person: a verified held term, or a
-	// verified aspirant campaign — same gate the rest of the platform uses. Each
+	// verified aspirant campaign, same gate the rest of the platform uses. Each
 	// row also carries its seat's region/boundary, so "local news" can filter to
 	// whichever level(s) of geography the visitor picked.
 	const [verifiedLeaderRows, verifiedCampaignRows] = await Promise.all([
@@ -73,7 +73,7 @@ export const load: PageServerLoad = async (event) => {
 	]);
 	const publicUserIds = [...new Set([...verifiedLeaderRows, ...verifiedCampaignRows].map((r) => r.id).filter((id): id is number => id !== null))];
 
-	// Every (region, boundary) a person's seat currently spans — a held term AND
+	// Every (region, boundary) a person's seat currently spans. A held term AND
 	// a fresh run can both be active for the same person, so this is a list, not
 	// a single value.
 	const seatsByUserId = new Map<number, { region: string; boundary: string }[]>();
@@ -83,7 +83,7 @@ export const load: PageServerLoad = async (event) => {
 		list.push({ region: r.region, boundary: r.boundary });
 		seatsByUserId.set(r.id, list);
 	}
-	// Whichever levels the visitor picked — a person's seat matches if it's
+	// Whichever levels the visitor picked. A person's seat matches if it's
 	// national (always relevant), or its region equals the matching level's name.
 	// Picking a ward doesn't exclude their county's governor/senator, it only adds
 	// a level: this is "relevant to me", not "exactly my ward".
@@ -117,7 +117,7 @@ export const load: PageServerLoad = async (event) => {
 		};
 	}
 
-	// Team-authored (creatorId set), published, not-deactivated — each gets its own
+	// Team-authored (creatorId set), published, not-deactivated. Each gets its own
 	// /news/[slug] article page.
 	const postFilter = and(
 		inArray(posts.subjectUserId, publicUserIds),
@@ -130,12 +130,12 @@ export const load: PageServerLoad = async (event) => {
 		isNull(users.deletedAt)
 	);
 	// Bounded: the page paginates in JS off this set, and the tag sidebar counts
-	// over it — 200 newest team articles is far beyond what the UI surfaces.
+	// over it, 200 newest team articles is far beyond what the UI surfaces.
 	const postRows = await db.select({ post: posts, author: users }).from(posts).innerJoin(users, eq(posts.subjectUserId, users.id)).where(postFilter).orderBy(desc(posts.createdAt)).limit(200);
 
 	const postIds = postRows.map((r) => r.post.id);
 	// Team @mentions of OTHER leaders written inline in a team post's own body
-	// (creatorId set on the tag — see MentionPicker/RichTextEditor).
+	// (creatorId set on the tag, see MentionPicker/RichTextEditor).
 	const inlineMentionRows = postIds.length
 		? await db
 				.select({ postId: tags.postId, slug: users.slug, firstName: users.firstName, otherNames: users.otherNames })
@@ -151,10 +151,10 @@ export const load: PageServerLoad = async (event) => {
 		inlineMentionsByPostId.set(r.postId, list);
 	}
 
-	// Aggregated mentions — system-authored (creatorId null), no local article page,
+	// Aggregated mentions: system-authored (creatorId null), no local article page,
 	// so they link out to where they were found (sourceUrl) instead. Tagged via the
 	// same `tags` table, but with a null creatorId (the aggregation itself, not a
-	// team member's own @mention) — see scripts/lib/seed-news.ts for the dev-seeded
+	// team member's own @mention), see scripts/lib/seed-news.ts for the dev-seeded
 	// version of what a real scraping pipeline will produce.
 	const mentionPostFilter = and(
 		isNull(posts.creatorId),
@@ -167,7 +167,7 @@ export const load: PageServerLoad = async (event) => {
 		inArray(tags.subjectUserId, publicUserIds)
 	);
 	// Bounded hard: daily ingestion grows this table forever, and this page only
-	// ever shows a page-size slice — the mentions sidebar counts cover the 500
+	// ever shows a page-size slice. The mentions sidebar counts cover the 500
 	// newest tag rows, which is a rolling few weeks of coverage, not all history.
 	const mentionTagRows = await db
 		.select({ post: posts, taggedUserId: tags.subjectUserId })
@@ -191,7 +191,7 @@ export const load: PageServerLoad = async (event) => {
 		: [];
 	const taggedUserById = new Map(taggedUserRows.map((u) => [u.id, u]));
 
-	// Sidebar option lists — every tag/mentioned leader across BOTH team posts and
+	// Sidebar option lists. Every tag/mentioned leader across BOTH team posts and
 	// aggregated mentions, with how many articles carry it, most-used first.
 	const tagCounts = new Map<string, number>();
 	const mentionCounts = new Map<string, { name: string; n: number }>();
@@ -261,7 +261,7 @@ export const load: PageServerLoad = async (event) => {
 		if (activeMention) {
 			// Matches the person's own authored articles (team post or the primary
 			// subject of an aggregated mention) as well as inline @mentions in
-			// someone else's post — "news about this person", not just "news that
+			// someone else's post, "news about this person", not just "news that
 			// name-drops them".
 			const matchesPrimary = a.authorPath === `/${activeMention}`;
 			const matchesTagged = a.mentions.some((m) => m.slug === activeMention);

@@ -48,7 +48,7 @@ async function storedContact(userId: number, channel: 'sms' | 'whatsapp'): Promi
 }
 
 export const actions: Actions = {
-	// Contact channels (email/sms/whatsapp) are never written here — a new value only
+	// Contact channels (email/sms/whatsapp) are never written here. A new value only
 	// takes effect after a code is confirmed on /verify/[channel]. This save only
 	// touches fields that don't need verifying, and refuses to proceed if the user
 	// typed a new (unverified) number without going through Verify first.
@@ -75,7 +75,7 @@ export const actions: Actions = {
 		if (!otherNames) return fail(400, { error: 'Other names are required.' });
 
 		// Compare the submitted numbers against what's on file (normalized both ways).
-		// A changed value means they edited but didn't verify — block until they do.
+		// A changed value means they edited but didn't verify, block until they do.
 		const smsPhone = smsPhoneInput ? normalizeKenyanPhone(smsPhoneInput) : '';
 		if (smsPhoneInput && !smsPhone) return fail(400, { error: 'Enter a valid Kenyan number for SMS.' });
 		const whatsappPhone = whatsappPhoneInput ? normalizeKenyanPhone(whatsappPhoneInput) : '';
@@ -88,7 +88,7 @@ export const actions: Actions = {
 			return fail(400, { error: 'Verify your new WhatsApp number (tap Verify) before saving.' });
 		}
 
-		// Each level must actually nest under the one above — GeoSelect's cascading
+		// Each level must actually nest under the one above, GeoSelect's cascading
 		// UI already prevents a mismatched combination client-side, this just
 		// doesn't trust that blindly.
 		const county = countySlug ? findCountyBySlug(countySlug) : undefined;
@@ -115,7 +115,7 @@ export const actions: Actions = {
 			})
 			.where(eq(users.id, domainUser.id));
 		// better-auth keeps its own `name` (shown in the global header) separate from
-		// our firstName/otherNames — sync it here so the two never drift apart again.
+		// our firstName/otherNames, sync it here so the two never drift apart again.
 		await db.update(authUsers).set({ name: `${firstName} ${otherNames}`.trim() }).where(eq(authUsers.id, authUser.id));
 
 		return { saved: true };

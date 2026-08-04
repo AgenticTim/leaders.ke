@@ -1,7 +1,7 @@
 // Durable per-user notifications: one call writes the in-app notification (bannered
 // on the recipient's dashboard until dismissed) AND sends the matching email. Used
-// for decisions that happen outside the recipient's own session — application
-// approvals/rejections — where the flash cookie can't reach them. The email is
+// for decisions that happen outside the recipient's own session, application
+// approvals/rejections, where the flash cookie can't reach them. The email is
 // transactional (it's about the recipient's own request), so it bypasses
 // notificationPrefs, which gates broadcast-style noise, not decisions on things
 // the user asked for.
@@ -15,18 +15,18 @@ import { sendEmail, stripLinks, toAbsoluteLinks } from '$lib/server/email';
 export type NotificationInput = {
 	// 'platform-reply': a vote.ke admin answered a question asked from the
 	// header's site-wide Ask box (see the admin platform inbox). Transactional
-	// like the rest — it answers something the citizen themselves asked.
+	// like the rest. It answers something the citizen themselves asked.
 	kind: 'verification' | 'claim' | 'moderation' | 'platform-reply';
 	title: string;
 	body: string; // includes the admin's reason on rejections; may embed its own
-	// <a href="/relative-path">label</a> links (relative — same-origin in-app)
+	// <a href="/relative-path">label</a> links (relative, same-origin in-app)
 	href?: string; // the primary action link (relative path)
 	linkLabel?: string; // anchor text for the auto-appended href link
 };
 
 /** Wraps fail() for an admin-console form action: records the same failure as
  * a durable 'admin-error' notification for the admin who hit it, then returns
- * the fail() the caller would have returned anyway — so a validation slip
+ * the fail() the caller would have returned anyway, so a validation slip
  * during a fast editing session (e.g. Packages' many autosave cells) isn't
  * only a toast that can be missed, it's also sitting on /dashboard/notifications
  * until dismissed. No email (unlike notifyUser): this is a same-session UI
@@ -52,10 +52,10 @@ async function emailFor(userId: number): Promise<string | null> {
 
 /**
  * Writes the in-app notification and emails the recipient the same content. The
- * href (if any) becomes a "Click here…" link appended to the body itself — stored
+ * href (if any) becomes a "Click here…" link appended to the body itself, stored
  * with a relative path (the dashboard's own @html render is same-origin), rewritten
  * to an absolute URL for the emailed copy (HTML, with a plain-text fallback for
- * clients that don't render it). Email failure is logged, never thrown — the
+ * clients that don't render it). Email failure is logged, never thrown. The
  * decision itself already committed, and the notification still surfaces on the
  * dashboard regardless.
  */
@@ -94,7 +94,7 @@ export async function listUnreadNotifications(userId: number): Promise<Notificat
 	return rows.map((r) => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, href: r.href, createdAt: r.createdAt.toISOString() }));
 }
 
-/** Full notification history, newest first, for the Notifications tab — unlike
+/** Full notification history, newest first, for the Notifications tab, unlike
  * listUnreadNotifications this never filters on readAt (the tab is a permanent
  * record, nothing in it is ever dismissed). */
 export async function listNotifications(
@@ -127,7 +127,7 @@ export async function countUnreadNotifications(userId: number): Promise<number> 
 	return row?.total ?? 0;
 }
 
-/** Dismisses notifications — only the caller's own, so one user can't clear another's. */
+/** Dismisses notifications, only the caller's own, so one user can't clear another's. */
 export async function markNotificationsRead(userId: number, ids: number[]) {
 	if (ids.length === 0) return;
 	await db

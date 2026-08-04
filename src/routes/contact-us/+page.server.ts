@@ -12,7 +12,7 @@ export const actions: Actions = {
 		const email = String(form.get('email') ?? '').trim();
 		const topic = String(form.get('topic') ?? '').trim();
 		const message = String(form.get('message') ?? '').trim();
-		// Honeypot: hidden field humans never fill — bots that do get a silent "ok".
+		// Honeypot: hidden field humans never fill, bots that do get a silent "ok".
 		if (String(form.get('website') ?? '')) return { sent: true };
 
 		if (!name || !email || !message) {

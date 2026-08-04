@@ -24,7 +24,7 @@
 
 	// Muted subtitle under each seat heading, naming the region it's actually for
 	// (president is national, so it gets none). Only shown once that region is
-	// picked — while it's still missing the heading below already explains that.
+	// picked, while it's still missing the heading below already explains that.
 	function levelRegion(level: BallotLevel): string {
 		switch (level) {
 			case 'president':
@@ -43,7 +43,7 @@
 	}
 
 	// The booth is a wizard, not a page: one full-viewport step at a time, no
-	// vertical scrolling anywhere — wide option sets wrap into extra columns and
+	// vertical scrolling anywhere, wide option sets wrap into extra columns and
 	// overflow horizontally instead. Region picks are their own steps, injected
 	// right before the first seat that needs them.
 	type Region = 'county' | 'constituency' | 'ward';
@@ -66,7 +66,7 @@
 	let constituency = $state(data.constituencySlug);
 	let ward = $state(data.wardSlug);
 
-	// Keep local values in sync with the URL (browser back/forward, direct links) —
+	// Keep local values in sync with the URL (browser back/forward, direct links),
 	// but only when it actually specifies a region. A reload with no geo in the URL
 	// (e.g. straight back to "/" after casting a vote) isn't a deliberate "clear the
 	// selection", so it must never stomp whatever GeoSelect just restored from the
@@ -203,7 +203,7 @@
 			return { container: `mx-auto flex w-full max-w-md flex-col gap-2 ${LG_CONTAINER}`, card: `w-full p-3 text-xs sm:text-sm ${LG_CARD}`, avatar: 'size-20 lg:size-28' };
 		return { container: `mx-auto flex w-full max-w-2xl flex-wrap justify-center gap-2 ${LG_CONTAINER}`, card: `basis-[calc(50%-0.25rem)] max-w-[calc(50%-0.25rem)] p-3 text-xs sm:text-sm ${LG_CARD}`, avatar: 'size-16 lg:size-28' };
 	}
-	// The region step a seat depends on — the escape hatch when a seat step is
+	// The region step a seat depends on. The escape hatch when a seat step is
 	// reached while its geography is unset (possible via the GeoSelect bar).
 	function regionStepFor(level: BallotLevel): number {
 		const region: Region | null =
@@ -226,7 +226,7 @@
 
 	// "Use my location" on every region step: browser geolocation (explicit tap,
 	// so the permission prompt is user-initiated) resolved to county AND
-	// constituency/ward fully offline via detectSeat — see locateSeat.ts /
+	// constituency/ward fully offline via detectSeat, see locateSeat.ts /
 	// locateCounty.ts for the privacy notes. Levels that detection resolves are
 	// filled at once, so goNext skips their region steps; only what actually
 	// changed is reset (same cascade as pickRegion).
@@ -235,7 +235,7 @@
 	function useMyLocation() {
 		locateError = null;
 		if (!navigator.geolocation) {
-			locateError = 'Location is not supported by this browser — pick your region below.';
+			locateError = 'Location is not supported by this browser, pick your region below.';
 			return;
 		}
 		locating = true;
@@ -245,7 +245,7 @@
 					const { detectSeat } = await import('$lib/utils/locateSeat');
 					const detected = await detectSeat(pos.coords.latitude, pos.coords.longitude);
 					if (!detected.county) {
-						locateError = "Couldn't place you in a county — pick your region below.";
+						locateError = "Couldn't place you in a county, pick your region below.";
 						return;
 					}
 					if (detected.county !== county) {
@@ -264,16 +264,16 @@
 						resetLevels(['mca']);
 					}
 					await syncGeoToUrl();
-					// Only advance when THIS step's region resolved — e.g. a ward
+					// Only advance when THIS step's region resolved, e.g. a ward
 					// coverage gap on the ward step keeps the picker open instead of
 					// stranding the MCA step without its geography.
 					if (step.kind === 'region' && !regionValue(step.region)) {
-						locateError = `Couldn't pin your ${step.region} — pick it below.`;
+						locateError = `Couldn't pin your ${step.region}, pick it below.`;
 					} else {
 						goNext();
 					}
 				} catch {
-					locateError = 'Something went wrong — pick your region below.';
+					locateError = 'Something went wrong, pick your region below.';
 				} finally {
 					locating = false;
 				}
@@ -282,8 +282,8 @@
 				locating = false;
 				locateError =
 					err.code === err.PERMISSION_DENIED
-						? 'Location permission denied — pick your region below.'
-						: "Couldn't get your location — pick your region below.";
+						? 'Location permission denied, pick your region below.'
+						: "Couldn't get your location, pick your region below.";
 			},
 			{ maximumAge: 300000, timeout: 10000 }
 		);
@@ -291,7 +291,7 @@
 </script>
 
 <svelte:head>
-	<title>vote.ke — Cast your 2027 ballot</title>
+	<title>vote.ke · Cast your 2027 ballot</title>
 	<meta
 		name="description"
 		content="Step into the voting booth: see every candidate you'd vote for in 2027 across all six elective levels, cast a simulated ballot, and share your result."
@@ -504,7 +504,7 @@ row pushes the booth down transiently, which is fine. -->
 
 	<!-- Desktop keeps the disclaimer inside the no-scroll viewport; on mobile the
 	booth needs every pixel, so it renders after the wrapper instead (below the
-	fold — scroll to read it). -->
+	fold, scroll to read it). -->
 	<div class="hidden lg:block">
 		<BallotDisclaimer />
 	</div>

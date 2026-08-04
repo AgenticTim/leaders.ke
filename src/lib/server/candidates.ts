@@ -1,4 +1,4 @@
-// Admin "Candidates" tab: the full roster in one table — held terms (current/former
+// Admin "Candidates" tab: the full roster in one table, held terms (current/former
 // leaders rows) plus the verified 2027 runs (campaigns) that haven't graduated yet.
 // A run can be graduated here: recording a win turns it into a `current` leaders row.
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
@@ -11,7 +11,7 @@ import { seatPath } from '$lib/utils/seat';
 const SWEAR_IN = new Date('2027-08-31T00:00:00+03:00');
 
 export type CandidateRow = {
-	key: string; // 'term:<id>' | 'run:<id>' — stable table key
+	key: string; // 'term:<id>' | 'run:<id>', stable table key
 	campaignId: number | null; // set for a run (graduatable), null for a held term
 	name: string;
 	path: string;

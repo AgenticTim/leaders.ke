@@ -31,7 +31,7 @@
 		const i = ORDER.indexOf(p);
 		return i === -1 ? ORDER.length : i;
 	};
-	// The clear-filter "All" pill sits last, per ORDER — filter mode only (each
+	// The clear-filter "All" pill sits last, per ORDER, filter mode only (each
 	// link-mode pill is a whole page; there is no "all positions" page).
 	const ordered = $derived([...[...positions].sort((a, b) => rank(a) - rank(b)), ...(hrefFor ? [] : [''])]);
 

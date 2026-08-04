@@ -4,7 +4,7 @@
 	let { children } = $props();
 </script>
 
-<!-- Fills the viewport below the sticky h-16 header (scoped here — sizing the root
+<!-- Fills the viewport below the sticky h-16 header (scoped here. Sizing the root
 <main> globally shifted other views): content takes the remaining height so the
 disclaimer sits at the bottom even on short pages, in normal flow (not pinned)
 while scrolling. -->

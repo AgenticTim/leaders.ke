@@ -1,6 +1,6 @@
 // One-click opt-out landing (TODO #5.3): the link every broadcast carries. The
 // token is a stable per-follow secret (followers.unsubscribeToken); hitting this
-// route stamps optedOutAt, which the broadcast recipient query excludes — so no
+// route stamps optedOutAt, which the broadcast recipient query excludes, so no
 // more manual "Reply STOP". Idempotent: an already-opted-out token just re-shows
 // the confirmation. The follow row itself stays (audit + dedupe), it only stops
 // receiving. GET-based on purpose: email/SMS clients can't POST a link.

@@ -13,12 +13,12 @@ import { getPageSize } from '$lib/server/settings';
 import { getRunCampaign } from '$lib/server/leader';
 import type { Actions, PageServerLoad } from './$types';
 
-// "Respond" tab: the two places a leader/manager answers citizens — the AI chat
-// threads (left) and review moderation (right) — shown side by side, each with
+// "Respond" tab: the two places a leader/manager answers citizens. The AI chat
+// threads (left) and review moderation (right), shown side by side, each with
 // its own page cursor (chatsPage / reviewsPage) so paging one never resets the
 // other.
 export const load: PageServerLoad = async (event) => {
-	// Re-run on invalidate('chat:thread') — the SSE ping's refresh hook, so a
+	// Re-run on invalidate('chat:thread'). The SSE ping's refresh hook, so a
 	// citizen's new question appears in the Chats list without a refresh.
 	event.depends('chat:thread');
 	const { ctx } = await requireLeader(event);
@@ -44,7 +44,7 @@ export const load: PageServerLoad = async (event) => {
 		chatTotal,
 		chatsPage,
 		pageSize,
-		// The person whose chats these are (users.id) — the SSE stream keys on this.
+		// The person whose chats these are (users.id). The SSE stream keys on this.
 		chatPersonId: ctx.profileUser.id
 	};
 };

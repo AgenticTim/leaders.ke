@@ -14,7 +14,7 @@
 	import PencilIcon from './svgs/PencilIcon.svelte';
 
 	// The public /[leader] page body, shared with two admin preview contexts
-	// (a pending application, a pending claim) via `preview` — same look citizens
+	// (a pending application, a pending claim) via `preview`, same look citizens
 	// will eventually see, so what an admin approves is what actually ships.
 	// In preview mode: "Manage", "In the news", Reviews, Ask, and the claim/managed
 	// cards are all hidden (nothing meant only for a live, public profile); the
@@ -37,7 +37,7 @@
 	const firstName = $derived(leader.name.split(' ')[0]);
 
 	// A pure aspirant doesn't currently hold ANY electoral seat, so there's no
-	// accurate "Current X" to state — the whole card (heading + contestants link)
+	// accurate "Current X" to state. The whole card (heading + contestants link)
 	// is dropped rather than showing a misleading title (e.g. their own candidacy).
 	const currentRole = $derived(
 		leader.status === 'aspirant'
@@ -119,7 +119,7 @@
 						</h1>
 						<p class="mt-1 text-sm text-muted">
 							<!-- A campaign-less aspirant (fresh profile) gets a "Create a campaign"
-							prompt instead of a bare "Aspirant" label — linked into the dashboard
+							prompt instead of a bare "Aspirant" label, linked into the dashboard
 							Campaign tab when the viewer can edit this profile. -->
 							{#if leader.status === 'aspirant' && !data.campaign}
 								{#if data.canEdit && leader.slug}
@@ -189,7 +189,7 @@
 										: item.from
 											? item.to === item.from
 												? `${item.from}`
-												: `${item.from}${item.to ? `–${item.to}` : ' – present'}`
+												: `${item.from}${item.to ? `-${item.to}` : ', present'}`
 											: ''}
 									badge={item.badge}
 									badgeClass={item.badge === 'current'
@@ -207,7 +207,7 @@
 									title={item.title}
 									subtitle={item.institution}
 									description={item.description}
-									dateLabel={item.from ? `${item.from}${item.to ? `–${item.to}` : ''}` : ''}
+									dateLabel={item.from ? `${item.from}${item.to ? `-${item.to}` : ''}` : ''}
 								/>
 							{/each}
 						</ul>
@@ -287,7 +287,7 @@
 						Answers come from the manifesto and public updates, instantly.
 					</p>
 					<!-- The whole persisted thread (data.chatThread reloads after each ask
-					via enhance's update()), not just the last form result — history
+					via enhance's update()), not just the last form result, history
 					survives refreshes and team replies show up here. -->
 					<ChatThread
 						messages={data.chatThread?.messages ?? []}
@@ -413,7 +413,7 @@
 							<div>
 								<p class="text-xs font-semibold text-heading">
 									{group.label}
-									<span class="font-normal text-muted">({group.from}–{group.to ?? 'present'})</span>
+									<span class="font-normal text-muted">({group.from} to {group.to ?? 'present'})</span>
 								</p>
 								<ol class="mt-1.5 space-y-2 text-sm">
 									{#each group.items as item, i (i)}

@@ -2,7 +2,7 @@
 	// The applicant's attestation: who they are to the campaign, their national ID
 	// number, and their own ID images. Rendered two ways:
 	//  - embedded (apply family): nested under the current user's entry on the Team
-	//    tab — its actions live on that route's +page.server.ts.
+	//    tab. Its actions live on that route's +page.server.ts.
 	//  - standalone (claim family): its own /claim/[slug]/signoff page, staged into
 	//    the pending claim's evidence.
 	// Either way `data` carries myRole/nationalId/idFrontUrl/idBackUrl and the host
@@ -13,7 +13,7 @@
 
 	let { data, form, embedded = false }: { data: any; form: any; embedded?: boolean } = $props();
 
-	// Live format check as they type — same Invalid/Valid indicator design as EmailInput.
+	// Live format check as they type, same Invalid/Valid indicator design as EmailInput.
 	let nationalId = $state(data.nationalId);
 	const nationalIdInvalid = $derived(nationalId.length > 0 && !isValidNationalId(nationalId));
 
@@ -25,7 +25,7 @@
 	let uploading = $state(false);
 
 	// Same crop-then-auto-upload flow as the Documentation tab: picking an image
-	// opens the cropper, confirming submits — no separate upload button.
+	// opens the cropper, confirming submits. No separate upload button.
 	let formEl: HTMLFormElement | undefined = $state();
 	let inputs: Record<string, HTMLInputElement | undefined> = $state({});
 	let cropping = $state<{ kind: string; file: File } | null>(null);
@@ -51,7 +51,7 @@
 </script>
 
 <svelte:head>
-	{#if !embedded}<title>Sign Off — vote.ke</title>{/if}
+	{#if !embedded}<title>Sign Off · vote.ke</title>{/if}
 </svelte:head>
 
 <div>
@@ -63,7 +63,7 @@
 		<p class="mt-1 text-sm text-muted">Provide the following details to sign off this application.</p>
 	{/if}
 
-	<!-- Embedded, errors surface on the Team tab's own banner — avoid a duplicate. -->
+	<!-- Embedded, errors surface on the Team tab's own banner, avoid a duplicate. -->
 	{#if form?.error && !embedded}
 		<div class="mt-4 rounded-xl border border-border bg-surface-2 p-4 text-sm font-medium text-heading">
 			{form.error}

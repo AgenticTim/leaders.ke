@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { tooltip } from '$lib/effects';
-	// pricing-v2: one flat rate card for every office — a single table, no more
+	// pricing-v2: one flat rate card for every office. A single table, no more
 	// one-per-seat-band split. Mirrors the public pricing page's "Features per
 	// package" layout: tiers as columns, a row per price or cap. Every cell saves
 	// on change; an empty cap means unlimited. Seed values come from
@@ -32,7 +32,7 @@
 		{ key: 'creditsPerMonth', label: 'Credits included/mo' },
 		{ key: 'knowledgeMb', label: 'Knowledge upload (MB)' }
 	] as const;
-	// On/off perks — the key ORDER matches $lib/server/packages.ts's
+	// On/off perks. The key ORDER matches $lib/server/packages.ts's
 	// PACKAGE_PERK_KEYS; each label comes from packages.json's perkLabels (the
 	// same file /pricing and packages.ts read), so wording only changes once.
 	const PERK_KEYS = [
@@ -48,19 +48,19 @@
 		data.pricing.find((p) => p.tier === tier && p.billingCycle === cycle);
 	const pkg = (tier: string) => data.packages.find((p) => p.tier === tier);
 
-	// Autosave a cell when its value changes (blur/Enter) — no per-cell buttons.
+	// Autosave a cell when its value changes (blur/Enter). No per-cell buttons.
 	const submitOnChange = (e: Event) => (e.currentTarget as HTMLInputElement).form?.requestSubmit();
 
 	const inputClass =
 		'w-28 rounded-full border border-border bg-surface px-3 py-1 text-sm tabular-nums text-heading placeholder:text-muted focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none';
 </script>
 
-<svelte:head><title>Packages — Admin</title></svelte:head>
+<svelte:head><title>Packages · Admin</title></svelte:head>
 
 <div>
 	<h1 class="text-xl font-bold text-heading">Packages</h1>
 	<p class="mt-1 text-sm text-muted">
-		What each package costs and includes — one flat rate per tier, for every office. Edits save when
+		What each package costs and includes. One flat rate per tier, for every office. Edits save when
 		you leave a field; an empty cap means unlimited. Rate changes never touch existing
 		subscriptions, they only apply going forward.
 	</p>
@@ -102,7 +102,7 @@
 		</label>
 	</div>
 
-	<!-- Lifetime invites: a single jsonb setting — the inputs sit in their own
+	<!-- Lifetime invites: a single jsonb setting. The inputs sit in their own
 	cells but submit together via the #invite-limits form below. -->
 	<h2 class="mt-8 text-lg font-semibold text-heading">Lifetime invites</h2>
 	<p class="text-xs text-muted">Total team/follower invites a campaign may ever send.</p>
@@ -140,7 +140,7 @@
 
 	<!-- Prices then caps, tiers as columns -->
 	<h2 class="mt-8 text-lg font-semibold text-heading">Rate card</h2>
-	<p class="text-xs text-muted">Same price for every office — President and MCA pay the same.</p>
+	<p class="text-xs text-muted">Same price for every office, President and MCA pay the same.</p>
 	<div class="mt-3 overflow-x-auto rounded-2xl border border-border">
 		<table class="w-full min-w-160 table-fixed border-collapse text-left">
 			<thead>
@@ -168,7 +168,7 @@
 										name="amount"
 										min="1"
 										value={current?.amount ?? ''}
-										placeholder="—"
+										placeholder="-"
 										onchange={submitOnChange}
 										aria-label="{cycle} {tier} rate in KES"
 										class={inputClass}
@@ -206,10 +206,10 @@
 		</table>
 	</div>
 
-	<!-- On/off perks: same ✓/— rows the public /pricing page shows, sourced from
-	the same packages.features the toggle below writes — one fact, two views. -->
+	<!-- On/off perks: same ✓/- rows the public /pricing page shows, sourced from
+	the same packages.features the toggle below writes. One fact, two views. -->
 	<h2 class="mt-8 text-lg font-semibold text-heading">Perks (on/off)</h2>
-	<p class="text-xs text-muted">Shown as ✓/— on the public Pricing page's comparison table.</p>
+	<p class="text-xs text-muted">Shown as ✓/- on the public Pricing page's comparison table.</p>
 	<div class="mt-3 overflow-x-auto rounded-2xl border border-border">
 		<table class="w-full min-w-160 table-fixed border-collapse text-left">
 			<thead>
@@ -237,7 +237,7 @@
 									<input type="hidden" name="key" value={perk.key} />
 									<label class="inline-flex cursor-pointer items-center gap-2">
 										<!-- Unchecked checkboxes are omitted from FormData entirely, so a
-										same-name hidden fallback carries "false" — it must come AFTER
+										same-name hidden fallback carries "false". It must come AFTER
 										the checkbox in document order so form.get('value') (first match)
 										reads the checkbox's "true" when checked, the hidden "false" when not. -->
 										<input

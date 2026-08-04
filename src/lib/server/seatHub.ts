@@ -23,13 +23,13 @@ export async function loadSeatHub(position: string, region: string, regimeYear?:
 	const rows = await listLeadersForSeat(position, region);
 
 	// Which regime this hub shows: the active cycle by default, or a past year
-	// (from /[position]/[region]/[year]) — same component, the seat as it stood
+	// (from /[position]/[region]/[year]), same component, the seat as it stood
 	// under that regime. Any mid-term year works (/2026 → the 2022 regime);
 	// `regime` normalizes to the covering term's start year below.
 	let regime = regimeYear ?? ACTIVE_CYCLE;
 	const isActiveRegime = regime === ACTIVE_CYCLE;
 
-	// Party is per-term (leaders.partyId), not a person-level fact — resolved by id
+	// Party is per-term (leaders.partyId), not a person-level fact, resolved by id
 	// below, batched across held terms AND the 2027 contestants fetched further down.
 	const toCard = (r: (typeof rows)[number], party: string | null) => {
 		const name = fullName(r.users);
@@ -53,8 +53,8 @@ export async function loadSeatHub(position: string, region: string, regimeYear?:
 
 	// Active regime: today's holder + the 2027 aspirants (an incumbent seeking
 	// re-election appears once they hold an aspirant term row for the cycle).
-	// Past year: the term COVERING it — most recent start ≤ the year, still
-	// running through it — so /2026 shows the 2022 regime's holder. Past regimes
+	// Past year: the term COVERING it. Most recent start ≤ the year, still
+	// running through it, so /2026 shows the 2022 regime's holder. Past regimes
 	// list no contestants; the holder card IS that cycle's result.
 	let currentRow: (typeof rows)[number] | undefined;
 	if (isActiveRegime) {
@@ -70,7 +70,7 @@ export async function loadSeatHub(position: string, region: string, regimeYear?:
 			.toSorted((a, b) => b.leaders.startAt.getTime() - a.leaders.startAt.getTime())[0];
 		if (currentRow) regime = currentRow.leaders.startAt.getFullYear();
 	}
-	// Contestants for the active cycle are 2027 runs (campaigns) at this seat —
+	// Contestants for the active cycle are 2027 runs (campaigns) at this seat,
 	// aspirants have no leaders row. Past regimes list no contestants (the holder IS the result).
 	const runRows = isActiveRegime
 		? await db
@@ -119,8 +119,8 @@ export async function loadSeatHub(position: string, region: string, regimeYear?:
 
 	// Manifesto delivery rollup for the seat's current holder (same shape the
 	// public leader profile shows), so the hub can score the incumbent. Pillars
-	// hang off the holder's active-cycle campaign keyed by subjectUserId — NOT
-	// campaigns.leaderId, which the seeder never sets (see publicProfile.ts) — so
+	// hang off the holder's active-cycle campaign keyed by subjectUserId, NOT
+	// campaigns.leaderId, which the seeder never sets (see publicProfile.ts), so
 	// join through that, and only for the live regime (a past holder's current
 	// manifesto would be an anachronism against a bygone term).
 	let delivery = { total: 0, delivered: 0, inProgress: 0 };
@@ -147,7 +147,7 @@ export async function loadSeatHub(position: string, region: string, regimeYear?:
 
 	// History: every recorded term for this seat, most recent first. Aspirants
 	// stay off the timeline until elected. Party is THIS term's own (leaders.partyId),
-	// not the person's current one — they may have switched since.
+	// not the person's current one. They may have switched since.
 	const history = rows
 		.filter((r) => r.leaders.status !== 'aspirant')
 		.map((r) => ({
@@ -173,7 +173,7 @@ export async function loadSeatHub(position: string, region: string, regimeYear?:
 	const boundary = positionRow.boundary;
 	// Country-wide seats drop the region namespace: year pages live at
 	// /presidents/2027 (basePath) and the hub itself at the singular /president
-	// (hubPath) — "kenya" goes without saying. Regional seats use one path for both.
+	// (hubPath), "kenya" goes without saying. Regional seats use one path for both.
 	const seatPath = boundary === 'Country' ? `/${position}` : `/${position}/${slugify(regionLabel)}`;
 	const hubPath = boundary === 'Country' ? `/${SINGULAR_SLUG_BY_TITLE[positionTitle] ?? position}` : seatPath;
 
@@ -201,7 +201,7 @@ export async function loadSeatHub(position: string, region: string, regimeYear?:
 	}
 
 	// Regime line options: the active cycle plus each recorded term's start year
-	// (deduped — a by-election shares its era's entry), most recent first.
+	// (deduped. A by-election shares its era's entry), most recent first.
 	const seenYears = new Set<number>([ACTIVE_CYCLE]);
 	const regimes = [
 		{ year: ACTIVE_CYCLE, label: String(ACTIVE_CYCLE) },

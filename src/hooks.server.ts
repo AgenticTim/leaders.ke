@@ -26,7 +26,7 @@ if (!building) {
 
 	// Broadcast dispatch recovery: a send runs inline on submit, so this only
 	// mops up a broadcast left mid-flight by a crash/restart (queued recipients
-	// remain). Idempotent — dispatch only touches queued rows — so a short cadence
+	// remain). Idempotent, dispatch only touches queued rows, so a short cadence
 	// is safe and keeps a stuck queue from sitting.
 	const broadcastSweep = () => sweepBroadcasts().catch((err) => console.error('[broadcasts] sweep failed', err));
 	setTimeout(broadcastSweep, 20_000);

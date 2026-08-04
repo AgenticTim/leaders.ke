@@ -1,7 +1,7 @@
 // Kenya's electoral geography, sourced from src/lib/data/regions.json (a nested
 // county -> constituency -> ward tree derived from the IEBC "Registered Voters
 // per County Assembly Ward, 2022 General Election" register). Positions are
-// derived entirely from this tree — there's no separate positions data file.
+// derived entirely from this tree. There's no separate positions data file.
 // Used by the positions seed phase and the public seat/hub pages.
 import regionsData from './regions.json';
 
@@ -51,7 +51,7 @@ function build(): County[] {
 	}
 
 	// regions.json lists counties/constituencies/wards in IEBC code order, not
-	// alphabetically — every dropdown built off this tree (GeoSelect, seat
+	// alphabetically. Every dropdown built off this tree (GeoSelect, seat
 	// pickers) sorts by .name here once, at the source, rather than each
 	// consumer re-sorting its own copy.
 	const byName = <T extends { name: string }>(a: T, b: T) => a.name.localeCompare(b.name);
@@ -129,7 +129,7 @@ export function findWardBySlug(slug: string): Ward | undefined {
 }
 
 /** GeoSelect works in slugs, but a person's saved location (users.county/
- * constituency/ward, same shape as followers') stores plain .name — resolving
+ * constituency/ward, same shape as followers') stores plain .name. Resolving
  * the actual objects (rather than naively re-slugifying the stored name) gets the
  * right slug even for a constituency/ward whose name repeats elsewhere in Kenya
  * (those get a "(County)"-qualified seatName, which is what's actually slugified). */

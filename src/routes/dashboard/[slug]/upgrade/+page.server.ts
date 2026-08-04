@@ -202,7 +202,7 @@ export const actions: Actions = {
 					.where(eq(payments.providerReference, reference));
 				return fail(502, {
 					error:
-						'We couldn’t start the payment — the payment provider rejected the request. Card/M-Pesa billing is temporarily unavailable; please try again shortly or contact support.'
+						'We couldn’t start the payment. The payment provider rejected the request. Card/M-Pesa billing is temporarily unavailable; please try again shortly or contact support.'
 				});
 			}
 			redirect(303, authorizationUrl);

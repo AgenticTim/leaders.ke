@@ -42,7 +42,7 @@
 </script>
 
 <svelte:head>
-	<title>My 2027 simulated ballot — vote.ke</title>
+	<title>My 2027 simulated ballot · vote.ke</title>
 	<meta
 		name="description"
 		content="See who I'd vote for in the 2027 General Election, then simulate your own ballot on vote.ke."
@@ -69,7 +69,7 @@
 				{#if candidate}
 					<Avatar name={candidate.name} initials={candidate.initials} photoUrl={candidate.photoUrl} sizeClass="size-14" textClass="text-sm" />
 				{:else}
-					<span class="grid size-14 shrink-0 place-items-center rounded-full bg-surface-2 text-sm font-bold text-muted">—</span>
+					<span class="grid size-14 shrink-0 place-items-center rounded-full bg-surface-2 text-sm font-bold text-muted">-</span>
 				{/if}
 				<div class="min-w-0 flex-1">
 					<p class="text-xs font-semibold tracking-wide text-muted uppercase">

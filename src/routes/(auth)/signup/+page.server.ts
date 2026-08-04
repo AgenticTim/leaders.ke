@@ -9,9 +9,9 @@ import { clearFlash } from '$lib/server/flash';
 import { APIError } from 'better-auth/api';
 import type { Actions, PageServerLoad } from './$types';
 
-// Only ever redirect to a same-origin relative path — never follow ?next
+// Only ever redirect to a same-origin relative path, never follow ?next
 // anywhere else, that's an open-redirect vector. Citizen is the default landing
-// mode — signup doesn't push straight into "launch a campaign".
+// mode, signup doesn't push straight into "launch a campaign".
 function safeNext(next: string | null): string {
 	return next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard';
 }
@@ -28,7 +28,7 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	// ?email= (set by /invite/[token] when the invited address has no account yet)
-	// locks the email field — prevents signing up with a different email and only
+	// locks the email field, prevents signing up with a different email and only
 	// discovering the invite mismatch after clicking Accept.
 	const lockedEmail = event.url.searchParams.get('email');
 
@@ -40,8 +40,8 @@ export const load: PageServerLoad = async (event) => {
 	// profile"). hooks only peeks it on /login and /signup, so it survives
 	// switching between the two forms; the action clears it on success.
 	// ?message= lets any link explain the ask inline (e.g. the for-leaders CTA:
-	// /signup?next=/onboard/profile&message=...). Plain text, length-capped —
-	// it renders as our own banner, so never let a crafted URL turn it into an essay.
+	// /signup?next=/onboard/profile&message=...). Plain text, length-capped.
+	// It renders as our own banner, so never let a crafted URL turn it into an essay.
 	const notice = event.locals.flash ?? event.url.searchParams.get('message')?.slice(0, 160) ?? null;
 
 	return { next, inviteBanner, lockedEmail, ballotIntent, notice, googleEnabled: googleAuthEnabled };
@@ -49,7 +49,7 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
 	// Start the Google OAuth flow (same as login): better-auth returns the provider
-	// URL, we 302 to it. Sign-up and sign-in are the same OAuth round-trip — the
+	// URL, we 302 to it. Sign-up and sign-in are the same OAuth round-trip. The
 	// create hook makes the profile on first return.
 	google: async (event) => {
 		const form = await event.request.formData();
@@ -105,7 +105,7 @@ export const actions: Actions = {
 				.returning();
 
 			// Arriving via an invite link already proves this inbox is theirs (the invite
-			// email had to match to get here) — skip the OTP round-trip and verify it now.
+			// email had to match to get here), skip the OTP round-trip and verify it now.
 			if (lockedEmail) {
 				await db.update(authUsers).set({ emailVerified: true }).where(eq(authUsers.id, user.id));
 				await db.update(users).set({ verified: { ...domainUser.verified, email: true } }).where(eq(users.id, domainUser.id));
@@ -117,13 +117,13 @@ export const actions: Actions = {
 		} catch (error) {
 			if (error instanceof APIError) {
 				// "User already exists" can mean two different things: a genuinely
-				// taken (verified) email — keep the error — or the same person
+				// taken (verified) email, keep the error, or the same person
 				// re-submitting after dismissing the verify modal without finishing
 				// it (possibly after logging out in between, so there's no session
 				// to resume with), whose account already exists but is still
 				// unverified. The second case isn't an error: resuming verification
 				// needs an authenticated session first (sendEmailCode/verifyCode
-				// both require one), so sign in with the password just typed — if
+				// both require one), so sign in with the password just typed. If
 				// it's the account's real password (the common case: same person,
 				// same credentials), this establishes that session exactly like a
 				// normal login would. A wrong password can't be distinguished from
@@ -135,14 +135,14 @@ export const actions: Actions = {
 						.from(authUsers)
 						.where(eq(authUsers.email, email.trim().toLowerCase()));
 					if (existing && !existing.emailVerified) {
-						// redirect() throws — it must NOT be inside this try, or it would
+						// redirect() throws. It must NOT be inside this try, or it would
 						// be swallowed by the catch meant only for a failed sign-in.
 						let signedIn = false;
 						try {
 							await auth.api.signInEmail({ body: { email, password }, headers: event.request.headers });
 							signedIn = true;
 						} catch {
-							// Wrong password — fall through to the standard error below.
+							// Wrong password, fall through to the standard error below.
 						}
 						if (signedIn) redirect(302, `/verify/email?email=${email}&next=${encodeURIComponent(next)}`);
 					}
@@ -152,7 +152,7 @@ export const actions: Actions = {
 			return fail(500, { message: 'Unexpected error' });
 		}
 
-		// Signed up — drop the peeked pre-auth notice so it can't resurface on the next page.
+		// Signed up, drop the peeked pre-auth notice so it can't resurface on the next page.
 		clearFlash(event.cookies);
 
 		// New accounts land on /verify/email first to confirm email

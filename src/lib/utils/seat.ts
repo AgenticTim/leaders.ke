@@ -15,7 +15,7 @@ export const POSITION_SLUG_BY_TITLE: Record<string, string> = {
 
 /** Singular → canonical plural, for the singular URL routes. Multi-region
  * singulars 301 to the plural directory; Country-wide ones (/president) render
- * the seat hub directly — the singular IS the seat. */
+ * the seat hub directly. The singular IS the seat. */
 export const SINGULAR_POSITION_SLUGS: Record<string, string> = {
 	president: 'presidents',
 	'deputy-president': 'deputy-presidents',
@@ -63,7 +63,7 @@ const slugify = (input: string) =>
 
 /** The seat hub path for a (position, region) pair, or null when the title isn't
  * a known seat. Country-wide seats (region "Kenya") live at the SINGULAR
- * /<position> (e.g. /president — a single seat, not a directory). */
+ * /<position> (e.g. /president. A single seat, not a directory). */
 export function seatPath(positionTitle?: string, region?: string): string | null {
 	const slug = positionTitle ? POSITION_SLUG_BY_TITLE[positionTitle] : undefined;
 	if (!slug) return null;

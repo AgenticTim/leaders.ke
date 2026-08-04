@@ -23,7 +23,7 @@
 
 	const duties = $derived(SEAT_DUTIES_BY_TITLE[title] ?? null);
 	const pay = $derived(SRC_PAY_BY_TITLE[title] ? { ...SRC_PAY_BY_TITLE[title], source: SRC_EFFECTIVE } : null);
-	// "an MP", "an MCA" — initialisms read with a vowel sound.
+	// "an MP", "an MCA", initialisms read with a vowel sound.
 	const article = $derived(title === 'MP' || title === 'MCA' ? 'an' : 'a');
 	let open = $state(false);
 </script>

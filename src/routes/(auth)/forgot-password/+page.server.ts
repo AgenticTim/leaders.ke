@@ -9,7 +9,7 @@ export const actions: Actions = {
 		const email = form.get('email')?.toString().trim().toLowerCase() ?? '';
 
 		try {
-			// Doesn't reveal whether the email has an account — only that this
+			// Doesn't reveal whether the email has an account, only that this
 			// particular address is being hit too often, which isn't sensitive.
 			await checkPasswordResetRateLimit(email);
 		} catch (error) {

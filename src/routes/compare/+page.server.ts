@@ -6,7 +6,7 @@ import type { PageServerLoad } from './$types';
 // region across leaders/regimes) since any two leaders can be compared.
 export const load: PageServerLoad = async ({ url }) => {
 	// Only the two selected leaders are fetched (plus a slug lookup for the default
-	// right side) — never the whole register, since the page only ever shows a pair.
+	// right side), never the whole register, since the page only ever shows a pair.
 	const a = url.searchParams.get('a') ?? '/edwin-sifuna';
 	// Landing without a pair shows a live example instead of an empty page: the
 	// right side is a random 2027 presidential aspirant, fresh on every visit.

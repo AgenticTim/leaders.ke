@@ -1,6 +1,6 @@
 <script lang="ts">
 	// Crop modal for image uploads: drag the box to move, drag the corner handle to
-	// resize, confirm to get a cropped JPEG File. Dependency-free — a positioned
+	// resize, confirm to get a cropped JPEG File. Dependency-free. A positioned
 	// overlay + canvas re-draw at natural resolution. `aspect` (width / height)
 	// locks the box to a fixed ratio (e.g. 1 for a square photo, 7/9 for an ID);
 	// omit it for a free-form crop.
@@ -91,7 +91,7 @@
 	function confirmCrop() {
 		if (!imgEl) return;
 		// Displayed-space box → natural-resolution pixels, so quality is preserved.
-		// An SVG with only a viewBox (no width/height) reports naturalWidth 0 — fall
+		// An SVG with only a viewBox (no width/height) reports naturalWidth 0, fall
 		// back to the displayed size so it still rasterizes instead of a 0px canvas.
 		const naturalW = imgEl.naturalWidth || imgEl.clientWidth;
 		const naturalH = imgEl.naturalHeight || imgEl.clientHeight;

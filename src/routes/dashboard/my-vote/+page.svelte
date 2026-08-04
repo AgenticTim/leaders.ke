@@ -31,7 +31,7 @@
 	};
 </script>
 
-<svelte:head><title>My Vote — vote.ke</title></svelte:head>
+<svelte:head><title>My Vote · vote.ke</title></svelte:head>
 
 <div class="flex min-h-[70vh] flex-col">
 <div>
@@ -76,7 +76,7 @@
 											</span>
 										</a>
 									{:else}
-										<span class="text-xs text-muted">—</span>
+										<span class="text-xs text-muted">-</span>
 									{/if}
 								</td>
 							{/each}

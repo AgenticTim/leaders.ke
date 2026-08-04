@@ -17,7 +17,7 @@ export async function getBalance(subjectUserId: number): Promise<number> {
  * balance is decremented with a guarded UPDATE (WHERE balance >= amount) so two
  * concurrent sends can't overdraw, and a `spend` transaction is logged. Returns
  * the new balance, or { ok: false } when the wallet can't cover it. A zero-cost
- * spend (email) is a no-op success — nothing to move, nothing to log.
+ * spend (email) is a no-op success. Nothing to move, nothing to log.
  */
 export async function spendCredits(
 	subjectUserId: number,
@@ -47,7 +47,7 @@ export async function spendCredits(
 	});
 }
 
-/** Returns `amount` credits to a wallet — used when a paid send was charged but
+/** Returns `amount` credits to a wallet, used when a paid send was charged but
  * then failed at the provider, so the campaign isn't billed for a message that
  * never left. Logged as a `refund` transaction. */
 export async function refundCredits(subjectUserId: number, amount: number, channel: string, reference: string): Promise<void> {

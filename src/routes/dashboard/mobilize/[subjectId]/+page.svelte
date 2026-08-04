@@ -44,7 +44,7 @@
 	let savingPledge = $state(false);
 </script>
 
-<svelte:head><title>Ambassador: {data.assignment.leaderName} — vote.ke</title></svelte:head>
+<svelte:head><title>Ambassador: {data.assignment.leaderName} · vote.ke</title></svelte:head>
 
 <div>
 	<div class="flex flex-wrap items-center justify-between gap-3">
@@ -113,7 +113,7 @@
 			/>
 		</div>
 	{:else if activeTab === 'pledges'}
-		<!-- Pledges: citizens who pledged their 2027 vote — a separate flow from
+		<!-- Pledges: citizens who pledged their 2027 vote. A separate flow from
 		following, since some pledge without wanting news updates. -->
 		<div class="mt-6">
 			<p class="text-sm text-muted">Record a citizen's vote pledge. Separate from followers: a pledge is a promise to vote, not a news opt-in.</p>

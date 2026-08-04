@@ -36,7 +36,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			await fulfillSubscriptionPayment(reference, verified);
 		}
 	} else if (event.event === 'charge.failed' && reference && isDonationReference(reference)) {
-		// Declined/timed-out STK prompt — surface it as failed on the ledger.
+		// Declined/timed-out STK prompt, surface it as failed on the ledger.
 		await failDonation(reference);
 	}
 

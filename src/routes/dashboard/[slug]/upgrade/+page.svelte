@@ -104,7 +104,7 @@
 	);
 </script>
 
-<svelte:head><title>Change plan — Dashboard</title></svelte:head>
+<svelte:head><title>Change plan · Dashboard</title></svelte:head>
 
 <div class="">
 	<div class="flex flex-col sm:flex-row justify-between text-xl font-bold text-heading">
@@ -235,7 +235,7 @@
 	</div>
 </div>
 
-<!-- Confirm modal: spells out the money before applying — remaining value, what
+<!-- Confirm modal: spells out the money before applying. Remaining value, what
 it covers, what you pay now, and any credits granted. -->
 {#if confirmTier && confirmPreview}
 	{@const p = confirmPreview}
@@ -301,7 +301,7 @@ it covers, what you pay now, and any credits granted. -->
 
 			<p class="mt-3 text-xs text-muted">
 				{#if p.chargeNow === 0}
-					Your unused value fully covers this change — no payment needed{#if p.excessGross > 0}. The
+					Your unused value fully covers this change. No payment needed{#if p.excessGross > 0}. The
 						leftover becomes wallet credits{#if p.fee > 0}, after a {data.downgradeFeePercent}%
 							downgrade fee{/if}{/if}.
 				{:else if data.paystackLive}

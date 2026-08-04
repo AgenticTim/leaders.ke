@@ -1,8 +1,8 @@
 <script lang="ts">
-	// Standalone leader/party search-and-tag field for the News composer — shared
+	// Standalone leader/party search-and-tag field for the News composer, shared
 	// verbatim between the create and edit forms (same component, same state
 	// shape) so the two can never drift. Picking here only ever produces a chip;
-	// it never writes into the post body — only an "@" typed directly into the
+	// it never writes into the post body, only an "@" typed directly into the
 	// RichTextEditor inserts an inline link there. A leader chip feeds
 	// `tags.subjectUserId` (a real user) on save; a party chip has no user row to
 	// tag, so for now it's display-only bookkeeping during the compose session.
@@ -24,7 +24,7 @@
 
 	function onInput() {
 		clearTimeout(searchTimer);
-		// Tolerate a leading "@" — the field is a search box, not a trigger, but
+		// Tolerate a leading "@": the field is a search box, not a trigger, but
 		// people reflexively type it since the whole feature reads as "@mention".
 		const q = query.trim().replace(/^@/, '');
 		if (q.length < 2) {

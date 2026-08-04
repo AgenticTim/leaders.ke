@@ -28,7 +28,7 @@
 	};
 </script>
 
-<svelte:head><title>Broadcasts — vote.ke</title></svelte:head>
+<svelte:head><title>Broadcasts · vote.ke</title></svelte:head>
 
 <div class="grid gap-8 lg:grid-cols-5">
 	<!-- Composer -->

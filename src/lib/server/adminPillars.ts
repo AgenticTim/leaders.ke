@@ -1,6 +1,6 @@
 // Admin "Pillars" tab: onboarding.md's admin dashboard, pillar management. This is
 // a catalog of manifesto starting points per office level (President, Governor, ...),
-// not per-candidate — a candidate picks one on their Campaign tab's manifesto
+// not per-candidate. A candidate picks one on their Campaign tab's manifesto
 // section to prefill their own pillar's title/summary, or writes a custom one.
 // Picking a template doesn't link back to it; it's just a draft starting point.
 import { and, asc, eq, isNull } from 'drizzle-orm';
@@ -24,7 +24,7 @@ export function levelTitle(slug: string): string | null {
 
 export type PillarTemplateRow = { id: number; title: string; summary: string };
 
-/** Every template for a given office level, e.g. "Governor" — used both by the
+/** Every template for a given office level, e.g. "Governor", used both by the
  * admin catalog page and the candidate's manifesto picker. */
 export async function listTemplatesForLevel(positionTitle: string): Promise<PillarTemplateRow[]> {
 	const rows = await db

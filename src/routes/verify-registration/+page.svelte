@@ -17,14 +17,14 @@
 </script>
 
 <svelte:head>
-	<title>Check your voter registration — vote.ke</title>
+	<title>Check your voter registration · vote.ke</title>
 	<meta name="description" content="How to verify your IEBC voter registration status by SMS or online, plus registered-voter stats for your area." />
 </svelte:head>
 
 <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6">
 	<h1 class="text-3xl font-bold text-heading">Check your registration</h1>
 	<p class="mt-2 text-base">
-		Only the IEBC holds the voters' roll — vote.ke cannot look up individuals, and no third-party
+		Only the IEBC holds the voters' roll, vote.ke cannot look up individuals, and no third-party
 		site should ask for your ID number. Use the official channels:
 	</p>
 
@@ -33,7 +33,7 @@
 			<h2 class="font-semibold text-heading">By SMS</h2>
 			<p class="mt-2 text-sm">
 				Send your national ID number to the IEBC short code (<span class="font-semibold">70000</span>
-				in past elections — confirm the current code on iebc.or.ke). The reply shows your
+				in past elections, confirm the current code on iebc.or.ke). The reply shows your
 				registration details and polling station.
 			</p>
 		</div>
@@ -49,7 +49,7 @@
 
 	<h2 class="mt-12 text-xl font-semibold text-heading">Registered voters in your area</h2>
 	<p class="mt-1 text-sm text-muted">
-		From the IEBC's 2022 register — {fmt.format(nationalVoters)} registered voters nationally. Pick
+		From the IEBC's 2022 register, {fmt.format(nationalVoters)} registered voters nationally. Pick
 		your area to see its numbers.
 	</p>
 
@@ -80,7 +80,7 @@
 			{/if}
 		</div>
 		<p class="mt-4 text-sm text-muted">
-			Every one of those votes was someone who showed up. Yours is next —
+			Every one of those votes was someone who showed up. Yours is next:
 			<a href="/education/how-to-register" class="font-medium text-primary hover:underline">here's how to register</a>.
 		</p>
 	{/if}

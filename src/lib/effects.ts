@@ -2,7 +2,7 @@ import { toast } from '$lib/stores/toast';
 
 type TooltipArg = string | { tip: string; side?: 'top' | 'bottom' };
 
-/** Styled hover tooltip (`.tooltip-popup` in layout.css) — the app-wide
+/** Styled hover tooltip (`.tooltip-popup` in layout.css). The app-wide
  * replacement for title-attribute tooltips. Accepts SVG hosts too
  * (VerifiedIcon). An empty tip shows nothing, so conditional tips can pass ''. */
 export function tooltip(node: HTMLElement | SVGElement, arg: TooltipArg) {
@@ -78,7 +78,7 @@ export function disableForSeconds(node: HTMLElement, seconds: number) {
 /** Moves the node to <body> so `position: fixed` on it resolves against the
  * VIEWPORT. Without this, any ancestor carrying `transform`, `filter` or
  * `backdrop-filter` becomes the containing block for its fixed-position
- * descendants — the sticky header's own `backdrop-blur` does exactly that, so
+ * descendants. The sticky header's own `backdrop-blur` does exactly that, so
  * a fixed panel rendered inside it anchors to the 64px header box instead of
  * the screen. */
 export function portal(node: HTMLElement) {

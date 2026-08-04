@@ -9,7 +9,7 @@ import { db } from '$lib/server/db';
 import { donations } from '$lib/server/db/schema';
 
 /** Whether a Paystack reference belongs to a donation charge (vs subscription
- * checkout's `ps_` references) — how the shared webhook routes an event. */
+ * checkout's `ps_` references), how the shared webhook routes an event. */
 export function isDonationReference(reference: string): boolean {
 	return reference.startsWith('don_');
 }

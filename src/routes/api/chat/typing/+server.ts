@@ -1,12 +1,12 @@
 // Transient typing signal, throttled client-side (~every 2s while typing) and
-// broadcast to the other side's open SSE stream (/api/chat/events) — nothing
+// broadcast to the other side's open SSE stream (/api/chat/events). Nothing
 // is stored. Citizens signal for their own thread with a leader; team members
 // signal into a specific conversation they manage.
 //
-//   POST { person }                  citizen typing in the Ask box — the
+//   POST { person }                  citizen typing in the Ask box. The
 //                                    thread is resolved from their identity
-//   POST { person, conversationId }  team typing a reply (Inbox) —
-//                                    admin or active manager only
+//   POST { person, conversationId }  team typing a reply (Inbox).
+//                                    Admin or active manager only
 import { error, json } from '@sveltejs/kit';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { getAnonId } from '$lib/server/anonId';
@@ -48,8 +48,8 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 		return json({ ok: true });
 	}
 
-	// Citizen side: resolve THEIR thread with this leader from their identity —
-	// the client never picks a conversation id, so it can't signal into
+	// Citizen side: resolve THEIR thread with this leader from their identity.
+	// The client never picks a conversation id, so it can't signal into
 	// someone else's thread.
 	const anonId = getAnonId(cookies);
 	const identity =
@@ -58,7 +58,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 			: anonId
 				? and(eq(conversations.anonId, anonId), isNull(conversations.userId))
 				: null;
-	if (!identity) return json({ ok: false }); // no thread yet — nothing to signal
+	if (!identity) return json({ ok: false }); // no thread yet. Nothing to signal
 
 	const [conv] = await db
 		.select({ id: conversations.id })

@@ -17,7 +17,7 @@
 		candidateId?: string | null;
 		county?: string;
 		ward?: string;
-		// Smaller trigger button, plain "Follow" instead of "Follow {firstName}" —
+		// Smaller trigger button, plain "Follow" instead of "Follow {firstName}",
 		// for placing it side by side with another button (e.g. Pledge).
 		compact?: boolean;
 	} = $props();

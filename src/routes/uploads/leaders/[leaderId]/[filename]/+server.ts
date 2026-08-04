@@ -1,7 +1,7 @@
 // Serves campaign-application documents (photo, ID front/back, IEBC certificate)
 // from local disk. ID scans and the IEBC cert are never public: only an active
 // manager of that leader, or a platform admin, may fetch them. The profile PHOTO
-// is the one exception — once the profile has a held term or a run, it's exactly
+// is the one exception, once the profile has a held term or a run, it's exactly
 // what the public /[leader] page displays, so it's servable to anyone (no auth).
 import { error } from '@sveltejs/kit';
 import { and, eq, isNull } from 'drizzle-orm';
@@ -24,13 +24,13 @@ export const GET: RequestHandler = async (event) => {
 	// The URL segment is the PERSON's users.id (documents are person-keyed).
 	const subjectUserId = Number(event.params.leaderId);
 	const filename = event.params.filename;
-	// No path separators allowed in either segment — blocks directory traversal.
+	// No path separators allowed in either segment, blocks directory traversal.
 	if (!subjectUserId || !filename || /[/\\]/.test(filename) || filename.includes('..')) {
 		error(404, 'Not found');
 	}
 
 	// Public exception: this file is the person's profile photo AND they have a
-	// held term or a run — exactly what /[leader] renders.
+	// held term or a run, exactly what /[leader] renders.
 	const requestedPath = `/uploads/leaders/${subjectUserId}/${filename}`;
 	const [subject] = await db.select({ photoUrl: users.photoUrl }).from(users).where(and(eq(users.id, subjectUserId), isNull(users.deletedAt)));
 	let isPublicPhoto = false;

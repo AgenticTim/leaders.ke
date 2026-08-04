@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.leader.name} — preview | vote.ke</title>
+	<title>{data.leader.name} · preview | vote.ke</title>
 </svelte:head>
 
 <LeaderProfile {data} preview />

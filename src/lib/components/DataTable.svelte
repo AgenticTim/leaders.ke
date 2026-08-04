@@ -14,7 +14,7 @@
 <script lang="ts" generics="Row extends { id: number | string }">
 	// Reusable table: sortable headers, a search box, optional inline cell editing,
 	// and the shared pager. Search and sort act on the rows already loaded (the
-	// current server page) — pass `total`/`page`/`pageSize`/`pagerHref` and the
+	// current server page), pass `total`/`page`/`pageSize`/`pagerHref` and the
 	// pager handles crossing pages. Svelte-native on purpose: a DOM-owning table
 	// library (simple-datatables & co) would fight both Svelte's rendering and the
 	// platform's server-side pageSize setting.
@@ -59,7 +59,7 @@
 	const text = (row: Row, column: Column<Row>) => {
 		const value = raw(row, column.key);
 		if (column.format) return column.format(value, row);
-		return value === null || value === undefined || value === '' ? '—' : String(value);
+		return value === null || value === undefined || value === '' ? '-' : String(value);
 	};
 
 	const visible = $derived.by(() => {

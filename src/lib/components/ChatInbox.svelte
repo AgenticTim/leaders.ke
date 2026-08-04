@@ -14,7 +14,7 @@
 	import TypingDots from '$lib/components/TypingDots.svelte';
 	import { formatChatTime } from '$lib/utils/chatTime';
 
-	// Structurally typed rather than importing from $lib/server/chat — a client
+	// Structurally typed rather than importing from $lib/server/chat. A client
 	// component can't import a server module, type-only or otherwise.
 	type Message = { id: number; sender: string; body: string; createdAt: string };
 	type Thread = {
@@ -47,7 +47,7 @@
 		pageHref: (p: number) => string;
 		/** SSE stream for this inbox's own scope (a leader's threads, or platform). */
 		eventsUrl: string;
-		/** What a non-AI, non-citizen reply is labelled — a campaign's team vs the platform's. */
+		/** What a non-AI, non-citizen reply is labelled. A campaign's team vs the platform's. */
 		teamLabel?: string;
 		itemLabel?: string;
 		emptyText?: string;
@@ -60,7 +60,7 @@
 		onReplied?: (result: { type: string; data?: Record<string, unknown> }) => void;
 	} = $props();
 
-	// Unanswered first, then newest activity — both inboxes are worked as a
+	// Unanswered first, then newest activity. Both inboxes are worked as a
 	// queue, so what needs a human belongs at the top.
 	const ordered = $derived(
 		[...threads].sort((a, b) => Number(b.awaitingReply) - Number(a.awaitingReply) || b.lastActivity.localeCompare(a.lastActivity))
@@ -83,7 +83,7 @@
 	$effect(() => {
 		const source = new EventSource(eventsUrl);
 		source.onmessage = (e) => {
-			// The message the typing announced has landed — clear it now rather
+			// The message the typing announced has landed, clear it now rather
 			// than waiting out the 4s decay.
 			const threadId = Number(e.data);
 			typingThreads[threadId] = false;

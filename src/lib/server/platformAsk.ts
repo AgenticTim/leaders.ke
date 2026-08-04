@@ -8,7 +8,7 @@
 // distinct enough in vocabulary ("who is my MP" vs "what does an MCA earn" vs
 // "what does a campaign page cost") that a classifier round trip would add
 // latency and cost for no accuracy gain. Several sources can match one
-// question — they're all included rather than picking a single winner, since
+// question. They're all included rather than picking a single winner, since
 // the answering model is better placed to decide what's relevant than a
 // keyword rule is.
 import { and, desc, eq, ilike, isNotNull, isNull, or } from 'drizzle-orm';
@@ -66,7 +66,7 @@ function regionsIn(q: string): string[] {
 }
 
 /** Current holders and 2027 aspirants for the seats/regions the question points
- * at — the question's own region names, else the asker's saved location. Only
+ * at. The question's own region names, else the asker's saved location. Only
  * publicly visible people (a verified term or verified run), the same gate the
  * rest of the site uses. */
 async function directorySource(q: string, location: AskerLocation): Promise<Source | null> {
@@ -128,7 +128,7 @@ async function directorySource(q: string, location: AskerLocation): Promise<Sour
 	const year = (d: Date | null) => (d ? String(d.getFullYear()) : '');
 	const profile = (r: { slug: string | null }) => (r.slug ? ` (profile: ${leaderPath(r)})` : '');
 	const termLine = (r: (typeof heldRows)[number]) =>
-		`- ${fullName(r)} — ${r.title}, ${r.region}, ${year(r.startAt)}${r.endAt ? `-${year(r.endAt)}` : '-present'}${profile(r)}`;
+		`- ${fullName(r)}, ${r.title}, ${r.region}, ${year(r.startAt)}${r.endAt ? `-${year(r.endAt)}` : '-present'}${profile(r)}`;
 
 	const sitting = heldRows.filter((r) => r.status === 'current');
 	const past = heldRows.filter((r) => r.status !== 'current');
@@ -141,9 +141,9 @@ async function directorySource(q: string, location: AskerLocation): Promise<Sour
 		sitting.length > 0
 			? `CURRENTLY IN OFFICE (this is the answer to "who is the <seat>" questions):\n${sitting.map(termLine).join('\n')}`
 			: '',
-		past.length > 0 ? `FORMER holders of these seats (past terms — do NOT present as current):\n${past.map(termLine).join('\n')}` : '',
+		past.length > 0 ? `FORMER holders of these seats (past terms, do NOT present as current):\n${past.map(termLine).join('\n')}` : '',
 		runRows.length > 0
-			? `Declared ${ACTIVE_CYCLE} candidates (running, not yet elected):\n${runRows.map((r) => `- ${fullName(r)} — ${r.title}, ${r.region}${profile(r)}`).join('\n')}`
+			? `Declared ${ACTIVE_CYCLE} candidates (running, not yet elected):\n${runRows.map((r) => `- ${fullName(r)}, ${r.title}, ${r.region}${profile(r)}`).join('\n')}`
 			: ''
 	]
 		.filter(Boolean)
@@ -166,13 +166,13 @@ function seatDutiesSource(q: string): Source | null {
 			const duties = SEAT_DUTIES_BY_TITLE[title];
 			if (!duties) return '';
 			const groups = duties.groups
-				.map((g) => `${g.heading} (${g.sourceLabel} — ${g.sourceUrl}):\n${g.items.map((i) => `  - ${i}`).join('\n')}`)
+				.map((g) => `${g.heading} (${g.sourceLabel}, ${g.sourceUrl}):\n${g.items.map((i) => `  - ${i}`).join('\n')}`)
 				.join('\n');
 			return `${title}: ${duties.summary}\n${groups}`;
 		})
 		.filter(Boolean);
 	if (blocks.length === 0) return null;
-	return { label: 'Constitution of Kenya — seat duties', text: blocks.join('\n\n') };
+	return { label: 'Constitution of Kenya, seat duties', text: blocks.join('\n\n') };
 }
 
 // ── Stats: the census/register figures behind /demographics ─────────────────
@@ -209,7 +209,7 @@ async function pricingSource(q: string): Promise<Source | null> {
 
 // ── Platform how-to: what a citizen/leader can DO here ──────────────────────
 
-// Short, stable descriptions of the platform's own flows — these are facts
+// Short, stable descriptions of the platform's own flows. These are facts
 // about vote.ke itself (which route does what), not content that changes, so
 // they live here rather than in an admin-editable corpus for now.
 const HOW_TO: { keys: string[]; label: string; text: string }[] = [
@@ -226,7 +226,7 @@ const HOW_TO: { keys: string[]; label: string; text: string }[] = [
 	{
 		keys: ['ambassador', 'volunteer', 'work for', 'get a job', 'mobiliz'],
 		label: 'Campaign ambassadors',
-		text: 'Campaign ambassadors mobilize citizens on the ground for a candidate. A campaign invites its own ambassadors from its dashboard Team tab — vote.ke does not hire or pay ambassadors directly, so someone wanting the role should contact the campaign they want to work for (every verified profile has contact details and a follow button).'
+		text: 'Campaign ambassadors mobilize citizens on the ground for a candidate. A campaign invites its own ambassadors from its dashboard Team tab, vote.ke does not hire or pay ambassadors directly, so someone wanting the role should contact the campaign they want to work for (every verified profile has contact details and a follow button).'
 	},
 	{
 		keys: ['claim', 'my profile', 'running for', 'i am a candidate', 'aspirant', 'onboard', 'sign up as'],
@@ -236,7 +236,7 @@ const HOW_TO: { keys: string[]; label: string; text: string }[] = [
 	{
 		keys: ['register', 'registration', 'iebc', 'am i registered', 'voter card'],
 		label: 'Voter registration',
-		text: 'vote.ke links citizens to the IEBC for the official register — see /verify-registration to check registration status and /drives for upcoming registration drives. vote.ke itself does not hold or update the IEBC register.'
+		text: 'vote.ke links citizens to the IEBC for the official register, see /verify-registration to check registration status and /drives for upcoming registration drives. vote.ke itself does not hold or update the IEBC register.'
 	},
 	{
 		keys: ['election date', 'when is the', 'key date', 'nomination', 'poll day'],
@@ -256,7 +256,7 @@ const HOW_TO: { keys: string[]; label: string; text: string }[] = [
 	{
 		keys: ['compare', 'versus', ' vs '],
 		label: 'Comparing leaders',
-		text: 'Two leaders can be compared side by side at /compare — profile, manifesto pillars and delivery record together.'
+		text: 'Two leaders can be compared side by side at /compare, profile, manifesto pillars and delivery record together.'
 	},
 	{
 		keys: ['rank', 'rating', 'review', 'score'],
@@ -279,7 +279,7 @@ function howToSource(q: string): Source | null {
 export type PlatformGrounding = { sources: Source[]; usedSavedLocation: boolean };
 
 /** Picks and pulls every source the question plausibly needs. Returns an empty
- * list when nothing matches — the caller still answers (the model falls back on
+ * list when nothing matches. The caller still answers (the model falls back on
  * the platform system prompt's "say you don't know, suggest a next step"
  * instruction) rather than dead-ending the citizen. */
 export async function routePlatformQuestion(
@@ -290,7 +290,7 @@ export async function routePlatformQuestion(
 	// Routing reads the recent questions too, not just this one: a follow-up
 	// ("when did he take office?") names no seat or region, so on its own it
 	// matches no source and the answer would have conversation context but no
-	// DATA to answer from. Only the citizen's own prior QUESTIONS are included —
+	// DATA to answer from. Only the citizen's own prior QUESTIONS are included,
 	// past answers are long and would trigger sources by incidental mentions
 	// (an answer that links /pricing shouldn't pull the pricing table next turn).
 	const q = [...recentQuestions, question].join(' \n ').toLowerCase();

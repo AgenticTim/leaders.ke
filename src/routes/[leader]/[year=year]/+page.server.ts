@@ -67,13 +67,13 @@ async function viewerPhone(userId: number): Promise<string | null> {
 	return null;
 }
 
-// /[leader]/[year]: the active campaign workspace — manifesto with delivery
+// /[leader]/[year]: the active campaign workspace, manifesto with delivery
 // tracker, updates, citizen reviews, vote pledges, fundraising and the AI
 // constituent chat. Only the active cycle has a workspace; other years bounce
-// to the permanent record. Public as soon as the run exists — verifiedAt is a
+// to the permanent record. Public as soon as the run exists, verifiedAt is a
 // "Verified" badge only (see docs/URLDiscovery.md), not a visibility gate.
 export const load: PageServerLoad = async ({ params, locals, cookies, depends }) => {
-	// Re-run on invalidate('chat:thread') — the SSE ping's refresh hook.
+	// Re-run on invalidate('chat:thread'). The SSE ping's refresh hook.
 	depends('chat:thread');
 	const recordPath = leaderPath({ slug: params.leader });
 	if (Number(params.year) !== ACTIVE_CYCLE) redirect(302, recordPath);
@@ -107,7 +107,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, depends })
 
 	// Same "who may manage this profile" check as the public profile page's
 	// canEdit: a platform admin, or an active manager on the run's team (the
-	// person themselves included — they're their own first manager).
+	// person themselves included. They're their own first manager).
 	const viewerIsManager = viewer
 		? viewer.id === row.users.id ||
 			!!(
@@ -126,18 +126,18 @@ export const load: PageServerLoad = async ({ params, locals, cookies, depends })
 		: false;
 	const canEdit = !!viewer?.adminAt || viewerIsManager;
 
-	// The viewer's own chat history with this person — the same thread as the
+	// The viewer's own chat history with this person. The same thread as the
 	// profile page's Ask block (both key on the person), by account or the
 	// guest's anon_id, so refreshes keep it and team replies reach the citizen.
 	const chatThread = await getWebThread(row.users.id, viewer?.id ?? null, anonId);
-	// askMaxChars drives the Ask box's own maxlength — the action truncates to
+	// askMaxChars drives the Ask box's own maxlength. The action truncates to
 	// it regardless, this just stops the textarea taking more than will be used.
 	const { askMaxChars } = await getPlatformSettings();
 
 	return {
 		chatThread,
 		askMaxChars,
-		// The person behind the run (users.id) — the chat SSE stream keys on this.
+		// The person behind the run (users.id). The chat SSE stream keys on this.
 		subjectId: row.users.id,
 		year: Number(params.year),
 		recordPath,
@@ -160,8 +160,8 @@ export const load: PageServerLoad = async ({ params, locals, cookies, depends })
 			status: row.status,
 			verified: row.verified,
 			followers: workspace.followers,
-			// The run's own pitch (Campaign tab), not the person's general profile bio —
-			// this workspace is about the 2027 campaign specifically.
+			// The run's own pitch (Campaign tab), not the person's general profile bio.
+			// This workspace is about the 2027 campaign specifically.
 			campaignTitle: workspace.title,
 			campaignDescription: workspace.description,
 			pillars: workspace.pillars
@@ -184,7 +184,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, depends })
 };
 
 export const actions: Actions = {
-	// Signed-in only — the account itself is the proof, no name/contact capture
+	// Signed-in only. The account itself is the proof, no name/contact capture
 	// or OTP confirm needed (see followAsAccount).
 	follow: async (event) => {
 		if (!event.locals.user) return fail(401, { error: 'Log in to follow.' });
@@ -285,7 +285,7 @@ export const actions: Actions = {
 		// With Paystack live and a valid M-Pesa number: fire a real STK push and
 		// let the webhook confirm the pending row (donationFulfill.ts). Otherwise
 		// (no key, or no/invalid phone) the row stays a manual pledge that the
-		// campaign confirms against their till statement — the pre-STK behavior.
+		// campaign confirms against their till statement. The pre-STK behavior.
 		const mpesaPhone = phone ? normalizeMpesaPhone(phone) : null;
 		if (paystackEnabled() && mpesaPhone) {
 			const reference = `don_${randomUUID()}`;
@@ -306,7 +306,7 @@ export const actions: Actions = {
 					reference
 				});
 			} catch (err) {
-				// The prompt never reached the phone — no money moved, so the row
+				// The prompt never reached the phone. No money moved, so the row
 				// must not linger as a pending pledge the team might chase.
 				await db
 					.update(donations)
@@ -339,7 +339,7 @@ export const actions: Actions = {
 
 		// Truncated, not rejected: an over-long question still gets answered on
 		// its first askMaxChars. Enforced server-side because the textarea's own
-		// maxlength is bypassed by a direct POST — this is what actually keeps an
+		// maxlength is bypassed by a direct POST. This is what actually keeps an
 		// arbitrarily large paste out of a billed Anthropic call.
 		const settings = await getPlatformSettings();
 		const question = raw.slice(0, settings.askMaxChars);
@@ -362,7 +362,7 @@ export const actions: Actions = {
 		);
 
 		// Free AI answers exhausted (guest): the question still lands, routed to
-		// the team — never a "log in to keep asking" dead end.
+		// the team, never a "log in to keep asking" dead end.
 		if (rateLimit.teamOnly) {
 			await recordQuestion(conversationId, viewer?.id ?? null, question, true);
 			return { asked: true, answered: false, question };
@@ -372,7 +372,7 @@ export const actions: Actions = {
 		// price, admin-editable as platformSettings.aiChatCostCredits), checked up
 		// front. Profile-scoped (users.id), not campaignId: the knowledgebase a
 		// wallet pays to query is one per person, not per run. With no credit the
-		// question is still recorded and routed to the team — a human replies later
+		// question is still recorded and routed to the team. A human replies later
 		// rather than the citizen hitting a dead end.
 		const [wallet] = await db.select().from(wallets).where(eq(wallets.subjectUserId, row.users.id));
 		if (!wallet || wallet.balance < settings.aiChatCostCredits) {

@@ -15,7 +15,7 @@
 	let constituency = $state(data.constituencySlug);
 	let ward = $state(data.wardSlug);
 
-	// PhoneInput only exposes `value` (bindable), no `name` — a hidden input carries
+	// PhoneInput only exposes `value` (bindable), no `name`, a hidden input carries
 	// the bound value into the form's native submission.
 	let email = $state(data.email);
 	let smsPhone = $state(data.smsPhone);
@@ -37,7 +37,7 @@
 		};
 	}
 
-	// A channel can only be selected to notify on if it's actually verified — an
+	// A channel can only be selected to notify on if it's actually verified. An
 	// unverified address/number isn't reachable, so forcing it off (and disabling
 	// the control) here keeps the UI honest instead of silently ignoring the field
 	// server-side.
@@ -57,7 +57,7 @@
 	};
 </script>
 
-<svelte:head><title>Account — vote.ke</title></svelte:head>
+<svelte:head><title>Account · vote.ke</title></svelte:head>
 
 <div class="">
 	<h1 class="text-xl font-bold text-heading">Account</h1>

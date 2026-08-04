@@ -1,8 +1,8 @@
 // Fetches readable text from a Knowledge-tab source LINK (see the Knowledge tab's
 // "From a link" form) for review before it's saved as a knowledge_documents row.
-// YouTube URLs get special handling via youtubei.js (an Innertube client — the
+// YouTube URLs get special handling via youtubei.js (an Innertube client. The
 // same private API youtube.com's own web player calls) for title/description,
-// which is solid. Transcript uses the `youtube-transcript` package instead —
+// which is solid. Transcript uses the `youtube-transcript` package instead.
 // Innertube's own get_transcript endpoint now requires a BotGuard-derived PO
 // token neither client supplies, while youtube-transcript pulls the caption
 // track directly (InnerTube Android client context, falling back to scraping
@@ -31,7 +31,7 @@ export type LinkPreview = {
 
 /** Baseline SSRF guard: this endpoint is reachable only by an authenticated,
  * verified leader/manager (never the public), which narrows the real threat to a
- * malicious insider rather than an anonymous internet attacker — so a hostname-string
+ * malicious insider rather than an anonymous internet attacker, so a hostname-string
  * check (not full DNS-rebinding-proof resolution) is a reasonable bar here. Blocks
  * loopback, link-local/cloud-metadata, and RFC1918 private ranges. */
 function isDisallowedHost(hostname: string): boolean {
@@ -77,7 +77,7 @@ function extractTitleAndBodyText(html: string): { title: string | null; content:
 	const title = root.querySelector('title')?.textContent.trim() || null;
 	root.querySelectorAll('script, style, nav, header, footer, noscript').forEach((el) => el.remove());
 	// node-html-parser surfaces a leading <!DOCTYPE html> as literal text content
-	// rather than treating it as a non-text declaration — strip it explicitly.
+	// rather than treating it as a non-text declaration, strip it explicitly.
 	const content = root.textContent
 		.replace(/^\s*<!DOCTYPE[^>]*>\s*/i, '')
 		.replace(/[ \t]+/g, ' ')
@@ -104,7 +104,7 @@ async function extractYouTubeTranscript(videoId: string): Promise<string | null>
 			.trim();
 		return text || null;
 	} catch (err) {
-		// No captions on this video, or YouTube changed something again — degrade to
+		// No captions on this video, or YouTube changed something again, degrade to
 		// title + description only, not logged as an error.
 		console.log(`[linkExtract] transcript unavailable for ${videoId}: ${err instanceof Error ? err.message : err}`);
 		return null;

@@ -18,7 +18,7 @@
 	let mobileSearchOpen = $state(false);
 
 	// Under /dashboard the layout's own load already computed myCampaigns/pendingClaims/
-	// isAdmin (it's mid-request there anyway) — page.data has them for free. Everywhere
+	// isAdmin (it's mid-request there anyway), page.data has them for free. Everywhere
 	// else (public pages, /pricing, a leader's profile…) they're absent, since running
 	// that query on every page view for every signed-in visitor would tax the site's
 	// highest-traffic pages just to feed a dropdown most visits never open. Lazy-fetched
@@ -40,7 +40,7 @@
 		}
 	}
 
-	// The <details> dropdown doesn't auto-close on navigation — close it
+	// The <details> dropdown doesn't auto-close on navigation, close it
 	// explicitly when a mode is picked, and on any click outside it. Desktop-only
 	// (md+): below md this whole switcher is hidden, its job done instead by the
 	// hamburger panel's own For Leaders / For Citizens tiles (see menuOpen below).
@@ -68,8 +68,8 @@
 	];
 
 	// Mobile nav: the desktop links (and the desktop switcher/bell) are hidden below
-	// md, so a hamburger opens a stacked panel with everything folded in instead —
-	// a flat "For Leaders" / "For Citizens" grid, no nested dropdowns.
+	// md, so a hamburger opens a stacked panel with everything folded in instead.
+	// A flat "For Leaders" / "For Citizens" grid, no nested dropdowns.
 	let menuOpen = $state(false);
 	$effect(() => {
 		if (menuOpen) ensureSwitcherData();
@@ -142,9 +142,9 @@
 				<div class="hidden items-center gap-2 md:flex">
 					<NotificationsPanel />
 					<!-- Account switcher: always offers Log out, even for a pure citizen with
-					no other context to switch into (modes.length === 1) — only the extra
+					no other context to switch into (modes.length === 1), only the extra
 					mode entries (campaign you run/manage, a pending claim, Platform admin)
-					are conditional on having more than one. Below md this is hidden — the
+					are conditional on having more than one. Below md this is hidden. The
 					hamburger panel's own tiles do this job on mobile instead. -->
 					<details class="group relative w-fit" bind:open={switcherOpen} bind:this={switcherEl}>
 						<summary
@@ -219,7 +219,7 @@
 	</div>
 
 	<!-- Mobile nav panel: a flat "For Leaders" / "For Citizens" grid, no nested
-	dropdowns — an account that manages a campaign or is a platform admin gets its
+	dropdowns. An account that manages a campaign or is a platform admin gets its
 	shortcuts (campaign names, Platform Admin, Log out) up top; everyone else gets
 	the Features/Pricing/Join funnel at the bottom instead. -->
 	{#if menuOpen}
@@ -276,8 +276,8 @@
 			</div>
 		</nav>
 	{/if}
-	<!-- Mobile: the search row appears only while the bar's search icon is on —
-	a permanent row taxed every mobile viewport (especially the booth).
+	<!-- Mobile: the search row appears only while the bar's search icon is on.
+	A permanent row taxed every mobile viewport (especially the booth).
 	expand={false} keeps the input w-full instead of shrink-until-focused. -->
 	{#if mobileSearchOpen}
 		<div class="block px-4 pb-3 lg:hidden">

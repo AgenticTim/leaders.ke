@@ -8,14 +8,14 @@
 </script>
 
 <svelte:head>
-	<title>Contact Us — vote.ke</title>
+	<title>Contact Us · vote.ke</title>
 	<meta name="description" content="Frequently asked questions and how to reach the vote.ke team." />
 </svelte:head>
 
 <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
 	<h1 class="text-3xl font-bold text-heading">Contact Us</h1>
 	<p class="mt-3 text-lg text-muted">
-		Check the common questions first — if yours isn't there, write to us below.
+		Check the common questions first. If yours isn't there, write to us below.
 	</p>
 
 	<!-- FAQ pointer: the questions themselves live on /faq (searchable). -->
@@ -26,7 +26,7 @@
 		<span>
 			<span class="block font-semibold text-heading">Frequently asked questions</span>
 			<span class="mt-1 block text-sm text-muted">
-				Claiming a page, verification, pricing, data — searchable answers for citizens, leaders, and teams.
+				Claiming a page, verification, pricing, data: searchable answers for citizens, leaders, and teams.
 			</span>
 		</span>
 		<span class="text-lg text-muted">→</span>
@@ -39,7 +39,7 @@
 
 		{#if form?.sent}
 			<div class="mt-4 rounded-xl bg-primary-soft p-4 text-sm font-medium text-on-primary">
-				Message sent — we'll get back to you soon.
+				Message sent. We'll get back to you soon.
 			</div>
 		{:else if form?.error}
 			<div class="mt-4 rounded-xl border border-red-500/40 bg-red-500/5 p-4 text-sm font-medium text-red-500">

@@ -13,14 +13,14 @@
 		negative: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
 	};
 
-	// Unconfirmed first — those need the manager's attention — then by date.
+	// Unconfirmed first. Those need the manager's attention, then by date.
 	const events = $derived(
 		[...data.events].sort((a, b) => Number(a.confirmed) - Number(b.confirmed) || b.scheduledFor.localeCompare(a.scheduledFor))
 	);
 	const pending = $derived(data.events.filter((e) => !e.confirmed).length);
 </script>
 
-<svelte:head><title>Mobilization — vote.ke</title></svelte:head>
+<svelte:head><title>Mobilization · vote.ke</title></svelte:head>
 
 {#if form?.confirmed}
 	<div class="mb-6 rounded-xl bg-primary-soft p-4 text-sm font-medium text-on-primary">Event confirmed.</div>

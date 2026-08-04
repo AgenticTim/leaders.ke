@@ -1,6 +1,6 @@
 // Quick-jump autocomplete for the header search: leaders grouped by seat family
 // (Executive / Parliament / MCAs) plus parties. The static groups (platform
-// pages, regions) live client-side in QuickSearch.svelte — this endpoint only
+// pages, regions) live client-side in QuickSearch.svelte. This endpoint only
 // answers what needs the DB. Verified profiles only, same rule as /search.
 import { json } from '@sveltejs/kit';
 import { and, eq, exists, ilike, isNotNull, isNull, or, sql } from 'drizzle-orm';
@@ -25,7 +25,7 @@ export const GET: RequestHandler = async ({ url }) => {
 	const like = `%${q}%`;
 
 	const nameMatch = or(ilike(users.firstName, like), ilike(users.otherNames, like), ilike(sql`${users.firstName} || ' ' || ${users.otherNames}`, like));
-	// posts.tags is a jsonb string array — matches if any tag itself contains the query.
+	// posts.tags is a jsonb string array, matches if any tag itself contains the query.
 	const tagMatch = sql`exists (select 1 from jsonb_array_elements_text(${posts.tags}) as t(tag) where t.tag ilike ${like})`;
 	const [heldRows, runRows, partyRows, newsRows, tagRows] = await Promise.all([
 		db
@@ -43,7 +43,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			.innerJoin(positions, eq(leaders.positionId, positions.id))
 			.where(and(isNull(leaders.deletedAt), isNotNull(leaders.verifiedAt), isNull(users.deletedAt), nameMatch))
 			.limit(5),
-		// Verified 2027 runs (campaigns) — aspirants with no leaders row.
+		// Verified 2027 runs (campaigns), aspirants with no leaders row.
 		db
 			.select({
 				slug: users.slug,
@@ -63,8 +63,8 @@ export const GET: RequestHandler = async ({ url }) => {
 			.from(parties)
 			.where(and(isNull(parties.deletedAt), or(ilike(parties.name, like), ilike(parties.abbreviation, like))))
 			.limit(5),
-		// Team-authored, published articles from a publicly visible person — same
-		// gate as /news. Title match only — a tag match surfaces as its own Topics
+		// Team-authored, published articles from a publicly visible person, same
+		// gate as /news. Title match only. A tag match surfaces as its own Topics
 		// entry below instead of pulling in the post by its (unrelated) title.
 		db
 			.select({ slug: posts.slug, title: posts.title })
@@ -87,7 +87,7 @@ export const GET: RequestHandler = async ({ url }) => {
 				)
 			)
 			.limit(5),
-		// Topic tags matching the query, from publicly visible posts — the actual
+		// Topic tags matching the query, from publicly visible posts. The actual
 		// tag is the result, not the post title (see tagMatch).
 		db
 			.select({ tags: posts.tags })

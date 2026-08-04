@@ -7,7 +7,7 @@
 	const dateFmt = new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' });
 </script>
 
-<svelte:head><title>Subscriptions &amp; revenue — Admin</title></svelte:head>
+<svelte:head><title>Subscriptions &amp; revenue · Admin</title></svelte:head>
 
 <div>
 	<h1 class="text-xl font-bold text-heading">Subscriptions &amp; revenue</h1>

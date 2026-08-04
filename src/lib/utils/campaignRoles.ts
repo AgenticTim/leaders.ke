@@ -1,4 +1,4 @@
-// The capacities in which someone creates or claims a leader profile — the
+// The capacities in which someone creates or claims a leader profile. The
 // "My role" dropdown on the apply/claim Team tabs, validated server-side too.
 export const CAMPAIGN_ROLES = [
 	'The leader (this profile is me)',
@@ -23,7 +23,7 @@ export function isValidNationalId(value: string): boolean {
 }
 
 // Everything held on a manager's `managers.roles` jsonb: their admin flag plus
-// their own sign-off (role title and national ID number) — per manager, never
+// their own sign-off (role title and national ID number), per manager, never
 // shared, so each team member attests separately. Their ID IMAGES live on the
 // manager's own `users` row (idFrontUrl/idBackUrl): an identity follows the
 // person, so a manager who joins a second team never re-uploads.

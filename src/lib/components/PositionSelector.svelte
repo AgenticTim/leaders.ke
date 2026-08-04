@@ -18,7 +18,7 @@
 		name?: string;
 		label?: string;
 		// false when this selector lives in a shared <form> alongside other submit
-		// buttons — native HTML validation is form-wide, so an always-required select
+		// buttons, native HTML validation is form-wide, so an always-required select
 		// here would block unrelated submits (e.g. the main Save button) until filled.
 		required?: boolean;
 		// Exposes the chosen positionId to the parent (e.g. to stage it client-side
@@ -38,7 +38,7 @@
 	let selectedTitle = $state(initialPosition?.title ?? '');
 	value = initialPositionId ?? '';
 
-	// MCA seats are wards (1,450 of them) — too many to pick directly, so drill down
+	// MCA seats are wards (1,450 of them), too many to pick directly, so drill down
 	// constituency -> ward instead of one flat region list, same as every other role.
 	const allConstituencies = counties
 		.flatMap((c) => c.constituencies)
@@ -62,7 +62,7 @@
 	function onTitleChange() {
 		// Downstream selects change with the role; their old values no longer apply.
 		selectedConstituency = '';
-		// President is a single national seat — auto-pick it, no region step needed.
+		// President is a single national seat, auto-pick it, no region step needed.
 		value = selectedTitle === 'President' ? (regionOptions[0]?.id ?? '') : '';
 	}
 

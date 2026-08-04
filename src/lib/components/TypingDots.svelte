@@ -1,4 +1,4 @@
-<!-- The animated ellipsis after "… is typing" — three dots fading in sequence;
+<!-- The animated ellipsis after "… is typing", three dots fading in sequence;
 the label text itself stays still. -->
 <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
 

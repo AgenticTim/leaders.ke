@@ -8,7 +8,7 @@ import { ballotSimulations, campaigns, followers, leaders, parties, pledges, pos
 import { fullName, leaderPath, slugify } from '$lib/server/leader';
 import { BALLOT_LEVELS, resolveCandidateById, type BallotLevel, type Candidate } from '$lib/server/ballot';
 
-/** Every leader this citizen follows (person id + display name) — powers /news's
+/** Every leader this citizen follows (person id + display name), powers /news's
  * per-leader "Following" filter buttons, one per person instead of a single
  * catch-all toggle (digestId IS the person's users.id for digest 'leader', see
  * followers.digestId's comment in schema.ts). */
@@ -99,7 +99,7 @@ export type MyBallot = {
 /** Every simulated ballot linked to this account: cast signed in, or claimed
  * later via signup/login (claimGuestBallots) or Save Vote on someone else's
  * shared link, newest first. Each carries its own resolved candidate per level
- * (never frozen — re-fetched live, same as the /ballot/[publicId] share page),
+ * (never frozen: re-fetched live, same as the /ballot/[publicId] share page),
  * so the My Vote table can render an actual leader card per cell. */
 export async function listMyBallots(userId: number): Promise<MyBallot[]> {
 	const rows = await db

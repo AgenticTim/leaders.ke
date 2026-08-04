@@ -17,7 +17,7 @@
 	});
 
 	// Picking a leader triggers the comparison directly. Only navigate when both
-	// are picked, they differ, and they differ from the pair already on screen —
+	// are picked, they differ, and they differ from the pair already on screen,
 	// otherwise every pick would reload and spam history.
 	function maybeCompare() {
 		if (!a || !b || a === b) return;
@@ -45,7 +45,7 @@
 </script>
 
 <svelte:head>
-	<title>Compare Leaders — vote.ke</title>
+	<title>Compare Leaders · vote.ke</title>
 	<meta
 		name="description"
 		content="Compare Leaders. A candidate vs current, same seat across regions, regimes..."

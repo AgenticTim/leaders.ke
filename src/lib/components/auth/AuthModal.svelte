@@ -22,7 +22,7 @@
 	}: {
 		open?: boolean;
 		next?: string;
-		// Why they're being asked to log in ("Log in to follow Wanjiku…") — shown
+		// Why they're being asked to log in ("Log in to follow Wanjiku…"), shown
 		// above the form so the modal never feels like a dead-end wall.
 		message?: string;
 	} = $props();

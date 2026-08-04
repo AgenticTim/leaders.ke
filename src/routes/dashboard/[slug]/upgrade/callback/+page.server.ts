@@ -7,7 +7,7 @@ import type { PageServerLoad } from './$types';
 
 // Paystack sends the campaign admin back here after paying for a tier change.
 // The reference is re-verified against Paystack's API (never trusted from the
-// query), then fulfillment runs idempotently — if the webhook already applied
+// query), then fulfillment runs idempotently. If the webhook already applied
 // the switch, this just redirects back to the upgrade page.
 export const load: PageServerLoad = async (event) => {
 	const { ctx } = await requireLeader(event);

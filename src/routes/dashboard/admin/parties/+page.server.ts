@@ -44,13 +44,13 @@ function validateParty(name: string, status: string): string | null {
 
 // Admin roster for the parties.verifiedAt badge: confirms the party's ORPP
 // listing (name/symbol/colors/status) was manually checked against the
-// register. A badge only (see docs/URLDiscovery.md) — never a visibility gate.
+// register. A badge only (see docs/URLDiscovery.md), never a visibility gate.
 export const load: PageServerLoad = async (event) => {
 	await requireAdmin(event);
 	const rows = await db.select().from(parties).where(isNull(parties.deletedAt)).orderBy(parties.name);
 
 	// Members: distinct people with a live term or run recording this party
-	// (partyId is per-term/per-run, not a person-level fact — see leaders.partyId).
+	// (partyId is per-term/per-run, not a person-level fact, see leaders.partyId).
 	const [termRows, runRows] = await Promise.all([
 		db.select({ partyId: leaders.partyId, userId: leaders.userId }).from(leaders).where(and(isNull(leaders.deletedAt), isNotNull(leaders.partyId))),
 		db

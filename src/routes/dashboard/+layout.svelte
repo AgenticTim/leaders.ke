@@ -21,12 +21,12 @@
 	let confirmClaimId = $state<number | null>(null);
 	let confirmNotes = $state('');
 	// Typed into the pending-claim decision form's notes field BEFORE the Reject
-	// button opens the confirm modal — carried into confirmNotes at click time.
+	// button opens the confirm modal, carried into confirmNotes at click time.
 	let claimRejectNotes = $state('');
 
 	// Submit for Verification: a modal listing every checklist tab (labels below),
 	// each item ticked off as it's completed. The form only ever posts once every
-	// tab is complete (the button is a no-op otherwise) — the server re-checks
+	// tab is complete (the button is a no-op otherwise). The server re-checks
 	// anyway before emailing admins.
 	let showVerificationModal = $state(false);
 	let submittingVerification = $state(false);
@@ -39,7 +39,7 @@
 		signoff: 'Sign-off'
 	};
 
-	// Set by /invite/[token] right after accepting — a one-time "you're in" banner.
+	// Set by /invite/[token] right after accepting. A one-time "you're in" banner.
 	const joinedRole = $derived(page.url.searchParams.get('joined'));
 	const joinedLeaderName = $derived(page.url.searchParams.get('leaderName'));
 	const joinedMessage = $derived.by(() => {
@@ -51,7 +51,7 @@
 
 	// Generic one-off banner (e.g. "Your email is already verified.") set as a
 	// flash cookie by whichever route redirected here (see $lib/server/flash.ts).
-	// Normally hooks consume the cookie and it arrives via data.flash — but when a
+	// Normally hooks consume the cookie and it arrives via data.flash, but when a
 	// redirect lands on the SAME url the user was already on, no server load
 	// re-runs, so read (and clear) the cookie client-side after each navigation.
 	let clientFlash = $state<string | null>(null);
@@ -68,9 +68,9 @@
 
 	// Which mode the current URL/state belongs to. The section nav below shows only this
 	// mode's tabs, so switching modes changes what's available, not just the open tab.
-	// Matched on the exact second path segment — a prefix test would misfile campaign
+	// Matched on the exact second path segment. A prefix test would misfile campaign
 	// slugs that merely start with a mode name (/dashboard/admin-tim/* is NOT admin).
-	// Leader route family: [slug]/* (a leader's own profile, verified or not — onboarding
+	// Leader route family: [slug]/* (a leader's own profile, verified or not. Onboarding
 	// mints the slug at payment time so there's no separate in-progress-application state).
 	const mode = $derived.by(() => {
 		const second = page.url.pathname.split('/')[2];
@@ -85,14 +85,14 @@
 	// Verification action). Falls back to the viewer's own campaign.
 	const base = $derived(data.leaderContext?.basePath ?? '/dashboard');
 
-	// The modes this account can switch between right now — rendered by the root
+	// The modes this account can switch between right now, rendered by the root
 
 	// This mode's tabs. Only pages that actually exist are listed (no dead links);
 	// every listed tab is always reachable, so no per-tab enable flag is needed.
 	const sections = $derived.by(() => {
 		switch (mode) {
 			case 'citizen':
-				// One tab per ambassador assignment, titled with the leader's name —
+				// One tab per ambassador assignment, titled with the leader's name,
 				// ambassador work is part of citizen life, not a separate mode.
 				return [
 					{ href: '/dashboard/my-vote', label: 'My Vote' },
@@ -105,7 +105,7 @@
 				];
 			// A campaign profile always exists (onboarding mints the slug at payment
 			// time), so mode 'campaign' covers both an unverified profile still being
-			// assembled ahead of a verification request, and a verified one — every
+			// assembled ahead of a verification request, and a verified one. Every
 			// tab is reachable either way (none of their loaders gate on verified);
 			// the checklist banner + red asterisks above are what actually flag what's
 			// still missing, not tab visibility. The photo + IEBC certificate live on
@@ -128,7 +128,7 @@
 					{ href: `${base}/upgrade`, label: 'Plan' },
 					// Exception to "every listed tab is always reachable": the AI Chat
 					// feature only ever answers on the public profile, which itself only
-					// exists once verified — so this tab stays hidden, not just disabled,
+					// exists once verified: so this tab stays hidden, not just disabled,
 					// until then (see the Knowledge tab's own load guard).
 					...(data.leaderContext?.verified ? [{ href: `${base}/knowledge`, label: 'Knowledge' }] : [])
 				];
@@ -168,7 +168,7 @@
 		return !!(key && !data.application[key].complete);
 	};
 
-	// Every still-missing field across all four tabs — powers the Submit Application
+	// Every still-missing field across all four tabs, powers the Submit Application
 	// tooltip so the user sees exactly what's outstanding, not just a disabled button.
 	const missingFields = $derived(
 		data.application
@@ -182,7 +182,7 @@
 			: []
 	);
 
-	// The ambassador assignment whose mobilize tab is on screen, if any — drives
+	// The ambassador assignment whose mobilize tab is on screen, if any, drives
 	// the "Ambassador of [Name]" subheading on the citizen view.
 	const activeAssignment = $derived.by(() => {
 		const [, , second, third] = page.url.pathname.split('/');
@@ -191,7 +191,7 @@
 	});
 
 	// Exact match for any tab that's a URL-prefix of a sibling tab (e.g. Overview at
-	// /dashboard vs. /dashboard/account) — otherwise both would light up.
+	// /dashboard vs. /dashboard/account), otherwise both would light up.
 	const isActive = (href: string) =>
 		sections.some((s) => s.href !== href && s.href.startsWith(href))
 			? page.url.pathname === href
@@ -206,7 +206,7 @@
 		<div class="mb-4 whitespace-pre-line rounded-xl bg-primary p-4 text-sm font-medium text-on-primary">{notice}</div>
 	{/if}
 
-	<!-- Durable decision notifications (verification/claim outcomes) — bannered until dismissed -->
+	<!-- Durable decision notifications (verification/claim outcomes), bannered until dismissed -->
 	{#each data.notifications as item (item.id)}
 		<div class="mb-4 flex items-start justify-between gap-3 rounded-xl bg-primary p-4 text-on-primary">
 			<div class="min-w-0 text-sm">
@@ -236,7 +236,7 @@
 				<h1 class="text-2xl font-bold text-heading">
 					{data.leaderContext.leaderName}
 					{#if data.leaderContext.profileVerified}
-						<!-- Profile-review badge (profileVerifiedAt) — the pill this replaces
+						<!-- Profile-review badge (profileVerifiedAt). The pill this replaces
 						lived beside the checklist row below. -->
 						<VerifiedIcon class="ml-0.5 inline size-5 align-middle text-primary" title="✓ Profile Verified" label="Profile Verified" />
 					{/if}
@@ -284,7 +284,7 @@
 				<!-- A fresh application has no seat yet (Campaign tab unsaved), so the
 				seat fragment and its separators only render once a title exists.
 				While required fields are outstanding, the checklist replaces the
-				status word here — the sole "Required:" line in the layout. -->
+				status word here. The sole "Required:" line in the layout. -->
 				<p class="text-sm text-muted flex flex-wrap gap-1">
 					{#if data.leaderContext.positionTitle}
 						{data.leaderContext.positionTitle}{data.leaderContext.region
@@ -298,14 +298,14 @@
 					{/if}
 				</p>
 				<!-- Keyed on the PROFILE review flag (profileVerifiedAt), not on having a
-				publicly-live verified term/run — an admin-verified profile with no
+				publicly-live verified term/run. An admin-verified profile with no
 				campaign yet must not be asked to submit again. A verified profile
 				shows the blue check beside the name above instead of a pill here. -->
 				{#if data.leaderContext.profileVerified}
-					<!-- nothing — the name carries the badge -->
+					<!-- nothing. The name carries the badge -->
 				{:else if data.verificationRequestedAt}
 					<span
-						use:tooltip={`Submitted ${new Date(data.verificationRequestedAt).toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' })} — an admin has been notified.`}
+						use:tooltip={`Submitted ${new Date(data.verificationRequestedAt).toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' })}, an admin has been notified.`}
 						class="shrink-0 cursor-help rounded-full border border-border bg-surface-2 px-4 py-1.5 text-xs font-semibold text-muted"
 					>
 						Pending review
@@ -349,12 +349,12 @@
 				<span class="text-xs text-muted">by <span class="font-medium text-heading">{ac.application.applicantName}</span>{#if ac.application.email} · {ac.application.email}{/if}{#if ac.application.phone} · {ac.application.phone}{/if}</span>
 			{/if}
 			<span
-				use:tooltip={'Review-workflow state: seeded → —; claimed → latest claim outcome; applied → run verified/latest request; soft-deleted → deleted.'}
+				use:tooltip={'Review-workflow state: seeded → -; claimed → latest claim outcome; applied → run verified/latest request; soft-deleted → deleted.'}
 				class="cursor-help rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize {ac.verified === 'approved' ? 'bg-primary-soft text-on-primary' : ac.verified === 'pending' ? 'border border-primary text-primary' : 'border border-border text-muted'}"
-			>{ac.verified ?? '—'}</span>
+			>{ac.verified ?? '-'}</span>
 			<!-- An approved claim granted access immediately at payment time (see onboard.ts),
-			so unlike the pending decision form below, this stays reviewable indefinitely —
-			rejecting later deactivates the manager row and restores the profile from its
+			so unlike the pending decision form below, this stays reviewable indefinitely.
+			Rejecting later deactivates the manager row and restores the profile from its
 			seed record (there's no "before" snapshot to undo to otherwise). -->
 			{#if ac.approvedClaimId}
 				<button
@@ -399,11 +399,11 @@
 				<!-- Three states: nothing to review yet (Incomplete, inert), submitted and
 				awaiting a decision (Verify Profile), or already live (Unverify Profile).
 				Decoupled from any campaign (see the Campaign tab for per-campaign
-				verification) — this reflects Profile/Contacts/Team/Docs/Sign-off
+				verification). This reflects Profile/Contacts/Team/Docs/Sign-off
 				completeness only. Either actionable state goes through the same confirm modal. -->
 				{#if !ac.profileVerified && !ac.profileSubmitted}
 					<span
-						use:tooltip={"The owner hasn't submitted this profile for verification yet — nothing to review."}
+						use:tooltip={"The owner hasn't submitted this profile for verification yet. Nothing to review."}
 						class="cursor-help rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted"
 					>Unsubmitted</span>
 				{:else}

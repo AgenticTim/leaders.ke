@@ -1,5 +1,5 @@
 <script lang="ts">
-	// The header's round bell button — same round-button idiom as ThemeToggle. It's
+	// The header's round bell button, same round-button idiom as ThemeToggle. It's
 	// a pure count + deep link now: the full history (and any open invites) lives
 	// on the /dashboard/notifications tab, not a dropdown, so the badge just tells
 	// you there's something worth opening that tab for.
@@ -12,7 +12,7 @@
 			const data = await res.json();
 			unreadCount = data.unreadCount;
 		} catch {
-			// Best-effort — the tab itself is still reachable either way.
+			// Best-effort. The tab itself is still reachable either way.
 		}
 	}
 

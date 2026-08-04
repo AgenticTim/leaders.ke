@@ -3,7 +3,7 @@
 // of being a stateless single-shot. When the profile has AI Chat credit the
 // question is answered immediately (an `ai` message); when it doesn't, the
 // question is still captured and routed to the team, who reply from the
-// dashboard Inbox — so no citizen question is ever silently dropped.
+// dashboard Inbox, so no citizen question is ever silently dropped.
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { emitChatEvent } from '$lib/server/chatEvents';
 import { db } from '$lib/server/db';
@@ -29,7 +29,7 @@ function scopeMatch(personId: number | null) {
 }
 
 /** The latest open web thread for this (scope, viewer), or a fresh one. A
- * viewer's follow-ups build one thread per LEADER the team can read in order —
+ * viewer's follow-ups build one thread per LEADER the team can read in order,
  * signed-in citizens key on userId, guests on their anon_id device cookie (the
  * same thread on the profile and campaign pages, since both key on the person,
  * and never mixed across leaders, since scopeId differs). Scope 'leader' keys
@@ -84,7 +84,7 @@ export async function getOrCreateWebConversation(
 /** The viewer's own chat history in one scope, for the public Ask block: every
  * message across their threads for this leader (older threads included, e.g.
  * pre-adoption guest ones), oldest first, or their platform-wide thread when
- * `personId` is null. Read-only — never creates a conversation, so plain page
+ * `personId` is null. Read-only, never creates a conversation, so plain page
  * loads stay write-free (adoption is the one exception: linking guest threads
  * to a fresh login IS the page-load moment). */
 export async function getWebThread(
@@ -133,7 +133,7 @@ export async function getWebThread(
 }
 
 /** The tail of a thread, oldest-first, for feeding back as conversation context
- * on the next question — so "what about his rival?" resolves against what was
+ * on the next question, so "what about his rival?" resolves against what was
  * just discussed instead of being answered cold. */
 export async function getRecentMessages(conversationId: number, limit: number): Promise<{ sender: string; body: string }[]> {
 	const rows = await db
@@ -147,7 +147,7 @@ export async function getRecentMessages(conversationId: number, limit: number): 
 
 /** The signed-in citizen who owns this thread, or null for a guest thread
  * (identified only by an anon_id device cookie). Callers use it to decide
- * whether a reply can actually be delivered — a guest has no account to
+ * whether a reply can actually be delivered. A guest has no account to
  * notify and no email on file. */
 export async function getConversationOwnerId(conversationId: number): Promise<number | null> {
 	const [conv] = await db
@@ -204,12 +204,12 @@ export type ChatMessage = { id: number; sender: string; body: string; createdAt:
 export type ChatThread = {
 	id: number;
 	citizenName: string;
-	awaitingReply: boolean; // latest message is from the citizen — needs a team answer
+	awaitingReply: boolean; // latest message is from the citizen, needs a team answer
 	lastActivity: string;
 	messages: ChatMessage[];
 	// Guest identifiers, for telling one anonymous asker from another and for
 	// abuse triage. Both null on a signed-in thread (the account name identifies
-	// it), and both taken from the conversation itself — the address is the most
+	// it), and both taken from the conversation itself. The address is the most
 	// recent one the thread was used from (see conversations.ipAddress on why it
 	// isn't read back from aiAskEvents).
 	anonId: string | null;
@@ -217,7 +217,7 @@ export type ChatThread = {
 };
 
 /** Every citizen chat thread for this person (across seats), newest activity
- * first, each with its full message list — the dashboard Inbox reads this.
+ * first, each with its full message list. The dashboard Inbox reads this.
  * A thread needs attention when its last message came from the citizen.
  * `personId` null reads the PLATFORM-scope threads instead (the header's
  * site-wide Ask), which the admin platform inbox shows. */

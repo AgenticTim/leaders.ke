@@ -7,7 +7,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.party.name} — vote.ke</title>
+	<title>{data.party.name} · vote.ke</title>
 	{#if data.party.description}<meta name="description" content={data.party.description} />{/if}
 </svelte:head>
 

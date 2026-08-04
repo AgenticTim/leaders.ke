@@ -1,10 +1,10 @@
 // Tier switching for an EXISTING profile (TODO #19), the counterpart of
 // checkoutFulfill.ts (which is for first-time onboarding). No profile is
-// created here — the person already has one; we supersede their current
+// created here. The person already has one; we supersede their current
 // subscription with a new one at the chosen tier.
 //
 // Mid-term proration (1 credit = KES 1, see docs/ai-costs.md): the unused value
-// of the current plan is credited against the new plan's price — the customer
+// of the current plan is credited against the new plan's price. The customer
 // pays only the difference, and any excess (remainder > new price) spills into
 // their credit wallet. Because `applied = min(remainder, newPrice)`, exactly one
 // of {chargeNow, excessCredits} is ever non-zero: a switch fully covered by the
@@ -73,7 +73,7 @@ export type UpgradeMetadata = {
 	slug?: string;
 };
 
-/** upgrade vs downgrade is purely for the audit `origin` — both switch the tier
+/** upgrade vs downgrade is purely for the audit `origin`, both switch the tier
  * the same way; the label is which direction along the tier order we moved. */
 function originFor(fromTier: string, toTier: string): 'upgrade' | 'downgrade' {
 	return SUBSCRIPTION_TIERS.indexOf(toTier as 'kickstart') >=
@@ -242,7 +242,7 @@ export async function fulfillUpgradePayment(
 }
 
 /** Whether a Paystack reference is a tier-change charge (vs `ps_` onboarding
- * checkout or `don_` donations) — how the shared webhook routes an event. */
+ * checkout or `don_` donations), how the shared webhook routes an event. */
 export function isUpgradeReference(reference: string): boolean {
 	return reference.startsWith('up_');
 }
