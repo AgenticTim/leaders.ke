@@ -202,28 +202,40 @@ function heuristicSentiment(text: string): MentionSentiment {
 	return 'neutral';
 }
 
-/** Classifies one news mention's tone TOWARD the named leader. Haiku (cheap,
- * one word out) when a key is set; the keyword heuristic otherwise or on any
- * API failure — sentiment must never make ingestion itself fail. */
-export async function classifyMentionSentiment(leaderName: string, title: string, body: string): Promise<MentionSentiment> {
-	const text = `${title}\n${body}`.slice(0, 2000);
-	if (!env.ANTHROPIC_API_KEY) return heuristicSentiment(text);
+/** Classifies a BATCH of news mentions' tone TOWARD their named leader(s) in one
+ * Haiku call instead of one call per post — with the ingested backlog now in the
+ * thousands, one-call-per-post would mean thousands of sequential round trips.
+ * `leaderName` may be several names joined ("A, B") for a post tagging more than
+ * one person, matching how sentiment is stored: one value per POST, not per
+ * tagged person. Falls back to the keyword heuristic per item, both when there's
+ * no API key at all and per-item when the model's response is missing or
+ * unparseable for that line — sentiment must never make ingestion itself fail. */
+export async function classifyMentionSentimentBatch(items: { leaderName: string; title: string; body: string }[]): Promise<MentionSentiment[]> {
+	const texts = items.map((it) => `${it.title}\n${it.body}`.slice(0, 1000));
+	const heuristicResults = () => texts.map(heuristicSentiment);
+	if (!env.ANTHROPIC_API_KEY) return heuristicResults();
 
 	try {
 		const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+		const prompt = items.map((it, i) => `${i + 1}. Politician: ${it.leaderName}\nArticle: ${texts[i]}`).join('\n\n');
 		const response = await client.messages.create({
 			model: 'claude-haiku-4-5-20251001',
-			max_tokens: 5,
+			max_tokens: items.length * 10,
 			system:
-				'You classify Kenyan political news coverage. Reply with exactly one word - positive, neutral, or negative - describing the tone of the article TOWARD the named politician (not the general mood of the story).',
-			messages: [{ role: 'user', content: `Politician: ${leaderName}\n\nArticle:\n${text}` }]
+				'You classify Kenyan political news coverage. Below are several numbered articles. For EACH one, reply on its own line as "N: word" where word is positive, neutral, or negative — the tone of that article TOWARD its named politician (not the story\'s general mood). One line per article, in order, nothing else.',
+			messages: [{ role: 'user', content: prompt }]
 		});
-		const word = response.content.find((b) => b.type === 'text')?.text.trim().toLowerCase() ?? '';
-		if (word.includes('positive')) return 'positive';
-		if (word.includes('negative')) return 'negative';
-		return 'neutral';
+		const text = response.content.find((b) => b.type === 'text')?.text ?? '';
+		const results = heuristicResults(); // per-item fallback, overwritten below for each line the model actually answered
+		for (const line of text.split('\n')) {
+			const m = line.match(/^\s*(\d+)[:.]\s*(positive|neutral|negative)/i);
+			if (!m) continue;
+			const idx = Number(m[1]) - 1;
+			if (idx >= 0 && idx < items.length) results[idx] = m[2].toLowerCase() as MentionSentiment;
+		}
+		return results;
 	} catch (err) {
-		console.error('[news] sentiment classification failed, using heuristic:', err instanceof Error ? err.message : err);
-		return heuristicSentiment(text);
+		console.error('[news] batch sentiment classification failed, using heuristic:', err instanceof Error ? err.message : err);
+		return heuristicResults();
 	}
 }

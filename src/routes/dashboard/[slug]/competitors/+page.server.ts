@@ -63,7 +63,9 @@ export const load: PageServerLoad = async (event) => {
 		rivalByPerson.set(r.userId, { users: r.users, status: r.status, verified: !!r.verified });
 
 	// Positive/neutral/negative counts across a person's lifetime coverage
-	// (posts.sentiment, classified at ingest — $lib/server/newsIngest.ts).
+	// (posts.sentiment — classification is paused in $lib/server/newsIngest.ts
+	// pending a redesign, so this reads whatever's already classified from
+	// before the pause; nothing new backfills it right now).
 	// Only run when the perk is unlocked: a locked Competitors tab has nothing
 	// to show here, so there's no reason to pay for the extra query per rival.
 	const sentimentFor = async (personId: number): Promise<SentimentBreakdown> => {

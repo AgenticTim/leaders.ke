@@ -50,6 +50,20 @@
 				</label>
 			</form>
 
+			<form method="post" action="?/saveNewsBatchSize" use:enhance={withToast('Batch size updated.')}>
+				<label class="flex items-center gap-2 text-sm">
+					<span class="text-heading">Leaders per Google search</span>
+					<input
+						type="number"
+						name="newsBatchSize"
+						min="1"
+						value={data.settings.newsBatchSize}
+						onchange={(e) => (e.currentTarget as HTMLInputElement).form?.requestSubmit()}
+						class="w-20 rounded-full border border-border bg-surface-2 px-3 py-1.5 text-sm tabular-nums text-heading focus:border-primary focus:ring-0 focus:ring-ring focus:outline-none"
+					/>
+				</label>
+			</form>
+
 			<form
 				method="post"
 				action="?/runNewsIngestNow"
@@ -59,8 +73,10 @@
 						crawling = false;
 						if (result.type === 'failure') toast.error(String((result.data as { error?: string })?.error ?? 'Crawl failed.'));
 						else if (result.type === 'success' && result.data) {
-							const d = result.data as { inserted: number; people: number; failed: number };
-							toast.success(`Crawl done: ${d.inserted} new mention${d.inserted === 1 ? '' : 's'} across ${d.people} leaders${d.failed ? ` (${d.failed} feed${d.failed === 1 ? '' : 's'} failed)` : ''}.`);
+							const d = result.data as { inserted: number; people: number; requests: number; failed: number; sentimentClassified: number; sentimentFailed: number };
+							toast.success(
+								`Crawl done: ${d.inserted} new mention${d.inserted === 1 ? '' : 's'} across ${d.people} leaders (${d.requests} request${d.requests === 1 ? '' : 's'})${d.failed ? `, ${d.failed} failed` : ''}. Sentiment: ${d.sentimentClassified} classified${d.sentimentFailed ? `, ${d.sentimentFailed} failed` : ''}.`
+							);
 						}
 						await update({ reset: false });
 					};

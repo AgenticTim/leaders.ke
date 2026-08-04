@@ -1285,6 +1285,13 @@ export const platformSettings = pgTable('platform_settings', {
   // every other source is a whole-site/section feed fetched once per run and
   // matched against every verified leader's full name.
   newsSources: jsonb('news_sources').$type<Record<string, boolean>>().default(DEFAULT_NEWS_SOURCES).notNull(),
+  // How many verified leaders' names ride in one Google News search query
+  // (an OR'd quoted-name search), instead of one request per person — cuts
+  // total daily requests to news.google.com roughly by this factor, the
+  // per-person request volume was risking rate-limiting/blocking. Admin-
+  // tunable on Settings so it can be raised/lowered without a deploy while
+  // the right value against Google's actual limits gets found empirically.
+  newsBatchSize: integer('news_batch_size').default(5).notNull(),
   // Daily crawl schedule (src/hooks.server.ts): local "HH:MM" time of day the
   // in-process scheduler fires ingestNews() — checked on a short interval
   // rather than a fixed 24h-since-boot timer, so a reboot mid-day doesn't

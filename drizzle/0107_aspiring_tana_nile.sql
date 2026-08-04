@@ -1,0 +1,1 @@
+ALTER TABLE "platform_settings" ADD COLUMN "news_batch_size" integer DEFAULT 5 NOT NULL;

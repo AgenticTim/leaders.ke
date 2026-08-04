@@ -1,35 +1,38 @@
-// Daily news ingestion (TODO 7.1): pulls Google News RSS per verified leader
-// and stores matches as aggregated mention posts — the exact shape the seeded
-// demo mentions use (posts with a null creatorId + a null-creator tags row per
-// mentioned person), so the PR desk, crisis banner, /news mentions and profile
-// "In the news" sections all read them with zero changes.
+// Daily news ingestion (TODO 7.1): pulls Google News RSS, batched across several
+// leaders per search, and stores matches as aggregated mention posts — the exact
+// shape the seeded demo mentions use (posts with a null creatorId + a null-creator
+// tags row per mentioned person), so the PR desk, crisis banner, /news mentions and
+// profile "In the news" sections all read them with zero changes.
 //
-// Precision over recall: an item only lands if the leader's FULL name appears
-// in its title or snippet, and it only ever tags the one leader whose feed it
-// came from — mis-tagging a rival's scandal onto the wrong person is the
-// reputational failure mode. Dedupe is by sourceUrl (and title per person), so
-// re-runs are no-ops.
+// Precision over recall: an item only lands if a leader's FULL name appears in its
+// title or snippet. Unlike an earlier version, an article now tags EVERY verified
+// leader actually named in it, not just whichever search/feed happened to surface
+// it — the same person can be found via their own batched Google search, someone
+// else's, or a whole-site feed, and gets tagged consistently regardless of which
+// path found the article first. Dedupe is by sourceUrl (and title per matched
+// person), so re-runs are no-ops.
 import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { campaigns, leaders, platformSettings, posts, tags, users } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName } from '$lib/server/leader';
-import { classifyMentionSentiment } from '$lib/server/ai';
 import { getPlatformSettings } from '$lib/server/settings';
+import { classifyMentionSentimentBatch } from '$lib/server/ai';
 import { decodeHtmlEntities } from '$lib/utils/entities';
 
-const MAX_ITEMS_PER_PERSON = 5; // newest few per run — a daily cadence never needs more
 const MAX_ITEMS_PER_SITE_FEED = 60; // a whole-site feed's newest items checked against every leader
 const FETCH_DELAY_MS = 400; // sequential + spaced: a polite crawler Google won't throttle
+const SENTIMENT_BATCH_SIZE = 25; // articles per Anthropic call — fewer, bigger calls beat one call per post
+const SENTIMENT_CONCURRENCY = 5; // Haiku calls in flight at once; Google's rate limits don't apply here
 
 // Reputable Kenyan outlets whose RSS feeds are checked against every verified
 // leader's full name each run (one fetch per feed, not per leader — cheaper
-// than the Google News per-person loop below). Admin-toggleable per source on
+// than the Google News batched search below). Admin-toggleable per source on
 // /dashboard/admin/settings (platformSettings.newsSources, keyed by these same
 // ids). `url: null` means the toggle exists but no working feed has been found
 // for that outlet yet — it's skipped even if turned on, so flipping it on does
 // nothing harmful while a real URL is filled in later.
 export const NEWS_SOURCES: Record<string, { label: string; url: string | null }> = {
-	googleNews: { label: 'Google News (per-leader search)', url: null }, // handled by ingestForPerson, not the generic feed loop
+	googleNews: { label: 'Google News (batched leader search)', url: null }, // handled by ingestForBatch, not the generic feed loop
 	nationAfrica: { label: 'Daily Nation (nation.africa)', url: 'https://nation.africa/kenya/rss.xml' },
 	standardMedia: { label: 'The Standard', url: 'https://www.standardmedia.co.ke/rss/headlines.php' },
 	theStar: { label: 'The Star', url: null },
@@ -113,63 +116,20 @@ async function listVerifiedPeople(): Promise<VerifiedPerson[]> {
 		.filter((p) => p.name.trim().includes(' '));
 }
 
-async function ingestForPerson(person: VerifiedPerson): Promise<number> {
-	if (!sourceAllowed(person, 'googleNews')) return 0;
-	const url = `https://news.google.com/rss/search?q=${encodeURIComponent(`"${person.name}" Kenya`)}&hl=en-KE&gl=KE&ceid=KE:en`;
-	const res = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; vote.ke-news/1.0)' } });
-	if (!res.ok) throw new Error(`feed ${res.status}`);
-	const items = parseRss(await res.text());
-
-	const nameLower = person.name.toLowerCase();
-	let inserted = 0;
-	for (const item of items.slice(0, MAX_ITEMS_PER_PERSON * 3)) {
-		if (inserted >= MAX_ITEMS_PER_PERSON) break;
-		// Full-name precision guard.
-		if (!`${item.title} ${item.description}`.toLowerCase().includes(nameLower)) continue;
-
-		// Dedupe: the same article URL, or the same headline already tagged to
-		// this person (outlets occasionally republish under fresh URLs).
-		const [byUrl] = await db.select({ id: posts.id }).from(posts).where(eq(posts.sourceUrl, item.link));
-		if (byUrl) continue;
-		const [byTitle] = await db
-			.select({ id: posts.id })
-			.from(posts)
-			.innerJoin(tags, eq(tags.postId, posts.id))
-			.where(and(eq(posts.title, item.title.slice(0, 255)), eq(tags.subjectUserId, person.userId), isNull(posts.deletedAt)));
-		if (byTitle) continue;
-
-		const sentiment = await classifyMentionSentiment(person.name, item.title, item.description);
-		const [post] = await db
-			.insert(posts)
-			.values({
-				title: item.title.slice(0, 255),
-				body: item.description || item.title,
-				sourceUrl: item.link,
-				medium: 'web',
-				sentiment,
-				approved: true,
-				public: true,
-				...(item.pubDate && !isNaN(item.pubDate.getTime()) ? { createdAt: item.pubDate } : {})
-			})
-			.onConflictDoNothing({ target: posts.sourceUrl })
-			.returning({ id: posts.id });
-		if (!post) continue; // lost the race to a concurrent run, already inserted
-		await db.insert(tags).values({ postId: post.id, subjectUserId: person.userId });
-		inserted++;
-	}
-	return inserted;
+function chunk<T>(arr: T[], size: number): T[][] {
+	const out: T[][] = [];
+	for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+	return out;
 }
 
-/** One whole-site feed, checked against every verified leader's full name.
- * A single article can mention several leaders — each gets its own tags row
- * on the same post (same convention as a team post's inline @mentions), and
- * all share one sentiment classification (the article's general tone) rather
- * than a separate AI call per mentioned person. */
-async function ingestSiteFeed(sourceId: string, url: string, people: VerifiedPerson[]): Promise<number> {
-	const res = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; vote.ke-news/1.0)' } });
-	if (!res.ok) throw new Error(`feed ${res.status}`);
-	const items = parseRss(await res.text()).slice(0, MAX_ITEMS_PER_SITE_FEED);
-
+/** The one insert path every source funnels through: given a raw list of feed
+ * items and the FULL verified-people roster, tags each article with every
+ * person actually named in it (not just whoever's search/feed produced the
+ * item), subject to that person's own source allowlist. Sentiment isn't
+ * classified inline here — posts land with `sentiment` null and get picked up
+ * by classifyPendingSentiment() at the end of the run, batched instead of one
+ * Anthropic call per post. Returns how many new posts were inserted. */
+async function ingestArticles(items: FeedItem[], sourceId: string, people: VerifiedPerson[]): Promise<number> {
 	let inserted = 0;
 	for (const item of items) {
 		const text = `${item.title} ${item.description}`.toLowerCase();
@@ -178,7 +138,8 @@ async function ingestSiteFeed(sourceId: string, url: string, people: VerifiedPer
 
 		// Dedupe: the same article URL, or the same headline already tagged to
 		// any of the matched people (wire-syndicated stories run verbatim on
-		// several outlets under different URLs).
+		// several outlets under different URLs; the same article can also
+		// surface again from a different search/feed).
 		const [byUrl] = await db.select({ id: posts.id }).from(posts).where(eq(posts.sourceUrl, item.link));
 		if (byUrl) continue;
 		const [byTitle] = await db
@@ -197,7 +158,6 @@ async function ingestSiteFeed(sourceId: string, url: string, people: VerifiedPer
 			);
 		if (byTitle) continue;
 
-		const sentiment = await classifyMentionSentiment(matched.map((p) => p.name).join(', '), item.title, item.description);
 		const [post] = await db
 			.insert(posts)
 			.values({
@@ -205,7 +165,6 @@ async function ingestSiteFeed(sourceId: string, url: string, people: VerifiedPer
 				body: item.description || item.title,
 				sourceUrl: item.link,
 				medium: 'web',
-				sentiment,
 				approved: true,
 				public: true,
 				...(item.pubDate && !isNaN(item.pubDate.getTime()) ? { createdAt: item.pubDate } : {})
@@ -219,19 +178,110 @@ async function ingestSiteFeed(sourceId: string, url: string, people: VerifiedPer
 	return inserted;
 }
 
+/** One Google News search covering a BATCH of people at once (an OR'd quoted-name
+ * query) instead of one request per person — the request volume at one-per-person
+ * was risking rate-limiting/blocking from Google. The full response (not just a
+ * lookahead slice) is handed to ingestArticles, so a person's older, lower-ranked
+ * backlog articles get a chance too, not just whatever's in the top of that day's
+ * ranking. */
+async function ingestForBatch(batch: VerifiedPerson[], people: VerifiedPerson[]): Promise<number> {
+	const eligible = batch.filter((p) => sourceAllowed(p, 'googleNews'));
+	if (eligible.length === 0) return 0;
+	const query = eligible.map((p) => `"${p.name}"`).join(' OR ');
+	const url = `https://news.google.com/rss/search?q=${encodeURIComponent(`(${query}) Kenya`)}&hl=en-KE&gl=KE&ceid=KE:en`;
+	const res = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; vote.ke-news/1.0)' } });
+	if (!res.ok) throw new Error(`feed ${res.status}`);
+	const items = parseRss(await res.text());
+	return ingestArticles(items, 'googleNews', people);
+}
+
+/** One whole-site feed, checked against every verified leader's full name — same
+ * shared multi-tag insert path as the batched Google searches. */
+async function ingestSiteFeed(sourceId: string, url: string, people: VerifiedPerson[]): Promise<number> {
+	const res = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; vote.ke-news/1.0)' } });
+	if (!res.ok) throw new Error(`feed ${res.status}`);
+	const items = parseRss(await res.text()).slice(0, MAX_ITEMS_PER_SITE_FEED);
+	return ingestArticles(items, sourceId, people);
+}
+
+/** Runs `fn` over every item, at most `concurrency` calls in flight at once. */
+async function eachWithConcurrency<T>(items: T[], concurrency: number, fn: (item: T) => Promise<void>): Promise<void> {
+	let next = 0;
+	async function worker() {
+		while (next < items.length) {
+			const item = items[next++];
+			await fn(item);
+		}
+	}
+	await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+}
+
+/** Every mention post still missing a sentiment (new inserts from this run, plus
+ * any backlog from before), grouped with the name(s) of everyone it's tagged to
+ * — a post's sentiment is one value covering all of them, same as before. */
+async function listPendingSentimentPosts(): Promise<{ id: number; title: string; body: string; names: string[] }[]> {
+	const rows = await db
+		.select({ postId: posts.id, title: posts.title, body: posts.body, firstName: users.firstName, otherNames: users.otherNames })
+		.from(posts)
+		.innerJoin(tags, eq(tags.postId, posts.id))
+		.innerJoin(users, eq(users.id, tags.subjectUserId))
+		.where(and(isNull(posts.creatorId), isNull(posts.sentiment), isNull(posts.deletedAt), isNull(tags.deletedAt)));
+
+	const byPost = new Map<number, { title: string; body: string; names: string[] }>();
+	for (const r of rows) {
+		const entry = byPost.get(r.postId) ?? { title: r.title, body: r.body, names: [] };
+		entry.names.push(fullName(r));
+		byPost.set(r.postId, entry);
+	}
+	return [...byPost.entries()].map(([id, v]) => ({ id, ...v }));
+}
+
+/** Classifies every post still missing a sentiment, SENTIMENT_BATCH_SIZE posts
+ * per Anthropic call (one call per post would mean thousands of sequential
+ * round trips against a backlog this size), with SENTIMENT_CONCURRENCY batches
+ * in flight at once. Decoupled from the fetch/insert pipeline above — called
+ * once at the end of a run rather than interleaved per-item — so a slow or
+ * failed classification never blocks or fails an actual ingest. */
+export async function classifyPendingSentiment(): Promise<{ classified: number; failed: number }> {
+	const pending = await listPendingSentimentPosts();
+	if (pending.length === 0) return { classified: 0, failed: 0 };
+
+	const batches = chunk(pending, SENTIMENT_BATCH_SIZE);
+	let classified = 0;
+	let failed = 0;
+
+	await eachWithConcurrency(batches, SENTIMENT_CONCURRENCY, async (batch) => {
+		try {
+			const sentiments = await classifyMentionSentimentBatch(batch.map((p) => ({ leaderName: p.names.join(', '), title: p.title, body: p.body })));
+			await Promise.all(batch.map((p, i) => db.update(posts).set({ sentiment: sentiments[i] }).where(eq(posts.id, p.id))));
+			classified += batch.length;
+		} catch (err) {
+			failed += batch.length;
+			console.error(`[news] sentiment batch failed (${batch.length} posts):`, err instanceof Error ? err.message : err);
+		}
+	});
+
+	console.log(`[news] sentiment: classified ${classified} posts${failed ? `, ${failed} failed` : ''}`);
+	return { classified, failed };
+}
+
 // Guards against two ingestNews() passes running at once (the scheduler firing
 // the same minute as an admin's manual "Crawl now" click) — the source_url
 // unique index already makes concurrent inserts safe, but a lock avoids the
-// wasted double fetch/AI-classification work of a genuinely overlapping run.
+// wasted double fetch work of a genuinely overlapping run.
 let ingestInFlight = false;
 
-/** One full pass over every verified person (Google News, per-person) plus
- * every enabled whole-site feed (checked against everyone at once), sequential
- * and politely spaced. `limitPeople` exists for dev smoke tests. Records
- * platformSettings.newsLastFetchedAt on completion regardless of outcome, so a
- * run that failed midway still shows as attempted rather than silently stale. */
-export async function ingestNews(opts: { limitPeople?: number } = {}): Promise<{ people: number; inserted: number; failed: number; skipped?: true }> {
-	if (ingestInFlight) return { people: 0, inserted: 0, failed: 0, skipped: true };
+/** One full pass: every verified person's name, batched across Google News
+ * searches, plus every enabled whole-site feed (checked against everyone at
+ * once), sequential and politely spaced. `limitPeople` and `delayMs` exist for
+ * dev smoke tests / load tests, overriding the real batch-size setting's
+ * request cadence. Records platformSettings.newsLastFetchedAt on completion
+ * regardless of outcome, so a run that failed midway still shows as attempted
+ * rather than silently stale. */
+export async function ingestNews(
+	opts: { limitPeople?: number; delayMs?: number } = {}
+): Promise<{ people: number; requests: number; inserted: number; failed: number; sentimentClassified: number; sentimentFailed: number; skipped?: true }> {
+	if (ingestInFlight) return { people: 0, requests: 0, inserted: 0, failed: 0, sentimentClassified: 0, sentimentFailed: 0, skipped: true };
 	ingestInFlight = true;
 	try {
 		return await runIngest(opts);
@@ -240,59 +290,50 @@ export async function ingestNews(opts: { limitPeople?: number } = {}): Promise<{
 	}
 }
 
-async function runIngest(opts: { limitPeople?: number }): Promise<{ people: number; inserted: number; failed: number }> {
+async function runIngest(
+	opts: { limitPeople?: number; delayMs?: number }
+): Promise<{ people: number; requests: number; inserted: number; failed: number; sentimentClassified: number; sentimentFailed: number }> {
 	let people = await listVerifiedPeople();
 	// Freshest runs first feels right for an interrupted pass: recently created
 	// campaigns are the ones with no coverage yet.
 	people = people.slice(0, opts.limitPeople ?? people.length);
 
-	const sources = (await getPlatformSettings()).newsSources;
+	const settings = await getPlatformSettings();
+	const sources = settings.newsSources;
+	const delayMs = opts.delayMs ?? FETCH_DELAY_MS;
 
+	let requests = 0;
 	let inserted = 0;
 	let failed = 0;
 
 	if (sources.googleNews !== false) {
-		for (const person of people) {
+		for (const batch of chunk(people, Math.max(1, settings.newsBatchSize))) {
+			requests++;
 			try {
-				inserted += await ingestForPerson(person);
+				inserted += await ingestForBatch(batch, people);
 			} catch (err) {
 				failed++;
-				console.error(`[news] ingest failed for ${person.name}:`, err instanceof Error ? err.message : err);
+				console.error(`[news] batch ingest failed (${batch.length} leaders):`, err instanceof Error ? err.message : err);
 			}
-			await new Promise((r) => setTimeout(r, FETCH_DELAY_MS));
+			await new Promise((r) => setTimeout(r, delayMs));
 		}
 	}
 
 	for (const [sourceId, source] of Object.entries(NEWS_SOURCES)) {
 		if (sourceId === 'googleNews' || !source.url || sources[sourceId] === false) continue;
+		requests++;
 		try {
 			inserted += await ingestSiteFeed(sourceId, source.url, people);
 		} catch (err) {
 			failed++;
 			console.error(`[news] ingest failed for ${source.label}:`, err instanceof Error ? err.message : err);
 		}
-		await new Promise((r) => setTimeout(r, FETCH_DELAY_MS));
+		await new Promise((r) => setTimeout(r, delayMs));
 	}
 
-	await backfillSentiment();
+	const { classified: sentimentClassified, failed: sentimentFailed } = await classifyPendingSentiment();
+
 	await db.update(platformSettings).set({ newsLastFetchedAt: new Date() }).where(eq(platformSettings.id, 1));
 
-	return { people: people.length, inserted, failed };
-}
-
-/** Classifies mentions that predate sentiment (seeded demo rows, articles
- * ingested before 7.2) — a bounded batch per run, so a large backlog drains
- * across a few daily sweeps instead of burning one giant API session. */
-async function backfillSentiment(batch = 40): Promise<void> {
-	const rows = await db
-		.select({ id: posts.id, title: posts.title, body: posts.body, taggedUserId: tags.subjectUserId })
-		.from(posts)
-		.innerJoin(tags, eq(tags.postId, posts.id))
-		.where(and(isNull(posts.creatorId), isNull(posts.sentiment), isNull(posts.deletedAt), isNull(tags.deletedAt)))
-		.limit(batch);
-	for (const row of rows) {
-		const [person] = await db.select({ firstName: users.firstName, otherNames: users.otherNames }).from(users).where(eq(users.id, row.taggedUserId));
-		const sentiment = await classifyMentionSentiment(person ? fullName(person) : '', row.title, row.body);
-		await db.update(posts).set({ sentiment }).where(eq(posts.id, row.id));
-	}
+	return { people: people.length, requests, inserted, failed, sentimentClassified, sentimentFailed };
 }

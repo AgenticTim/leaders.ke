@@ -106,6 +106,18 @@ export const actions: Actions = {
 		return { saved: true };
 	},
 
+	// How many leaders' names ride in one Google News search query (see
+	// newsBatchSize on newsIngest.ts's runIngest) — tunable without a deploy
+	// while the right value against Google's actual rate limits gets found.
+	saveNewsBatchSize: async (event) => {
+		const admin = await requireAdmin(event);
+		const form = await event.request.formData();
+		const newsBatchSize = Number(form.get('newsBatchSize'));
+		if (!Number.isInteger(newsBatchSize) || newsBatchSize < 1) return adminActionFailed(admin.domainUser.id, 400, { error: 'Batch size must be a whole number of at least 1.' });
+		await db.update(platformSettings).set({ newsBatchSize, updatedAt: new Date() }).where(eq(platformSettings.id, 1));
+		return { saved: true };
+	},
+
 	// Manual "Crawl now": runs the same ingestNews() the daily scheduler calls.
 	// ingestNews() itself guards against overlapping with a concurrent run (see
 	// its ingestInFlight lock), so clicking this while the scheduled crawl is
