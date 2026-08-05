@@ -5,6 +5,7 @@ import { and, count, desc, eq, inArray, isNull, or } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { ambassadors, campaigns, followers, leaders, pledges, positions, users } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, leaderPath } from '$lib/server/leader';
+import { runStatus } from '$lib/utils/seat';
 
 export type AmbassadorAssignment = {
 	id: number;
@@ -36,7 +37,7 @@ export async function listAmbassadorAssignments(userId: number): Promise<Ambassa
 			.innerJoin(positions, eq(leaders.positionId, positions.id))
 			.where(and(inArray(leaders.userId, subjectIds), isNull(leaders.deletedAt))),
 		db
-			.select({ userId: campaigns.subjectUserId, title: positions.title, region: positions.region })
+			.select({ userId: campaigns.subjectUserId, title: positions.title, region: positions.region, verifiedAt: campaigns.verifiedAt })
 			.from(campaigns)
 			.innerJoin(positions, eq(campaigns.positionId, positions.id))
 			.where(and(inArray(campaigns.subjectUserId, subjectIds), eq(campaigns.cycleYear, ACTIVE_CYCLE), isNull(campaigns.parentCampaignId), isNull(campaigns.deletedAt)))
@@ -52,7 +53,7 @@ export async function listAmbassadorAssignments(userId: number): Promise<Ambassa
 	}
 	for (const r of runRows) {
 		const held = seatBySubject.get(r.userId);
-		if (!held || held.status === 'former') seatBySubject.set(r.userId, { title: r.title, region: r.region, status: 'aspirant' });
+		if (!held || held.status === 'former') seatBySubject.set(r.userId, { title: r.title, region: r.region, status: runStatus(r.verifiedAt) });
 	}
 
 	return rows.map((r) => {

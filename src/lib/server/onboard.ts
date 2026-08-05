@@ -14,6 +14,7 @@ import { and, eq, ilike, inArray, isNotNull, isNull, or } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { campaigns, leaders, managers, parties, positions, profileClaims, users } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, createPhantomUser, fullName, generateLeaderSlug, leaderPath } from '$lib/server/leader';
+import { isRunStatus, runStatus } from '$lib/utils/seat';
 import { CAMPAIGN_ROLES } from '$lib/utils/campaignRoles';
 import { notifyUser } from '$lib/server/notifications';
 
@@ -108,7 +109,7 @@ export async function findMatchingProfiles(firstName: string, otherNames: string
 			.innerJoin(positions, eq(leaders.positionId, positions.id))
 			.where(and(inArray(leaders.userId, ids), isNull(leaders.deletedAt))),
 		db
-			.select({ userId: campaigns.subjectUserId, title: positions.title, region: positions.region, partyId: campaigns.partyId })
+			.select({ userId: campaigns.subjectUserId, title: positions.title, region: positions.region, partyId: campaigns.partyId, verifiedAt: campaigns.verifiedAt })
 			.from(campaigns)
 			.innerJoin(positions, eq(campaigns.positionId, positions.id))
 			.where(and(inArray(campaigns.subjectUserId, ids), eq(campaigns.cycleYear, ACTIVE_CYCLE), isNull(campaigns.parentCampaignId), isNull(campaigns.deletedAt)))
@@ -123,7 +124,7 @@ export async function findMatchingProfiles(firstName: string, otherNames: string
 	for (const r of runRows) {
 		const held = seatBySubject.get(r.userId);
 		if (!held || held.status === 'former') {
-			seatBySubject.set(r.userId, { title: r.title, region: r.region, status: 'aspirant', partyId: r.partyId });
+			seatBySubject.set(r.userId, { title: r.title, region: r.region, status: runStatus(r.verifiedAt), partyId: r.partyId });
 		}
 	}
 
@@ -152,9 +153,9 @@ export async function findMatchingProfiles(firstName: string, otherNames: string
 				score: matchScore(c.firstName, c.otherNames, parts)
 			};
 		})
-		// Best match first; a held/current seat nudges ahead of an aspirant on a tie
-		// (more likely to be who the citizen means).
-		.sort((a, b) => b.score - a.score || Number(b.status !== 'aspirant') - Number(a.status !== 'aspirant'))
+		// Best match first; a held/current seat nudges ahead of a run-only person
+		// on a tie (more likely to be who the citizen means).
+		.sort((a, b) => b.score - a.score || Number(!isRunStatus(b.status)) - Number(!isRunStatus(a.status)))
 		.slice(0, 12)
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars -- rest-sibling strip
 		.map(({ score, ...rest }) => rest);

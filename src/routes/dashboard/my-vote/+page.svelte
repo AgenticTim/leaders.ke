@@ -163,7 +163,7 @@
 </div>
 
 <!-- Claim your profile: pinned to the bottom of the page even when there's little content above. -->
-<div class="mt-8 lg:mt-auto pt-8 rounded-3xl bg-primary p-6 text-center text-on-primary">
+<div class="mt-8 pt-8 rounded-3xl bg-primary p-6 text-center text-on-primary">
 	<h2 class="text-lg font-bold text-on-primary">For Leaders and Campaign Managers</h2>
 	<p class="mt-2 text-sm text-on-primary/80">
 		Are you a Leader, Aspirant or Managing a Leader's PR or campaign?<br/>

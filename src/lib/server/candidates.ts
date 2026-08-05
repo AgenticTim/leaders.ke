@@ -5,7 +5,7 @@ import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { campaigns, leaders, positions, users } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, leaderPath } from '$lib/server/leader';
-import { seatPath } from '$lib/utils/seat';
+import { runStatus, seatPath } from '$lib/utils/seat';
 
 // Kenyan general-election winners are sworn in the week after the August vote.
 const SWEAR_IN = new Date('2027-08-31T00:00:00+03:00');
@@ -18,7 +18,7 @@ export type CandidateRow = {
 	positionTitle: string;
 	region: string;
 	regionPath: string | null;
-	status: string; // 'current' | 'former' | 'aspirant'
+	status: string; // 'current' | 'former' | 'candidate' (verified run) | 'aspirant' (unverified run)
 	verified: boolean;
 	createdAt: Date;
 };
@@ -72,7 +72,7 @@ export async function listCandidates(page: number, pageSize: number): Promise<Ca
 			positionTitle: r.positions.title,
 			region: r.positions.region,
 			regionPath: seatPath(r.positions.title, r.positions.region),
-			status: 'aspirant',
+			status: runStatus(r.campaigns.verifiedAt),
 			verified: !!r.campaigns.verifiedAt,
 			createdAt: r.campaigns.createdAt
 		}))

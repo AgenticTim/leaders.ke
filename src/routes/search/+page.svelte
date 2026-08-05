@@ -41,6 +41,8 @@
 						partyPath={leader.partyPath}
 						positionTitle={leader.positionTitle}
 						region={leader.region}
+						status={leader.status}
+						followers={leader.followers}
 					/>
 				{/each}
 			</div>

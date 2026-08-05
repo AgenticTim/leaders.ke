@@ -11,6 +11,7 @@
 	import FollowButton from '$lib/components/FollowButton.svelte';
 	import PledgeButton from '$lib/components/PledgeButton.svelte';
 	import { renderRichText } from '$lib/utils/richtext';
+	import { isRunStatus } from '$lib/utils/seat';
 	import PencilIcon from './svgs/PencilIcon.svelte';
 
 	// The public /[leader] page body, shared with two admin preview contexts
@@ -36,11 +37,12 @@
 	// name in the Ask heading and team labels.
 	const firstName = $derived(leader.name.split(' ')[0]);
 
-	// A pure aspirant doesn't currently hold ANY electoral seat, so there's no
-	// accurate "Current X" to state. The whole card (heading + contestants link)
-	// is dropped rather than showing a misleading title (e.g. their own candidacy).
+	// A run-only person (candidate/aspirant) doesn't currently hold ANY electoral
+	// seat, so there's no accurate "Current X" to state. The whole card (heading +
+	// contestants link) is dropped rather than showing a misleading title (e.g.
+	// their own candidacy).
 	const currentRole = $derived(
-		leader.status === 'aspirant'
+		isRunStatus(leader.status)
 			? null
 			: { title: data.breadcrumb.positionTitle, institution: data.breadcrumb.regionLabel }
 	);
@@ -118,10 +120,10 @@
 							</span>
 						</h1>
 						<p class="mt-1 text-sm text-muted">
-							<!-- A campaign-less aspirant (fresh profile) gets a "Create a campaign"
-							prompt instead of a bare "Aspirant" label, linked into the dashboard
-							Campaign tab when the viewer can edit this profile. -->
-							{#if leader.status === 'aspirant' && !data.campaign}
+							<!-- A campaign-less run-only person (fresh profile) gets a "Create a
+							campaign" prompt instead of a bare status label, linked into the
+							dashboard Campaign tab when the viewer can edit this profile. -->
+							{#if isRunStatus(leader.status) && !data.campaign}
 								{#if data.canEdit && leader.slug}
 									<a href="/dashboard/{leader.slug}/campaign" class="font-medium text-primary hover:underline">Create a campaign</a>
 								{:else}
@@ -184,7 +186,7 @@
 									subtitle={item.institution}
 									href={item.href}
 									description={item.description}
-									dateLabel={item.badge === 'aspirant'
+									dateLabel={isRunStatus(item.badge)
 										? `Vying · from ${item.from}`
 										: item.from
 											? item.to === item.from

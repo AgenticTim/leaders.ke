@@ -50,7 +50,6 @@
 			{#each data.members as member (member.path)}
 				<!-- No party prop: the whole page is this party, so the card skips the name. -->
 				<LeaderCard
-					compact
 					path={member.path}
 					name={member.name}
 					initials={member.initials}

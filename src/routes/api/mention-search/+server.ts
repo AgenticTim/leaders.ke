@@ -9,6 +9,7 @@ import { db } from '$lib/server/db';
 import { campaigns, leaders, parties, positions, users } from '$lib/server/db/schema';
 import { fullName, slugify } from '$lib/server/leader';
 import { requireLeader } from '$lib/server/dashboard';
+import { isRunStatus } from '$lib/utils/seat';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async (event) => {
@@ -42,14 +43,16 @@ export const GET: RequestHandler = async (event) => {
 
 	const bySlug = new Map<string, (typeof heldRows)[number] & { status: string }>();
 	for (const r of heldRows) if (r.slug && r.slug !== ctx.profileUser.slug) bySlug.set(r.slug, r);
-	for (const r of runRows) if (r.slug && r.slug !== ctx.profileUser.slug && !bySlug.has(r.slug)) bySlug.set(r.slug, { ...r, status: 'aspirant' });
+	// Run rows are gated on campaigns.verifiedAt above, so every one is a
+	// 'candidate' (a verified run) by the platform's badge rule (see runStatus).
+	for (const r of runRows) if (r.slug && r.slug !== ctx.profileUser.slug && !bySlug.has(r.slug)) bySlug.set(r.slug, { ...r, status: 'candidate' });
 
 	const leaderResults = [...bySlug.values()].slice(0, 8).map((r) => ({
 		kind: 'leader' as const,
 		slug: r.slug as string,
 		name: fullName(r),
 		path: `/${r.slug}`,
-		sub: `${r.title}, ${r.region}${r.status === 'former' ? ' (former)' : r.status === 'aspirant' ? ' (aspirant)' : ''}`
+		sub: `${r.title}, ${r.region}${r.status === 'former' ? ' (former)' : isRunStatus(r.status) ? ` (${r.status})` : ''}`
 	}));
 	const partyResults = partyRows.map((p) => ({
 		kind: 'party' as const,

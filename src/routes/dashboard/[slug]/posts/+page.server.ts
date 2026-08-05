@@ -10,6 +10,7 @@ import { getPageSize } from '$lib/server/settings';
 import { getPersonTier } from '$lib/server/invites';
 import { getPackageFeatures } from '$lib/server/packages';
 import { NEWS_SOURCES } from '$lib/server/newsIngest';
+import { runStatus } from '$lib/utils/seat';
 import type { Actions, PageServerLoad } from './$types';
 
 // The News tab: campaign posts, campaign events, and aggregated external mentions,
@@ -425,7 +426,7 @@ export const actions: Actions = {
 				name: leaderName,
 				positionTitle: ctx.position?.title ?? '',
 				regionLabel: ctx.position?.region ?? '',
-				status: ctx.leader?.status ?? 'aspirant',
+				status: ctx.leader?.status ?? runStatus(ctx.verified),
 				bio: ctx.profileUser.bio ?? '',
 				pillars: [],
 				posts: []

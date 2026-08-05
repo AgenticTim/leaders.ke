@@ -12,7 +12,7 @@ import {
 	slugify
 } from '$lib/server/leader';
 import { counties, findCountyBySlug, findConstituencyBySlug, findWardBySlug, geoSlug } from '$lib/data/geo';
-import { pluralPositionTitle, SINGULAR_SLUG_BY_TITLE } from '$lib/utils/seat';
+import { pluralPositionTitle, runStatus, SINGULAR_SLUG_BY_TITLE } from '$lib/utils/seat';
 import { SRC_PAY_BY_TITLE, SRC_EFFECTIVE } from '$lib/data/srcPay';
 
 export async function loadSeatHub(position: string, region: string, regimeYear?: number) {
@@ -111,7 +111,7 @@ export async function loadSeatHub(position: string, region: string, regimeYear?:
 			photoUrl: r.users.photoUrl,
 			party,
 			partyPath: party ? `/parties/${slugify(party)}` : null,
-			status: 'aspirant',
+			status: runStatus(r.verifiedAt),
 			verified: !!r.verifiedAt,
 			followers: 0
 		};

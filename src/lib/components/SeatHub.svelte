@@ -78,7 +78,6 @@
 					party={data.current.party}
 					partyPath={data.current.partyPath}
 					followers={data.current.followers}
-					compact
 				/>
 				<!-- Manifesto delivery score for the current holder -->
 				<div class="mt-4 flex flex-1 flex-col">
@@ -147,7 +146,6 @@
 						party={c.party}
 						partyPath={c.partyPath}
 						followers={c.followers}
-						compact
 					/>
 				{/each}
 			</div>

@@ -8,7 +8,7 @@ import { and, asc, count, desc, eq, inArray, isNotNull, isNull } from 'drizzle-o
 import { db } from '$lib/server/db';
 import { campaigns, contacts, deliveries, experience, followers, managers, parties, pillars, pledges, positions, posts, tags } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, campaignPath, fullName, resolveCurrentTerm, resolveCurrentTermByUserId, slugify } from '$lib/server/leader';
-import { positionSlug, SINGULAR_SLUG_BY_TITLE } from '$lib/utils/seat';
+import { positionSlug, runStatus, SINGULAR_SLUG_BY_TITLE } from '$lib/utils/seat';
 import { getFlaggedReviewCounts, getMyReview, listApprovedReviews, listReviewPillarOptions } from '$lib/server/reviews';
 import { isFollowingAsAccount } from '$lib/server/follow';
 import { decodeHtmlEntities } from '$lib/utils/entities';
@@ -49,7 +49,9 @@ export async function loadPublicProfileData(
 
 	const leadsWithRun = (!currentTerm || currentTerm.leaders.status === 'former') && !!activeRun;
 	const leadPosition = leadsWithRun ? activeRun!.positions : (currentTerm?.positions ?? activeRun?.positions ?? null);
-	const leadStatus = leadsWithRun ? 'aspirant' : (currentTerm?.leaders.status ?? 'aspirant');
+	const leadStatus = leadsWithRun
+		? runStatus(activeRun!.campaigns.verifiedAt)
+		: (currentTerm?.leaders.status ?? runStatus(activeRun?.campaigns.verifiedAt));
 	const leadVerified = leadsWithRun ? !!activeRun!.campaigns.verifiedAt : !!currentTerm?.leaders.verifiedAt;
 
 	if (!leadPosition) return null;

@@ -5,6 +5,7 @@ import { listAmbassadorAssignments } from '$lib/server/ambassador';
 import { listUnreadNotifications } from '$lib/server/notifications';
 import { getProfileAdminMeta } from '$lib/server/profiles';
 import { getSwitcherProfiles } from '$lib/server/switcher';
+import { runStatus } from '$lib/utils/seat';
 import type { LayoutServerLoad } from './$types';
 
 export type { ApplicationChecklist };
@@ -88,7 +89,7 @@ export const load: LayoutServerLoad = async (event) => {
 					leaderName: fullName(ctx.profileUser),
 					positionTitle: ctx.position?.title ?? '',
 					region: ctx.position?.region ?? '',
-					status: (ctx.leader?.status ?? 'aspirant'),
+					status: ctx.leader?.status ?? runStatus(ctx.verified),
 					verified: !!ctx.verified,
 					// The PROFILE review flag (users.profileVerifiedAt), what the Submit
 					// for Verification button and its badge key on. Distinct from

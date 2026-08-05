@@ -7,6 +7,7 @@ import { db } from '$lib/server/db';
 import { ballotSimulations, campaigns, followers, leaders, parties, pledges, positions, users } from '$lib/server/db/schema';
 import { fullName, leaderPath, slugify } from '$lib/server/leader';
 import { BALLOT_LEVELS, resolveCandidateById, type BallotLevel, type Candidate } from '$lib/server/ballot';
+import { runStatus } from '$lib/utils/seat';
 
 /** Every leader this citizen follows (person id + display name), powers /news's
  * per-leader "Following" filter buttons, one per person instead of a single
@@ -77,7 +78,7 @@ export async function listMyPledges(userId: number): Promise<MyPledge[]> {
 			verified: !!r.campaigns.verifiedAt,
 			party: r.parties?.name ?? null,
 			partyPath: r.parties?.name ? `/parties/${slugify(r.parties.name)}` : null,
-			status: r.leaders?.status ?? 'aspirant',
+			status: r.leaders?.status ?? runStatus(r.campaigns.verifiedAt),
 			followerCount: followersBy.get(r.users.id) ?? 0,
 			path: leaderPath(r.users),
 			positionTitle: r.positions.title,

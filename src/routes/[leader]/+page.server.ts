@@ -10,6 +10,7 @@ import {
 	wallets
 } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, getDomainUser, resolveCurrentTerm } from '$lib/server/leader';
+import { runStatus } from '$lib/utils/seat';
 import { loadPublicProfileData } from '$lib/server/publicProfile';
 import { followAsAccount, unfollowAsAccount } from '$lib/server/follow';
 import { handleDeleteReviewAction, handleReviewAction } from '$lib/server/reviews';
@@ -114,7 +115,7 @@ async function publicLead(slug: string): Promise<{
 		leadCampaignId = c?.id ?? 0;
 	}
 	const position = leadsWithRun ? activeRun!.positions : currentTerm!.positions;
-	const status = leadsWithRun ? 'aspirant' : currentTerm!.leaders.status;
+	const status = leadsWithRun ? runStatus(activeRun!.campaigns.verifiedAt) : currentTerm!.leaders.status;
 	return {
 		subjectId: row.users.id,
 		leadCampaignId,

@@ -5,6 +5,7 @@ import { campaigns, followers, leaders, pillars, posts, tags, users } from '$lib
 import { requireLeader } from '$lib/server/dashboard';
 import { getPersonTier } from '$lib/server/invites';
 import { getPackageFeatures } from '$lib/server/packages';
+import { runStatus } from '$lib/utils/seat';
 import type { PageServerLoad } from './$types';
 
 export type SentimentBreakdown = { positive: number; neutral: number; negative: number };
@@ -58,7 +59,7 @@ export const load: PageServerLoad = async (event) => {
 		{ users: typeof users.$inferSelect; status: string; verified: boolean }
 	>();
 	for (const r of runRivals)
-		rivalByPerson.set(r.userId, { users: r.users, status: 'aspirant', verified: !!r.verified });
+		rivalByPerson.set(r.userId, { users: r.users, status: runStatus(r.verified), verified: !!r.verified });
 	for (const r of heldRivals)
 		rivalByPerson.set(r.userId, { users: r.users, status: r.status, verified: !!r.verified });
 

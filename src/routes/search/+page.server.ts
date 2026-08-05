@@ -1,8 +1,9 @@
-import { and, eq, exists, inArray, ilike, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import { and, count, eq, exists, inArray, ilike, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { alliances, campaigns, experience, leaders, parties, positions, posts, users } from '$lib/server/db/schema';
+import { alliances, campaigns, experience, followers, leaders, parties, positions, posts, users } from '$lib/server/db/schema';
 import { fullName, leaderPath, slugify } from '$lib/server/leader';
 import { plainText } from '$lib/utils/richtext';
+import { runStatus } from '$lib/utils/seat';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -97,6 +98,8 @@ export const load: PageServerLoad = async ({ url }) => {
 			party,
 			partyPath: party ? `/parties/${slugify(party)}` : null,
 			bio: r.users.bio,
+			status: r.leaders.status,
+			userId: r.users.id,
 			rank: rankOf(r.users.firstName, r.users.otherNames)
 		};
 	});
@@ -109,6 +112,7 @@ export const load: PageServerLoad = async ({ url }) => {
 	const runMatches = await db
 		.select({
 			slug: users.slug,
+			userId: users.id,
 			firstName: users.firstName,
 			otherNames: users.otherNames,
 			photoUrl: users.photoUrl,
@@ -153,6 +157,8 @@ export const load: PageServerLoad = async ({ url }) => {
 			party: null,
 			partyPath: null,
 			bio: r.bio,
+			status: runStatus(r.verifiedAt),
+			userId: r.userId,
 			rank: rankOf(r.firstName, r.otherNames)
 		});
 	}
@@ -160,6 +166,18 @@ export const load: PageServerLoad = async ({ url }) => {
 	// ordered by rank, held-leaders first for ties, matches the old convention).
 	leaderResults.sort((a, b) => a.rank - b.rank);
 	leaderResults.length = Math.min(leaderResults.length, 15);
+
+	// Follower counts per person (follows are person-scoped, same query the
+	// directory uses), fetched after the trim so only the shown rows are counted.
+	const personIds = [...new Set(leaderResults.map((r) => r.userId))];
+	const followerRows = personIds.length
+		? await db
+				.select({ userId: followers.digestId, n: count() })
+				.from(followers)
+				.where(and(eq(followers.digest, 'leader'), inArray(followers.digestId, personIds), isNull(followers.deletedAt)))
+				.groupBy(followers.digestId)
+		: [];
+	const followersBy = new Map(followerRows.map((r) => [r.userId, r.n]));
 
 	const experienceRows = await db
 		.select({
@@ -278,7 +296,7 @@ export const load: PageServerLoad = async ({ url }) => {
 	return {
 		q,
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars -- rest-sibling strip
-		leaders: leaderResults.map(({ rank, ...rest }) => rest),
+		leaders: leaderResults.map(({ rank, userId, ...rest }) => ({ ...rest, followers: followersBy.get(userId) ?? 0 })),
 		experience: experienceResults,
 		parties: partyResults,
 		alliances: allianceResults,

@@ -107,6 +107,9 @@
 					partyPath={leader!.partyPath}
 					positionTitle={leader!.positionTitle}
 					region={leader!.regionLabel}
+					campaignPositionTitle={leader!.campaignPositionTitle}
+					campaignRegion={leader!.campaignRegionLabel}
+					campaignStatus={leader!.campaignStatus}
 					status={leader!.status}
 					bio={leader!.bio}
 				/>

@@ -14,6 +14,7 @@ import {
 	users
 } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, leaderPath, resolveCurrentTerm, slugify } from '$lib/server/leader';
+import { runStatus } from '$lib/utils/seat';
 
 export type LeaderMetrics = {
 	name: string;
@@ -21,6 +22,11 @@ export type LeaderMetrics = {
 	photoUrl: string | null;
 	positionTitle: string;
 	regionLabel: string;
+	/** The ACTIVE_CYCLE run's seat when it isn't already the lead seat above,
+	 * i.e. a sitting leader who is also vying in 2027. Null otherwise. */
+	campaignPositionTitle: string | null;
+	campaignRegionLabel: string | null;
+	campaignStatus: 'candidate' | 'aspirant' | null;
 	party: string | null;
 	partyPath: string | null;
 	status: string;
@@ -56,6 +62,7 @@ async function computeLeaderMetrics(
 		status: string;
 		verified: boolean;
 		campaignId: number; // the lead campaign (0 = none); pillars read off it
+		campaignSeat?: { title: string; region: string; status: 'candidate' | 'aspirant' } | null;
 	},
 	party: string | null
 ): Promise<LeaderMetrics> {
@@ -89,6 +96,9 @@ async function computeLeaderMetrics(
 		photoUrl: user.photoUrl,
 		positionTitle: position.title,
 		regionLabel: position.region,
+		campaignPositionTitle: ctx.campaignSeat?.title ?? null,
+		campaignRegionLabel: ctx.campaignSeat?.region ?? null,
+		campaignStatus: ctx.campaignSeat?.status ?? null,
 		party,
 		partyPath: party ? `/parties/${slugify(party)}` : null,
 		status: ctx.status,
@@ -131,7 +141,7 @@ export async function getLeaderMetricsByPath(path: string): Promise<LeaderMetric
 	if (!verified) return null;
 
 	const position = leadsWithRun ? activeRun!.positions : currentTerm!.positions;
-	const status = leadsWithRun ? 'aspirant' : currentTerm!.leaders.status;
+	const status = leadsWithRun ? runStatus(activeRun!.campaigns.verifiedAt) : currentTerm!.leaders.status;
 	let campaignId = 0;
 	const party = await partyName(leadsWithRun ? activeRun!.campaigns.partyId : (currentTerm!.leaders.partyId ?? null));
 	if (leadsWithRun) {
@@ -143,7 +153,14 @@ export async function getLeaderMetricsByPath(path: string): Promise<LeaderMetric
 			.where(and(eq(campaigns.leaderId, currentTerm!.leaders.id), isNull(campaigns.parentCampaignId), isNull(campaigns.deletedAt)));
 		campaignId = c?.id ?? 0;
 	}
-	return computeLeaderMetrics({ user: row.users, position, status, verified, campaignId }, party);
+	// A held-seat lead line can carry a second, campaign line: the person's own
+	// ACTIVE_CYCLE run (campaign pages are public for every run). When the run IS
+	// the lead seat (pure aspirant) there's nothing extra to show.
+	const campaignSeat =
+		!leadsWithRun && activeRun && activeRun.campaigns.cycleYear === ACTIVE_CYCLE
+			? { title: activeRun.positions.title, region: activeRun.positions.region, status: runStatus(activeRun.campaigns.verifiedAt) }
+			: null;
+	return computeLeaderMetrics({ user: row.users, position, status, verified, campaignId, campaignSeat }, party);
 }
 
 /** A random aspirant path for one position (e.g. the /compare default). An
@@ -212,7 +229,7 @@ export async function listPositionMetrics(
 		.innerJoin(users, eq(leaders.userId, users.id))
 		.where(and(isNull(leaders.deletedAt), isNotNull(leaders.verifiedAt), isNull(users.deletedAt), eq(positions.title, positionTitle)));
 
-	// 2027 runs (campaigns) at this position. The aspirants.
+	// 2027 runs (campaigns) at this position. The candidates/aspirants.
 	const runRows = await db
 		.select({
 			userId: users.id,
@@ -220,7 +237,8 @@ export async function listPositionMetrics(
 			firstName: users.firstName,
 			otherNames: users.otherNames,
 			photoUrl: users.photoUrl,
-			region: positions.region
+			region: positions.region,
+			verifiedAt: campaigns.verifiedAt
 		})
 		.from(campaigns)
 		.innerJoin(positions, eq(campaigns.positionId, positions.id))
@@ -237,9 +255,9 @@ export async function listPositionMetrics(
 		);
 
 	// One card per person (flat URL). Status precedence for the active cycle:
-	// current officeholder > aspirant (has a 2027 run) > former.
+	// current officeholder > has a 2027 run (candidate/aspirant) > former.
 	type Card = { userId: number; slug: string | null; firstName: string; otherNames: string; photoUrl: string | null; status: string; region: string };
-	const STATUS_RANK: Record<string, number> = { current: 0, aspirant: 1, former: 2 };
+	const STATUS_RANK: Record<string, number> = { current: 0, candidate: 1, aspirant: 1, former: 2 };
 	const bySlug = new Map<string, Card>();
 	const consider = (c: Card) => {
 		if (!c.slug) return;
@@ -247,7 +265,7 @@ export async function listPositionMetrics(
 		if (!existing || (STATUS_RANK[c.status] ?? 3) < (STATUS_RANK[existing.status] ?? 3)) bySlug.set(c.slug, c);
 	};
 	for (const r of leaderRows) consider(r);
-	for (const r of runRows) consider({ ...r, status: 'aspirant' });
+	for (const r of runRows) consider({ ...r, status: runStatus(r.verifiedAt) });
 	const people = [...bySlug.values()];
 	if (people.length === 0) return { total: 0, leaders: [] };
 	const personIds = people.map((p) => p.userId);

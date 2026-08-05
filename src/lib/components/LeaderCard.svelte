@@ -19,8 +19,14 @@
 		region?: string;
 		status?: string;
 		followers?: number;
+		/** Only rendered by the large variant; the default card never shows a bio. */
 		bio?: string | null;
-		compact?: boolean;
+		/** Large-only second seat line: a sitting leader's own 2027 candidacy,
+		 * rendered under the held seat with its run badge. */
+		campaignPositionTitle?: string | null;
+		campaignRegion?: string | null;
+		/** Badge for that second line: 'candidate' (admin-verified run) or 'aspirant'. */
+		campaignStatus?: string | null;
 		/** Header-card variant (e.g. /compare): card-height photo, bio in the right column. */
 		large?: boolean;
 	};
@@ -38,7 +44,9 @@
 		status,
 		followers,
 		bio,
-		compact = false,
+		campaignPositionTitle = null,
+		campaignRegion = null,
+		campaignStatus = null,
 		large = false
 	}: Props = $props();
 
@@ -63,6 +71,25 @@
 		}
 	}
 </script>
+
+{#snippet seatLine(lineStatus: string | undefined, lineTitle: string | undefined, lineRegion: string | undefined)}
+	{@const seat = seatPath(lineTitle, lineRegion)}
+	<p class="mt-2 text-xs flex items-center gap-2">
+		{#if lineStatus}
+			<span class="rounded-full bg-surface-2 px-2 py-0.5 font-medium capitalize {lineStatus === 'current' ? 'text-primary' : ''}">
+				{lineStatus}
+			</span>
+		{/if}
+		{#if seat}
+			<!-- z-10 keeps the seat link clickable above the card's stretched link. -->
+			<a href={seat} class="relative z-10 hover:text-primary">
+				{lineTitle}{lineTitle && lineRegion ? ', ' : ''}{lineRegion}
+			</a>
+		{:else}
+			{lineTitle}{lineTitle && lineRegion ? ', ' : ''}{lineRegion}
+		{/if}
+	</p>
+{/snippet}
 
 <!-- The leader name uses a stretched link (after:absolute after:inset-0) so the
 whole card is clickable, while the party name stays its own separate link on top. -->
@@ -119,29 +146,15 @@ whole card is clickable, while the party name stays its own separate link on top
 				</p>
 			{/if}
 			{#if positionTitle || region}
-				{@const seat = seatPath(positionTitle, region)}
-				<p class="mt-2 text-xs flex items-center gap-2">
-					{#if status}
-						<span class="rounded-full bg-surface-2 px-2 py-0.5 font-medium capitalize {status === 'current' ? 'text-primary' : ''}">
-							{status}
-						</span>
-					{/if}
-					{#if seat}
-						<!-- z-10 keeps the seat link clickable above the card's stretched link. -->
-						<a href={seat} class="relative z-10 hover:text-primary">
-							{positionTitle}{positionTitle && region ? ', ' : ''}{region}
-						</a>
-					{:else}
-						{positionTitle}{positionTitle && region ? ', ' : ''}{region}
-					{/if}
-				</p>
+				{@render seatLine(status, positionTitle, region)}
 			{/if}
-			{#if !compact || followers !== undefined}
+			{#if large && (campaignPositionTitle || campaignRegion)}
+				<!-- Second seat line (large only): the person's own 2027 candidacy. -->
+				{@render seatLine(campaignStatus ?? 'aspirant', campaignPositionTitle ?? undefined, campaignRegion ?? undefined)}
+			{/if}
+			{#if followers !== undefined}
 				<div class="mt-2 flex w-full items-center gap-2 text-xs text-muted justify-between">
-					
-					{#if followers !== undefined}
-						<span>{fmt.format(followers)} followers</span>
-					{/if}
+					<span>{fmt.format(followers)} followers</span>
 				</div>
 			{/if}
 			{#if large && bio}
@@ -151,9 +164,4 @@ whole card is clickable, while the party name stays its own separate link on top
 			{/if}
 		</div>
 	</div>
-
-	{#if !compact && !large}
-		{#if bio}<p class="mt-2 line-clamp-2 text-sm">{plainText(bio)}</p>{/if}
-	{/if}
-
 </div>

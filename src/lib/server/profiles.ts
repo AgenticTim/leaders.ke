@@ -13,7 +13,7 @@ import { db } from '$lib/server/db';
 import { campaigns, contacts, leaders, managers, positions, profileClaims, subscriptions, users, verifications, wallets } from '$lib/server/db/schema';
 import { user as authUsers } from '$lib/server/db/auth.schema';
 import { ACTIVE_CYCLE, fullName, leaderPath } from '$lib/server/leader';
-import { seatPath } from '$lib/utils/seat';
+import { runStatus, seatPath } from '$lib/utils/seat';
 import { formatKenyanPhoneDisplay } from '$lib/utils/phone';
 import { notifyUser } from '$lib/server/notifications';
 
@@ -24,7 +24,7 @@ export type ProfileRow = {
 	profileId: number; // users.id of the person
 	profileName: string;
 	slug: string | null;
-	status: 'aspirant' | 'current' | 'former';
+	status: 'aspirant' | 'candidate' | 'current' | 'former';
 	source: ProfileSource;
 	verified: ProfileVerified;
 	positionTitle: string;
@@ -65,7 +65,7 @@ export type ProfilePage = { profiles: ProfileRow[]; total: number };
 // newest run/term/claim/manager change, newest first; the rest map to a visible column.
 export type ProfileSort = 'recent' | 'name' | 'position' | 'region' | 'status' | 'source' | 'verified';
 
-type Seat = { title: string; region: string; status: 'aspirant' | 'current' | 'former' };
+type Seat = { title: string; region: string; status: 'aspirant' | 'candidate' | 'current' | 'former' };
 
 /** Every leader profile, one row per person. Admin-only and a few thousand rows, so
  * (like the old candidates tab) it fetches in bulk, merges/searches/sorts in JS, then
@@ -164,7 +164,7 @@ export async function listProfiles(
 	for (const r of runRows) if (!runBySubject.has(r.userId)) runBySubject.set(r.userId, r);
 	for (const r of runRows) {
 		const held = seatBySubject.get(r.userId);
-		if (!held || held.status === 'former') seatBySubject.set(r.userId, { title: r.title, region: r.region, status: 'aspirant' });
+		if (!held || held.status === 'former') seatBySubject.set(r.userId, { title: r.title, region: r.region, status: runStatus(r.verifiedAt) });
 	}
 
 	// Controlling account: prefer an admin manager, else the first active one.

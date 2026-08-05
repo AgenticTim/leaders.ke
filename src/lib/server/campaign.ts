@@ -8,6 +8,7 @@ import { campaigns, donations, followers, parties, pillars, pledges, posts } fro
 import { ACTIVE_CYCLE, resolveCurrentTerm, resolveCurrentTermByUserId, slugify } from '$lib/server/leader';
 import { getFlaggedReviewCounts, getMyReview, listApprovedReviews, listReviewPillarOptions } from '$lib/server/reviews';
 import { isFollowingAsAccount } from '$lib/server/follow';
+import { runStatus } from '$lib/utils/seat';
 
 /** Resolves the seat + run a /[leader]/[year] workspace leads with (the run itself
  * whenever one exists, even for an incumbent running for a different seat than
@@ -42,7 +43,7 @@ export async function resolveCampaignRun(
 	if (stillLeadsWithRun) {
 		campaignId = activeRun!.campaigns.id;
 		position = activeRun!.positions;
-		status = 'aspirant';
+		status = runStatus(activeRun!.campaigns.verifiedAt);
 	} else {
 		position = currentTerm!.positions;
 		status = currentTerm!.leaders.status;

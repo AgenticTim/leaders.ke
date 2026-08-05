@@ -7,6 +7,7 @@ import { and, eq, exists, ilike, isNotNull, isNull, or, sql } from 'drizzle-orm'
 import { db } from '$lib/server/db';
 import { campaigns, leaders, parties, positions, posts, users } from '$lib/server/db/schema';
 import { fullName, leaderPath, slugify } from '$lib/server/leader';
+import { isRunStatus } from '$lib/utils/seat';
 import type { RequestHandler } from './$types';
 
 const GROUP_BY_TITLE: Record<string, 'executive' | 'parliament' | 'mcas'> = {
@@ -112,7 +113,9 @@ export const GET: RequestHandler = async ({ url }) => {
 			.limit(20)
 	]);
 	const matchingTags = [...new Set(tagRows.flatMap((r) => r.tags ?? []).filter((t) => t.toLowerCase().includes(q.toLowerCase())))].slice(0, 5);
-	const leaderRows = [...heldRows, ...runRows.map((r) => ({ ...r, status: 'aspirant' }))];
+	// Run rows are gated on campaigns.verifiedAt above, so every one is a
+	// 'candidate' (a verified run) by the platform's badge rule (see runStatus).
+	const leaderRows = [...heldRows, ...runRows.map((r) => ({ ...r, status: 'candidate' }))];
 
 	// One row per person (their non-former row when they have one), then bucket by
 	// seat family, current officeholders first.
@@ -123,7 +126,7 @@ export const GET: RequestHandler = async ({ url }) => {
 		if (!existing || (existing.status === 'former' && r.status !== 'former')) bySlug.set(r.slug, r);
 	}
 	const buckets = { executive: [] as unknown[], parliament: [] as unknown[], mcas: [] as unknown[] };
-	const STATUS_ORDER: Record<string, number> = { current: 0, aspirant: 1, former: 2 };
+	const STATUS_ORDER: Record<string, number> = { current: 0, candidate: 1, aspirant: 1, former: 2 };
 	for (const r of [...bySlug.values()].sort(
 		(a, b) => (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3)
 	)) {
@@ -132,7 +135,7 @@ export const GET: RequestHandler = async ({ url }) => {
 		const name = fullName({ firstName: r.firstName, otherNames: r.otherNames });
 		buckets[group].push({
 			label: name,
-			sub: `${r.title}, ${r.region}${r.status === 'former' ? ' (former)' : r.status === 'aspirant' ? ' (2027)' : ''}`,
+			sub: `${r.title}, ${r.region}${r.status === 'former' ? ' (former)' : isRunStatus(r.status) ? ' (2027)' : ''}`,
 			path: leaderPath({ slug: r.slug }),
 			photoUrl: r.photoUrl
 		});

@@ -70,3 +70,17 @@ export function seatPath(positionTitle?: string, region?: string): string | null
 	if (!region || region === 'Kenya') return `/${SINGULAR_SLUG_BY_TITLE[positionTitle!]}`;
 	return `/${slug}/${slugify(region)}`;
 }
+
+/** Badge for a person whose lead public presence is a run for office: an
+ * admin-verified run (IEBC certificate confirmed) is a 'candidate', an
+ * unverified one an 'aspirant'. Held terms use leaders.status ('current' /
+ * 'former') instead; this covers the third case. Accepts the raw verifiedAt
+ * (or an already-computed boolean), only truthiness matters. */
+export function runStatus(verified: Date | string | boolean | null | undefined): 'candidate' | 'aspirant' {
+	return verified ? 'candidate' : 'aspirant';
+}
+
+/** True when a status names a run (either verification state) rather than a held term. */
+export function isRunStatus(status: string | null | undefined): boolean {
+	return status === 'aspirant' || status === 'candidate';
+}

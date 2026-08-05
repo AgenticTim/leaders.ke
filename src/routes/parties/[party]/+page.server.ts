@@ -3,6 +3,7 @@ import { and, count, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { campaigns, followers, leaders, parties, positions, users } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, leaderPath, slugify } from '$lib/server/leader';
+import { runStatus } from '$lib/utils/seat';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -58,7 +59,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	for (const r of runRows) {
 		const held = seatBy.get(r.users.id);
 		if (!held || held.status === 'former') {
-			seatBy.set(r.users.id, { users: r.users, title: r.title, region: r.region, status: 'aspirant', verified: !!r.verifiedAt });
+			seatBy.set(r.users.id, { users: r.users, title: r.title, region: r.region, status: runStatus(r.verifiedAt), verified: !!r.verifiedAt });
 		}
 	}
 	const memberIds = [...seatBy.keys()];
