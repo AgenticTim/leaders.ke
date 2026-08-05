@@ -13,7 +13,7 @@
 // person), so re-runs are no-ops.
 import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { campaigns, leaders, platformSettings, posts, tags, users } from '$lib/server/db/schema';
+import { campaigns, leaders, platformSettings, positions, posts, tags, users } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName } from '$lib/server/leader';
 import { getPlatformSettings } from '$lib/server/settings';
 import { classifyMentionSentimentBatch } from '$lib/server/ai';
@@ -82,7 +82,11 @@ function stripHtml(s: string): string {
 		.trim();
 }
 
-type VerifiedPerson = { userId: number; name: string; allowlist: string[] | null };
+// seats: every "<boundary>:<region>" key the person's verified terms/runs span
+// (e.g. "County:Nakuru"), inherited onto each article they're tagged in
+// (posts.regions) so the homepage's local-news filter can match the article
+// itself, not just its author.
+type VerifiedPerson = { userId: number; name: string; allowlist: string[] | null; seats: string[] };
 
 /** Whether `sourceId` is allowed to tag this person: the Dominate-only perk
  * (newsSourceControl) is what lets a person HAVE a non-null allowlist at all,
@@ -97,22 +101,31 @@ function sourceAllowed(person: VerifiedPerson, sourceId: string): boolean {
 async function listVerifiedPeople(): Promise<VerifiedPerson[]> {
 	const [termRows, runRows] = await Promise.all([
 		db
-			.select({ id: leaders.userId })
+			.select({ id: leaders.userId, region: positions.region, boundary: positions.boundary })
 			.from(leaders)
+			.innerJoin(positions, eq(leaders.positionId, positions.id))
 			.where(and(isNull(leaders.deletedAt), isNotNull(leaders.verifiedAt))),
 		db
-			.select({ id: campaigns.subjectUserId })
+			.select({ id: campaigns.subjectUserId, region: positions.region, boundary: positions.boundary })
 			.from(campaigns)
+			.innerJoin(positions, eq(campaigns.positionId, positions.id))
 			.where(and(isNull(campaigns.deletedAt), isNotNull(campaigns.verifiedAt), eq(campaigns.cycleYear, ACTIVE_CYCLE)))
 	]);
-	const ids = [...new Set([...termRows, ...runRows].map((r) => r.id).filter((id): id is number => id !== null))];
+	const seatsById = new Map<number, Set<string>>();
+	for (const r of [...termRows, ...runRows]) {
+		if (r.id === null) continue;
+		const set = seatsById.get(r.id) ?? new Set<string>();
+		set.add(`${r.boundary}:${r.region}`);
+		seatsById.set(r.id, set);
+	}
+	const ids = [...seatsById.keys()];
 	if (!ids.length) return [];
 	const people = await db
 		.select({ id: users.id, firstName: users.firstName, otherNames: users.otherNames, allowlist: users.newsSourceAllowlist })
 		.from(users)
 		.where(and(inArray(users.id, ids), isNull(users.deletedAt)));
 	return people
-		.map((p) => ({ userId: p.id, name: fullName(p), allowlist: p.allowlist }))
+		.map((p) => ({ userId: p.id, name: fullName(p), allowlist: p.allowlist, seats: [...(seatsById.get(p.id) ?? [])] }))
 		.filter((p) => p.name.trim().includes(' '));
 }
 
@@ -167,6 +180,8 @@ async function ingestArticles(items: FeedItem[], sourceId: string, people: Verif
 				medium: 'web',
 				approved: true,
 				public: true,
+				// The article's own geography: every seat its tagged people span.
+				regions: [...new Set(matched.flatMap((p) => p.seats))],
 				...(item.pubDate && !isNaN(item.pubDate.getTime()) ? { createdAt: item.pubDate } : {})
 			})
 			.onConflictDoNothing({ target: posts.sourceUrl })

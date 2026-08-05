@@ -18,7 +18,7 @@ export const priceBandEnum = pgEnum('price_band', ['national', 'regional', 'ward
 export const positions = pgTable('positions', {
   id: serial('id').primaryKey(),
   region: varchar('region', { length: 100 }).notNull(), // e.g., 'Kiambu', 'Westlands'
-  boundary: varchar('boundary', { length: 50 }).notNull(), // 'Country' | 'County' | 'Constituencies' | 'Ward'
+  boundary: varchar('boundary', { length: 50 }).notNull(), // 'Country' | 'County' | 'Constituency' | 'Ward'
   title: varchar('title', { length: 100 }).notNull(), // 'President', 'MP', 'MCA'
   band: priceBandEnum('band').notNull(), // seat-level grouping only, see the comment on priceBandEnum
   isElected: boolean('is_elected').default(true).notNull(), // false means nominated
@@ -547,6 +547,12 @@ export const posts = pgTable('posts', {
   votes: integer('votes').default(0).notNull(), // "likes" in the News CMS
   views: integer('views').default(0).notNull(),
   tags: jsonb('tags').$type<string[]>().default([]).notNull(), // free-form author tags, News CMS "Tags" section
+  // Geography an aggregated mention (creatorId null) is relevant to, inherited
+  // at ingest from the tagged people's seats as "<boundary>:<region>" strings
+  // (e.g. "County:Nairobi", "Country:Kenya"), the same keys the homepage's
+  // local-news filter matches on. Null for team posts and pre-existing rows,
+  // which fall back to the author's seat at read time.
+  regions: jsonb('regions').$type<string[]>(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   archivedAt: timestamp('archived_at', { withTimezone: true }), // News CMS "Archive" section; distinct from deletedAt

@@ -32,6 +32,10 @@ type Article = {
 	href: string;
 	external: boolean;
 	createdAt: string;
+	// The article's own "<boundary>:<region>" keys, stored at ingest from its
+	// tagged people's seats (posts.regions). Null for team posts and rows from
+	// before the column existed, which match geo via the author's seat instead.
+	regions: string[] | null;
 };
 
 export const load: PageServerLoad = async (event) => {
@@ -89,13 +93,18 @@ export const load: PageServerLoad = async (event) => {
 	// a level: this is "relevant to me", not "exactly my ward".
 	const acceptableRegions = new Set<string>(['Country:Kenya']);
 	if (county) acceptableRegions.add(`County:${county.name}`);
-	if (constituency) acceptableRegions.add(`Constituencies:${constituency.seatName}`);
+	// NB: positions.boundary stores the singular 'Constituency'.
+	if (constituency) acceptableRegions.add(`Constituency:${constituency.seatName}`);
 	if (ward) acceptableRegions.add(`Ward:${ward.seatName}`);
 	const geoActive = !!(county || constituency || ward);
-	function matchesGeo(authorUserId: number | null): boolean {
+	// An article's own stored regions win when present (they cover EVERY tagged
+	// person's seat, not just the primary author's); older rows and team posts
+	// fall back to the author's seats.
+	function matchesGeo(article: { regions: string[] | null; authorUserId: number | null }): boolean {
 		if (!geoActive) return true;
-		if (authorUserId === null) return false;
-		const seats = seatsByUserId.get(authorUserId) ?? [];
+		if (article.regions) return article.regions.some((key) => acceptableRegions.has(key));
+		if (article.authorUserId === null) return false;
+		const seats = seatsByUserId.get(article.authorUserId) ?? [];
 		return seats.some((s) => acceptableRegions.has(`${s.boundary}:${s.region}`));
 	}
 
@@ -228,7 +237,8 @@ export const load: PageServerLoad = async (event) => {
 				authorPath: leaderPath(r.author),
 				href: `/news/${r.post.slug}`,
 				external: false,
-				createdAt: r.post.createdAt.toISOString()
+				createdAt: r.post.createdAt.toISOString(),
+				regions: r.post.regions ?? null
 			};
 		}),
 		...[...mentionPostById.entries()].map(([postId, post]) => {
@@ -251,7 +261,8 @@ export const load: PageServerLoad = async (event) => {
 				authorPath: primary?.slug ? leaderPath({ slug: primary.slug }) : '#',
 				href: post.sourceUrl ?? '#',
 				external: true,
-				createdAt: post.createdAt.toISOString()
+				createdAt: post.createdAt.toISOString(),
+				regions: post.regions ?? null
 			};
 		})
 	].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -267,7 +278,7 @@ export const load: PageServerLoad = async (event) => {
 			const matchesTagged = a.mentions.some((m) => m.slug === activeMention);
 			if (!matchesPrimary && !matchesTagged) return false;
 		}
-		if (!matchesGeo(a.authorUserId)) return false;
+		if (!matchesGeo(a)) return false;
 		if (activeAuthor && a.authorUserId !== activeAuthor) return false;
 		return true;
 	});

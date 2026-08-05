@@ -12,7 +12,7 @@ import { parseArgs } from 'node:util';
 import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { campaigns, leaders, platformSettings, posts, tags, users } from '../src/lib/server/db/schema';
+import { campaigns, leaders, platformSettings, positions, posts, tags, users } from '../src/lib/server/db/schema';
 import { decodeHtmlEntities } from '../src/lib/utils/entities';
 
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
@@ -29,7 +29,7 @@ const LIMIT_PEOPLE = Number(values.limit);
 const DELAY_MS = Number(values.delay);
 
 type FeedItem = { title: string; link: string; description: string; pubDate: Date | null };
-type VerifiedPerson = { userId: number; name: string; allowlist: string[] | null };
+type VerifiedPerson = { userId: number; name: string; allowlist: string[] | null; seats: string[] };
 
 function fullName(u: { firstName: string; otherNames: string }): string {
 	return `${u.firstName} ${u.otherNames}`.trim();
@@ -71,22 +71,31 @@ function chunk<T>(arr: T[], size: number): T[][] {
 async function listVerifiedPeople(): Promise<VerifiedPerson[]> {
 	const [termRows, runRows] = await Promise.all([
 		db
-			.select({ id: leaders.userId })
+			.select({ id: leaders.userId, region: positions.region, boundary: positions.boundary })
 			.from(leaders)
+			.innerJoin(positions, eq(leaders.positionId, positions.id))
 			.where(and(isNull(leaders.deletedAt), isNotNull(leaders.verifiedAt))),
 		db
-			.select({ id: campaigns.subjectUserId })
+			.select({ id: campaigns.subjectUserId, region: positions.region, boundary: positions.boundary })
 			.from(campaigns)
+			.innerJoin(positions, eq(campaigns.positionId, positions.id))
 			.where(and(isNull(campaigns.deletedAt), isNotNull(campaigns.verifiedAt)))
 	]);
-	const ids = [...new Set([...termRows, ...runRows].map((r) => r.id).filter((id): id is number => id !== null))];
+	const seatsById = new Map<number, Set<string>>();
+	for (const r of [...termRows, ...runRows]) {
+		if (r.id === null) continue;
+		const set = seatsById.get(r.id) ?? new Set<string>();
+		set.add(`${r.boundary}:${r.region}`);
+		seatsById.set(r.id, set);
+	}
+	const ids = [...seatsById.keys()];
 	if (!ids.length) return [];
 	const people = await db
 		.select({ id: users.id, firstName: users.firstName, otherNames: users.otherNames, allowlist: users.newsSourceAllowlist })
 		.from(users)
 		.where(and(inArray(users.id, ids), isNull(users.deletedAt)));
 	return people
-		.map((p) => ({ userId: p.id, name: fullName(p), allowlist: p.allowlist }))
+		.map((p) => ({ userId: p.id, name: fullName(p), allowlist: p.allowlist, seats: [...(seatsById.get(p.id) ?? [])] }))
 		.filter((p) => p.name.trim().includes(' '));
 }
 
@@ -126,6 +135,7 @@ async function ingestArticles(items: FeedItem[], sourceId: string, people: Verif
 				medium: 'web',
 				approved: true,
 				public: true,
+				regions: [...new Set(people_matched.flatMap((p) => p.seats))],
 				...(item.pubDate && !isNaN(item.pubDate.getTime()) ? { createdAt: item.pubDate } : {})
 			})
 			.onConflictDoNothing({ target: posts.sourceUrl })
