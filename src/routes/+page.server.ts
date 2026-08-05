@@ -87,11 +87,12 @@ export const load: PageServerLoad = async (event) => {
 		list.push({ region: r.region, boundary: r.boundary });
 		seatsByUserId.set(r.id, list);
 	}
-	// Whichever levels the visitor picked. A person's seat matches if it's
-	// national (always relevant), or its region equals the matching level's name.
-	// Picking a ward doesn't exclude their county's governor/senator, it only adds
-	// a level: this is "relevant to me", not "exactly my ward".
-	const acceptableRegions = new Set<string>(['Country:Kenya']);
+	// Whichever levels the visitor picked. Strictly local: a purely national
+	// story (President, presidential candidates) does NOT pass a county filter;
+	// national figures appear only when co-tagged with someone local (the
+	// article's regions then carry the local key too). Picking a ward doesn't
+	// exclude the county's governor/senator, it only adds a level.
+	const acceptableRegions = new Set<string>();
 	if (county) acceptableRegions.add(`County:${county.name}`);
 	// NB: positions.boundary stores the singular 'Constituency'.
 	if (constituency) acceptableRegions.add(`Constituency:${constituency.seatName}`);
