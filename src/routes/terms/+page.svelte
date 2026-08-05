@@ -6,8 +6,7 @@
 <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
 	<h1 class="text-3xl font-bold text-heading">Terms of Service</h1>
 	<p class="mt-3 text-sm text-muted">
-		Working draft. The full terms are under legal review. Questions in the meantime:
-		<a href="mailto:hello@vote.ke" class="font-medium text-primary hover:underline">hello@vote.ke</a>.
+		Working draft. The full terms are under legal review. <a href="/contact-us" class="font-medium text-primary hover:underline">Contact us</a> if you have any questions..
 	</p>
 
 	<div class="mt-8 space-y-6 text-sm leading-relaxed text-heading">

@@ -6,8 +6,7 @@
 <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
 	<h1 class="text-3xl font-bold text-heading">Data Policy</h1>
 	<p class="mt-3 text-sm text-muted">
-		Working draft. The full policy is under legal review. Questions in the meantime:
-		<a href="mailto:privacy@vote.ke" class="font-medium text-primary hover:underline">privacy@vote.ke</a>.
+		Working draft. The full policy is under legal review. <a href="/contact-us" class="font-medium text-primary hover:underline">Contact us</a> if you have any questions.
 	</p>
 
 	<div class="mt-8 space-y-6 text-sm leading-relaxed text-heading">
@@ -39,9 +38,7 @@
 			<p class="mt-2 text-muted">
 				Manage your data from your
 				<a href="/dashboard/account" class="font-medium text-primary hover:underline">account page</a>
-				(including full account deletion), or write to
-				<a href="mailto:privacy@vote.ke" class="font-medium text-primary hover:underline">privacy@vote.ke</a>
-				for anything the dashboard doesn't cover.
+				(including full account deletion).
 			</p>
 		</section>
 	</div>

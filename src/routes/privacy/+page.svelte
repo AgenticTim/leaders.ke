@@ -6,8 +6,7 @@
 <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
 	<h1 class="text-3xl font-bold text-heading">Privacy Policy</h1>
 	<p class="mt-3 text-sm text-muted">
-		Working draft. The full policy is under legal review. Questions in the meantime:
-		<a href="mailto:privacy@vote.ke" class="font-medium text-primary hover:underline">privacy@vote.ke</a>.
+		Working draft. The full policy is under legal review. <a href="/contact-us" class="font-medium text-primary hover:underline">Contact us</a> if you have any questions..
 	</p>
 
 	<div class="mt-8 space-y-6 text-sm leading-relaxed text-heading">

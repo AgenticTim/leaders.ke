@@ -28,7 +28,7 @@
 <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6">
 	<h1 class="text-3xl font-bold text-heading">Frequently asked questions</h1>
 	<p class="mt-3 text-lg text-muted">
-		Everything about the platform, in one place. Can't find it? <a href="/contact-us" class="font-medium text-primary hover:underline">Contact us</a>.
+		Everything about the platform, in one place. <a href="/contact-us" class="font-medium text-primary hover:underline">Contact us</a> if something is missing.
 	</p>
 
 	<input
