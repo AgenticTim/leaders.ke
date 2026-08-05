@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Avatar from '$lib/components/Avatar.svelte';
 	import FollowCard from '$lib/components/FollowCard.svelte';
+	import LeaderHoverCard from '$lib/components/LeaderHoverCard.svelte';
 	import GeoSelect from '$lib/components/GeoSelect.svelte';
 	import QuickSearch from '$lib/components/QuickSearch.svelte';
 	import Pagination from '$lib/components/admin/Pagination.svelte';
@@ -117,7 +118,9 @@
 							{/if}
 							<div class="text-sm">
 								{#if article.authorPath !== '#'}
-									<a href={article.authorPath} class="font-semibold text-heading hover:text-primary">{article.authorName}</a>
+									<LeaderHoverCard path={article.authorPath}>
+										<a href={article.authorPath} class="font-semibold text-heading hover:text-primary">{article.authorName}</a>
+									</LeaderHoverCard>
 								{:else}
 									<span class="font-semibold text-heading">{article.authorName}</span>
 								{/if}
@@ -140,7 +143,7 @@
 						{#if article.mentions.length}
 							<p class="mt-3 text-sm text-muted">
 								Mentions
-								{#each article.mentions as m, i (m.slug)}{i > 0 ? ', ' : ' '}<a href={mentionHref(m.slug)} class="font-medium text-primary hover:underline">@{m.name}</a>{/each}
+								{#each article.mentions as m, i (m.slug)}{i > 0 ? ', ' : ' '}<LeaderHoverCard path={`/${m.slug}`}><a href={mentionHref(m.slug)} class="font-medium text-primary hover:underline">@{m.name}</a></LeaderHoverCard>{/each}
 							</p>
 						{/if}
 

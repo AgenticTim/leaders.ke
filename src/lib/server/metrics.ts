@@ -119,31 +119,47 @@ async function partyName(partyId: number | null): Promise<string | null> {
 	return row?.name ?? null;
 }
 
-/**
- * Metrics for a single leader by their flat URL path (/<slug>), used by /compare,
- * which only ever needs two leaders, so it fetches exactly those instead of
- * computing the whole register and discarding all but two. resolveCurrentTerm
- * picks the same canonical (non-former) term the full listing dedups to, so the
- * numbers match. Returns null for an unknown person, or one with neither a held
- * term nor a run.
- */
-export async function getLeaderMetricsByPath(path: string): Promise<LeaderMetrics | null> {
-	const slug = path.replace(/^\//, '').trim();
-	if (!slug) return null;
+/** Shared head of the single-leader fetchers below: resolves a slug to its lead
+ * seat (a live/held term if any, else the active run), the badge status, that
+ * seat's party, and the second (campaign) seat line. resolveCurrentTerm picks
+ * the same canonical (non-former) term the full listing dedups to, so numbers
+ * match everywhere. Returns null for an unknown person, one with neither a held
+ * term nor a run, or an unverified lead. */
+async function resolveLeadSeat(slug: string) {
 	const resolved = await resolveCurrentTerm(slug);
 	if (!resolved) return null;
 	const { row, currentTerm, activeRun } = resolved;
 	if (!currentTerm && !activeRun) return null;
 
-	// Lead seat: a live/held term if any, else the active run (aspirant, no leaders row).
 	const leadsWithRun = (!currentTerm || currentTerm.leaders.status === 'former') && !!activeRun;
 	const verified = leadsWithRun ? !!activeRun!.campaigns.verifiedAt : !!currentTerm?.leaders.verifiedAt;
 	if (!verified) return null;
 
 	const position = leadsWithRun ? activeRun!.positions : currentTerm!.positions;
 	const status = leadsWithRun ? runStatus(activeRun!.campaigns.verifiedAt) : currentTerm!.leaders.status;
-	let campaignId = 0;
 	const party = await partyName(leadsWithRun ? activeRun!.campaigns.partyId : (currentTerm!.leaders.partyId ?? null));
+	// A held-seat lead line can carry a second, campaign line: the person's own
+	// ACTIVE_CYCLE run (campaign pages are public for every run). When the run IS
+	// the lead seat (pure candidate/aspirant) there's nothing extra to show.
+	const campaignSeat =
+		!leadsWithRun && activeRun && activeRun.campaigns.cycleYear === ACTIVE_CYCLE
+			? { title: activeRun.positions.title, region: activeRun.positions.region, status: runStatus(activeRun.campaigns.verifiedAt) }
+			: null;
+	return { row, currentTerm, activeRun, leadsWithRun, position, status, party, campaignSeat };
+}
+
+/**
+ * Metrics for a single leader by their flat URL path (/<slug>), used by /compare,
+ * which only ever needs two leaders, so it fetches exactly those instead of
+ * computing the whole register and discarding all but two.
+ */
+export async function getLeaderMetricsByPath(path: string): Promise<LeaderMetrics | null> {
+	const slug = path.replace(/^\//, '').trim();
+	if (!slug) return null;
+	const lead = await resolveLeadSeat(slug);
+	if (!lead) return null;
+	const { row, currentTerm, activeRun, leadsWithRun, position, status, party, campaignSeat } = lead;
+	let campaignId = 0;
 	if (leadsWithRun) {
 		campaignId = activeRun!.campaigns.id;
 	} else {
@@ -153,14 +169,50 @@ export async function getLeaderMetricsByPath(path: string): Promise<LeaderMetric
 			.where(and(eq(campaigns.leaderId, currentTerm!.leaders.id), isNull(campaigns.parentCampaignId), isNull(campaigns.deletedAt)));
 		campaignId = c?.id ?? 0;
 	}
-	// A held-seat lead line can carry a second, campaign line: the person's own
-	// ACTIVE_CYCLE run (campaign pages are public for every run). When the run IS
-	// the lead seat (pure aspirant) there's nothing extra to show.
-	const campaignSeat =
-		!leadsWithRun && activeRun && activeRun.campaigns.cycleYear === ACTIVE_CYCLE
-			? { title: activeRun.positions.title, region: activeRun.positions.region, status: runStatus(activeRun.campaigns.verifiedAt) }
-			: null;
-	return computeLeaderMetrics({ user: row.users, position, status, verified, campaignId, campaignSeat }, party);
+	return computeLeaderMetrics({ user: row.users, position, status, verified: true, campaignId, campaignSeat }, party);
+}
+
+export type LeaderHoverCardData = {
+	path: string;
+	name: string;
+	initials: string;
+	photoUrl: string | null;
+	verified: boolean;
+	party: string | null;
+	partyPath: string | null;
+	positionTitle: string;
+	region: string;
+	status: string;
+	bio: string;
+	campaignPositionTitle: string | null;
+	campaignRegion: string | null;
+	campaignStatus: 'candidate' | 'aspirant' | null;
+};
+
+/** The large LeaderCard's props for one person WITHOUT the engagement metrics,
+ * the async payload behind the hover preview (/api/leader-card). Kept light so
+ * a hover costs the seat resolution only, not the four score queries. */
+export async function getLeaderCardBySlug(slug: string): Promise<LeaderHoverCardData | null> {
+	const lead = await resolveLeadSeat(slug);
+	if (!lead) return null;
+	const { row, position, status, party, campaignSeat } = lead;
+	const name = fullName(row.users);
+	return {
+		path: leaderPath(row.users),
+		name,
+		initials: name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase(),
+		photoUrl: row.users.photoUrl,
+		verified: true,
+		party,
+		partyPath: party ? `/parties/${slugify(party)}` : null,
+		positionTitle: position.title,
+		region: position.region,
+		status,
+		bio: row.users.bio ?? '',
+		campaignPositionTitle: campaignSeat?.title ?? null,
+		campaignRegion: campaignSeat?.region ?? null,
+		campaignStatus: campaignSeat?.status ?? null
+	};
 }
 
 /** A random aspirant path for one position (e.g. the /compare default). An

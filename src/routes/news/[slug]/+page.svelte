@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Avatar from '$lib/components/Avatar.svelte';
+	import LeaderHoverCard from '$lib/components/LeaderHoverCard.svelte';
 	import { renderRichText } from '$lib/utils/richtext';
 	import type { PageProps } from './$types';
 
@@ -27,7 +28,9 @@
 			<Avatar name={data.author.name} initials={data.author.initials} photoUrl={data.author.photoUrl} sizeClass="size-11" textClass="text-base" />
 		</a>
 		<div>
-			<a href={data.author.path} class="font-semibold text-heading hover:text-primary">{data.author.name}</a>
+			<LeaderHoverCard path={data.author.path}>
+				<a href={data.author.path} class="font-semibold text-heading hover:text-primary">{data.author.name}</a>
+			</LeaderHoverCard>
 			<p class="text-sm text-muted">{dateFmt.format(new Date(data.createdAt))}</p>
 		</div>
 	</div>
