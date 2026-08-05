@@ -64,8 +64,9 @@ export const GET: RequestHandler = async ({ url }) => {
 			.where(and(isNull(parties.deletedAt), or(ilike(parties.name, like), ilike(parties.abbreviation, like))))
 			.limit(5),
 		// Team-authored, published articles from a publicly visible person, same
-		// gate as /news. Title match only. A tag match surfaces as its own Topics
-		// entry below instead of pulling in the post by its (unrelated) title.
+		// gate as the homepage news feed. Title match only. A tag match surfaces as
+		// its own Topics entry below instead of pulling in the post by its
+		// (unrelated) title.
 		db
 			.select({ slug: posts.slug, title: posts.title })
 			.from(posts)
@@ -152,7 +153,7 @@ export const GET: RequestHandler = async ({ url }) => {
 		tags: matchingTags.map((tag) => ({
 			label: tag,
 			sub: 'Topic',
-			path: `/news?tag=${encodeURIComponent(tag)}`
+			path: `/?tag=${encodeURIComponent(tag)}`
 		}))
 	});
 };

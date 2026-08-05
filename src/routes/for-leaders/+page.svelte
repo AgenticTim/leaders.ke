@@ -4,7 +4,8 @@
 	import WordCycler from '$lib/components/WordCycler.svelte';
 
 	// This page sells to the paying customer (candidates and currents); the
-	// homepage itself is the citizen voting booth.
+	// homepage itself is the citizen-facing news feed, with the voting booth
+	// one click away at /ballot.
 
 	// The hero headline is two cycling halves: any left word reads naturally with
 	// any right word, so the pairs don't need to line up.

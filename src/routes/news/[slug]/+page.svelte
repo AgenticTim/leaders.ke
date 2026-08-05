@@ -14,7 +14,7 @@
 
 <article class="mx-auto max-w-5xl px-4 py-14 sm:px-6">
 	<div class="flex items-center justify-between">
-		<a href="/news" class="text-sm font-semibold text-primary hover:underline">← All news</a>
+		<a href="/" class="text-sm font-semibold text-primary hover:underline">← All news</a>
 		{#if data.editHref}
 			<a href={data.editHref} class="text-sm font-semibold text-primary hover:underline">Edit</a>
 		{/if}
@@ -43,7 +43,7 @@
 		<div class="mt-8 flex flex-wrap gap-1.5 border-t border-border pt-6">
 			{#each data.tags as tag (tag)}
 				<a
-					href="/news?tag={encodeURIComponent(tag)}"
+					href="/?tag={encodeURIComponent(tag)}"
 					class="rounded-full border border-border bg-surface-2 px-2.5 py-1 text-xs font-medium text-muted transition hover:border-primary hover:text-primary"
 				>
 					{tag}

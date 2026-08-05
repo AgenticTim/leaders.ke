@@ -223,7 +223,7 @@ const HOW_TO: { keys: string[]; label: string; text: string }[] = [
 	{
 		keys: ['ballot', 'booth', 'simulat', 'practice vote'],
 		label: 'Ballot simulator',
-		text: 'Citizens can build a practice 2027 ballot at / (the homepage booth), picking a candidate for each of the six seats they will vote for. It saves to their account (or their device if signed out) and can be revisited from /dashboard/my-vote.'
+		text: 'Citizens can build a practice 2027 ballot at /ballot (the voting booth, linked from the top bar), picking a candidate for each of the six seats they will vote for. It saves to their account (or their device if signed out) and can be revisited from /dashboard/my-vote.'
 	},
 	{
 		keys: ['pledge', 'support a candidate', 'back a candidate'],

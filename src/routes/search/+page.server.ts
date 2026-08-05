@@ -216,9 +216,9 @@ export const load: PageServerLoad = async ({ url }) => {
 		path: `/alliances/${slugify(a.title)}`
 	}));
 
-	// Team-authored, published /news articles from a publicly visible person,
-	// same gate as the /news list itself. Title/body match only. A tag match
-	// surfaces as its own Topics entry below, not the (unrelated) post title.
+	// Team-authored, published /news/[slug] articles from a publicly visible
+	// person, same gate as the homepage news feed. Title/body match only. A tag
+	// match surfaces as its own Topics entry below, not the (unrelated) post title.
 	const publicPostGate = (idCol: typeof users.id) =>
 		or(
 			exists(db.select({ x: sql`1` }).from(leaders).where(and(eq(leaders.userId, idCol), isNotNull(leaders.verifiedAt), isNull(leaders.deletedAt)))),
@@ -283,6 +283,6 @@ export const load: PageServerLoad = async ({ url }) => {
 		parties: partyResults,
 		alliances: allianceResults,
 		news: newsResults,
-		tags: matchingTags.map((tag) => ({ tag, path: `/news?tag=${encodeURIComponent(tag)}` }))
+		tags: matchingTags.map((tag) => ({ tag, path: `/?tag=${encodeURIComponent(tag)}` }))
 	};
 };

@@ -59,11 +59,12 @@
 	// Nav is voters-first: leader/SaaS pages (features, pricing) live under
 	// /for-leaders and the footer instead of the top bar.
 	const links = [
+		{ href: '/', label: 'News' },
 		{ href: '/presidents', label: 'Leaders' },
 		{ href: '/rank/presidents', label: 'Ranks' },
 		{ href: '/compare', label: 'Compare' },
+		{ href: '/ballot', label: 'Ballot' },
 		{ href: '/education', label: 'Learn' },
-		{ href: '/news', label: 'News' },
 		{ href: '/for-leaders', label: 'For Leaders' }
 	];
 
@@ -246,10 +247,11 @@
 							<a href="/dashboard/notifications" onclick={() => (menuOpen = false)} class={tileClass}>Notifications</a>
 							<a href="/dashboard/account" onclick={() => (menuOpen = false)} class={tileClass}>Account</a>
 						{/if}
+						<a href="/" onclick={() => (menuOpen = false)} class={tileClass}>News</a>
 						<a href="/presidents" onclick={() => (menuOpen = false)} class={tileClass}>Leaders</a>
 						<a href="/rank/presidents" onclick={() => (menuOpen = false)} class={tileClass}>Ranks</a>
 						<a href="/compare" onclick={() => (menuOpen = false)} class={tileClass}>Compare</a>
-						<a href="/news" onclick={() => (menuOpen = false)} class={tileClass}>News</a>
+						<a href="/ballot" onclick={() => (menuOpen = false)} class={tileClass}>Ballot</a>
 						<a href="/education" onclick={() => (menuOpen = false)} class={tileClass}>Learn</a>
 						<a href="/drives" onclick={() => (menuOpen = false)} class={tileClass}>Reg. Drives</a>
 						<a href="/dates" onclick={() => (menuOpen = false)} class={tileClass}>Key Dates</a>

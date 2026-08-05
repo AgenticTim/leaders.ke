@@ -32,7 +32,7 @@ export const load: PageServerLoad = async (event) => {
 	// discovering the invite mismatch after clicking Accept.
 	const lockedEmail = event.url.searchParams.get('email');
 
-	// Set by the homepage ballot's guest-cast redirect, swaps the subtitle to
+	// Set by the ballot booth's guest-cast redirect, swaps the subtitle to
 	// explain why they're here instead of the generic pitch.
 	const ballotIntent = event.url.searchParams.get('intent') === 'ballot';
 

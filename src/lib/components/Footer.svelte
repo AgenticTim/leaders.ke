@@ -5,9 +5,19 @@
 	// the brand blurb and the compliance line the old two-line footer carried.
 	const groups = [
 		{
-			title: 'Voters',
+			title: 'Leaders',
 			links: [
-				{ href: '/', label: 'My 2027 Ballot' },
+				{ href: '/for-leaders', label: 'Run Your Campaign' },
+				{ href: '/onboard/profile', label: 'Get Onboard' },
+				{ href: '/features', label: 'Features' },
+				{ href: '/pricing', label: 'Pricing' },
+				{ href: '/fundraising', label: 'Fundraising' },
+			]
+		},
+		{
+			title: 'Citizens',
+			links: [
+				{ href: '/ballot', label: 'My 2027 Ballot' },
 				{ href: '/education', label: 'Voter Education' },
 				{ href: '/demographics', label: 'Voter Demographics' },
 				{ href: '/dates', label: 'Key Dates' },
@@ -22,17 +32,7 @@
 				{ href: '/rank/presidents', label: 'Ranks' },
 				{ href: '/compare', label: 'Compare' },
 				{ href: '/parties', label: 'Parties' },
-				{ href: '/news', label: 'News' }
-			]
-		},
-		{
-			title: 'Leaders',
-			links: [
-				{ href: '/for-leaders', label: 'Run Your Campaign' },
-				{ href: '/onboard/profile', label: 'Get Onboard' },
-				{ href: '/features', label: 'Features' },
-				{ href: '/pricing', label: 'Pricing' },
-				{ href: '/fundraising', label: 'Fundraising' },
+				{ href: '/', label: 'News' }
 			]
 		},
 		{

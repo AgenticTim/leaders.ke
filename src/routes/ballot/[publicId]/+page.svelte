@@ -123,7 +123,7 @@
 					</button>
 				</form>
 			{:else}
-				<a href="/" class="rounded-full bg-primary px-3 sm:px-4 py-2 font-semibold text-on-primary transition hover:brightness-95">Simulate Your Vote</a>
+				<a href="/ballot" class="rounded-full bg-primary px-3 sm:px-4 py-2 font-semibold text-on-primary transition hover:brightness-95">Simulate Your Vote</a>
 				<AuthModal
 					bind:open={authOpen}
 					next="/ballot/{data.publicId}?save=1"

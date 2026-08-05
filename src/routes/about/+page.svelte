@@ -16,8 +16,9 @@
 		<section>
 			<h2 class="text-lg font-semibold text-heading">For voters</h2>
 			<p class="mt-2 text-muted">
-				Land on the homepage and you're in the booth: pick your county, constituency and ward, see
-				every candidate across all six elective levels, cast a simulated ballot and share it.
+				Land on the homepage and see what your leaders are doing today, then step into the booth:
+				pick your county, constituency and ward, see every candidate across all six elective
+				levels, cast a simulated ballot and share it.
 				Around the booth sits everything a first-time or seasoned voter needs, non-partisan voter
 				education, registration drives, key IEBC dates, and side-by-side candidate comparison. All
 				of it is free.

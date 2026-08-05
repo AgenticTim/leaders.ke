@@ -52,7 +52,7 @@
 
 		<div class="mt-5 flex flex-wrap gap-3">
 			<a
-				href="/"
+				href="/ballot"
 				class="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-95"
 			>
 				Simulate your 2027 ballot
