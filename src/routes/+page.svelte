@@ -50,6 +50,29 @@
 	function onGeoChange() {
 		goto(`/?${paramsWith({})}`, { keepFocus: true, noScroll: true });
 	}
+
+	// Sidebar mentions ordering: by mention count (default, most first) or by
+	// name, either direction. A pure client-side reorder of the loaded list;
+	// clicking the active sort flips its direction.
+	let mentionSort = $state<'count' | 'name'>('count');
+	let mentionSortDesc = $state(true);
+	const sortedMentions = $derived.by(() => {
+		const list = [...data.mentions].sort((a, b) =>
+			mentionSort === 'name' ? a.name.localeCompare(b.name) : a.n - b.n
+		);
+		if (mentionSortDesc) list.reverse();
+		return list;
+	});
+	function toggleMentionSort(kind: 'count' | 'name') {
+		if (mentionSort === kind) {
+			mentionSortDesc = !mentionSortDesc;
+		} else {
+			mentionSort = kind;
+			// Fresh picks start at their natural reading order: names A to Z,
+			// counts most-mentioned first.
+			mentionSortDesc = kind === 'count';
+		}
+	}
 </script>
 
 <svelte:head>
@@ -257,9 +280,36 @@
 				</div>
 			</div>
 			<div>
-				<p class="text-xs font-semibold tracking-wide text-muted uppercase">Mentions</p>
+				<div class="flex items-center justify-between">
+					<p class="text-xs font-semibold tracking-wide text-muted uppercase">Mentions</p>
+					<!-- Sort toggles: the active one shows its direction and flips on click. -->
+					<div class="flex items-center gap-1">
+						<button
+							type="button"
+							onclick={() => toggleMentionSort('name')}
+							aria-label="Sort mentions by name"
+							aria-pressed={mentionSort === 'name'}
+							class="rounded-md border px-1.5 py-0.5 text-[11px] font-medium transition {mentionSort === 'name'
+								? 'border-primary text-primary'
+								: 'border-border text-muted hover:border-primary hover:text-primary'}"
+						>
+							{mentionSort === 'name' && mentionSortDesc ? 'Z-A' : 'A-Z'}
+						</button>
+						<button
+							type="button"
+							onclick={() => toggleMentionSort('count')}
+							aria-label="Sort mentions by count"
+							aria-pressed={mentionSort === 'count'}
+							class="rounded-md border px-1.5 py-0.5 text-[11px] font-medium transition {mentionSort === 'count'
+								? 'border-primary text-primary'
+								: 'border-border text-muted hover:border-primary hover:text-primary'}"
+						>
+							# {mentionSort === 'count' && !mentionSortDesc ? '↑' : '↓'}
+						</button>
+					</div>
+				</div>
 				<div class="mt-2 flex flex-col gap-1.5">
-					{#each data.mentions as m (m.slug)}
+					{#each sortedMentions as m (m.slug)}
 						<a
 							href={mentionHref(m.slug)}
 							class="flex items-center justify-between rounded-lg px-2 py-1 text-sm transition {data.activeMention === m.slug
