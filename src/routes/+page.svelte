@@ -2,10 +2,10 @@
 	import Avatar from '$lib/components/Avatar.svelte';
 	import FollowCard from '$lib/components/FollowCard.svelte';
 	import LeaderHoverCard from '$lib/components/LeaderHoverCard.svelte';
-	import GeoSelect from '$lib/components/GeoSelect.svelte';
 	import QuickSearch from '$lib/components/QuickSearch.svelte';
 	import Pagination from '$lib/components/admin/Pagination.svelte';
 	import { goto } from '$app/navigation';
+	import { counties, findConstituencyBySlug, findCountyBySlug, findWardBySlug, geoSlug } from '$lib/data/geo';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -47,9 +47,48 @@
 	const mentionHref = (slug: string) => `/?${paramsWith({ mention: data.activeMention === slug ? '' : slug })}`;
 	const authorHref = (personId: number) => `/?${paramsWith({ author: data.activeAuthor === personId ? '' : String(personId) })}`;
 
-	function onGeoChange() {
-		goto(`/?${paramsWith({})}`, { keepFocus: true, noScroll: true });
+	// The sidebar quick search filters by leader AND by region: a Regions pick is
+	// resolved against the bundled geo data into the same county/constituency/ward
+	// params GeoSelect used to set (a constituency pick fills in its county, a
+	// ward pick both). Non-region picks filter by the leader (mention) instead.
+	function regionFilterParams(item: { label: string; sub: string }): Record<string, string> | null {
+		if (item.sub === 'County') {
+			const c = counties.find((c) => c.name === item.label);
+			return c ? { county: geoSlug(c.name), constituency: '', ward: '' } : null;
+		}
+		if (item.sub.startsWith('Constituency')) {
+			for (const c of counties) {
+				const con = c.constituencies.find((x) => x.name === item.label);
+				if (con && item.sub === `Constituency, ${c.name}`)
+					return { county: geoSlug(c.name), constituency: geoSlug(con.seatName), ward: '' };
+			}
+			return null;
+		}
+		if (item.sub.startsWith('Ward')) {
+			for (const c of counties)
+				for (const con of c.constituencies) {
+					const w = con.wards.find((x) => x.name === item.label);
+					if (w && item.sub === `Ward, ${con.name}`)
+						return { county: geoSlug(c.name), constituency: geoSlug(con.seatName), ward: geoSlug(w.seatName) };
+				}
+			return null;
+		}
+		return null;
 	}
+	function onSidebarPick(item: { label: string; sub: string; path: string }) {
+		const geo = regionFilterParams(item);
+		if (geo) goto(`/?${paramsWith(geo)}`, { keepFocus: true, noScroll: true });
+		else goto(mentionHref(item.path.slice(1)));
+	}
+
+	// Names for the active-geo chip in the "Filtering by" row (the loader only
+	// echoes slugs).
+	const activeGeoLabel = $derived.by(() => {
+		const w = data.wardSlug ? findWardBySlug(data.wardSlug) : undefined;
+		const con = data.constituencySlug ? findConstituencyBySlug(data.constituencySlug) : undefined;
+		const c = data.countySlug ? findCountyBySlug(data.countySlug) : undefined;
+		return [w?.name, con?.name, c ? `${c.name} County` : undefined].filter(Boolean).join(', ');
+	});
 
 	// Sidebar mentions ordering: by mention count (default, most first) or by
 	// name, either direction. A pure client-side reorder of the loaded list;
@@ -108,13 +147,16 @@
 
 	<div class="grid gap-10 lg:grid-cols-10">
 		<div class="lg:col-span-7">
-			{#if data.activeTag || data.activeMention || data.activeAuthor}
+			{#if data.activeTag || data.activeMention || data.activeAuthor || data.countySlug}
 				<div class="mb-6 flex flex-wrap items-center gap-2 text-sm text-muted">
 					<span>Filtering by</span>
 					{#if data.activeAuthor}
 						<span class="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-on-primary">
 							{data.followedAuthors.find((a) => a.personId === data.activeAuthor)?.name ?? 'Followed leader'}
 						</span>
+					{/if}
+					{#if activeGeoLabel}
+						<span class="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-on-primary">{activeGeoLabel}</span>
 					{/if}
 					{#if data.activeTag}
 						<span class="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-on-primary">{data.activeTag}</span>
@@ -246,12 +288,6 @@
 				</div>
 			{/if}
 			<div>
-				<p class="text-xs font-semibold tracking-wide text-muted uppercase">Local news</p>
-				<div class="mt-2">
-					<GeoSelect bind:county bind:constituency bind:ward onchange={onGeoChange} />
-				</div>
-			</div>
-			<div>
 				<p class="text-xs font-semibold tracking-wide text-muted uppercase">Tags</p>
 				<div class="mt-2 flex flex-wrap gap-1.5">
 					{#each data.tags as t (t.tag)}
@@ -269,13 +305,13 @@
 				</div>
 			</div>
 			<div>
-				<p class="text-xs font-semibold tracking-wide text-muted uppercase">Find a profile</p>
+				<p class="text-xs font-semibold tracking-wide text-muted uppercase">Filter by leader or region</p>
 				<div class="mt-2">
 					<QuickSearch
-						include={['Executive', 'Parliament', 'MCAs']}
+						include={['Regions', 'Executive', 'Parliament', 'MCAs']}
 						expand={false}
-						placeholder="Filter news by a leader or candidate…"
-						onPick={(item) => goto(mentionHref(item.path.slice(1)))}
+						placeholder="Filter news by a leader or region…"
+						onPick={onSidebarPick}
 					/>
 				</div>
 			</div>
