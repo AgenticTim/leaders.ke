@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tooltip } from '$lib/effects';
 	import Countdown from '$lib/components/Countdown.svelte';
 	import WordCycler from '$lib/components/WordCycler.svelte';
 	import packageData from '$lib/data/packages.json';
@@ -18,6 +19,11 @@
 		'voterHeatmap'
 	] as const;
 	const PERK_LABELS: Record<(typeof PACKAGE_PERK_KEYS)[number], string> = packageData.perkLabels;
+	// What each perk/cap actually gets you, shown on hover. Same file as the
+	// labels so the two never drift, and the caps get one too: "3 ambassadors"
+	// means nothing to someone who hasn't used the platform yet.
+	const PERK_TIPS: Record<string, string> = packageData.perkTooltips;
+	const CAP_TIPS: Record<string, string> = packageData.capTooltips;
 
 	const leftSet = ['Level Up', 'Catapult', 'Propel', 'Amplify', 'Strengthen'];
 	const rightSet = ['Leadership', 'Campaign', 'Publicity', 'Advocacy', 'Supporters'];
@@ -49,34 +55,37 @@
 	// the list. Nothing here is hand-typed, so a package edit shows up here too.
 	const packages = TIER_KEYS.map((_tier, t) => {
 		const f = packageFeatures[t];
-		const highlights: string[] = [];
+		// Each bullet carries the sentence that explains it (see PERK_TIPS/CAP_TIPS).
+		const highlights: { text: string; tip: string }[] = [];
 		if (f) {
 			if (f.managers === null && f.ambassadors === null && f.subscriptions === null) {
-				highlights.push('Unlimited managers');
-				highlights.push('Unlimited ambassadors');
-				highlights.push('Unlimited subscriptions');
+				highlights.push({ text: 'Unlimited managers', tip: CAP_TIPS.managers });
+				highlights.push({ text: 'Unlimited ambassadors', tip: CAP_TIPS.ambassadors });
+				highlights.push({ text: 'Unlimited subscriptions', tip: CAP_TIPS.subscriptions });
 			} else {
-				highlights.push(`${fmtCap(f.managers)} campaign managers`);
-				highlights.push(`${fmtCap(f.ambassadors)} ambassadors`);
-				highlights.push(`${fmtCap(f.subscriptions)} citizen subscriptions`);
+				highlights.push({ text: `${fmtCap(f.managers)} campaign managers`, tip: CAP_TIPS.managers });
+				highlights.push({ text: `${fmtCap(f.ambassadors)} ambassadors`, tip: CAP_TIPS.ambassadors });
+				highlights.push({ text: `${fmtCap(f.subscriptions)} citizen subscriptions`, tip: CAP_TIPS.subscriptions });
 			}
-			highlights.push(`${fmtCap(f.creditsPerMonth)} credits/mo`);
-			for (const key of PACKAGE_PERK_KEYS) if (f[key]) highlights.push(PERK_LABELS[key]);
+			highlights.push({ text: `${fmtCap(f.creditsPerMonth)} credits/mo`, tip: CAP_TIPS.creditsPerMonth });
+			for (const key of PACKAGE_PERK_KEYS) if (f[key]) highlights.push({ text: PERK_LABELS[key], tip: PERK_TIPS[key] });
 		}
 		return { tagline: taglines[t], highlights };
 	});
 
-	// Base features every package includes, regardless of tier.
+	// Base features every package includes, regardless of tier. Each carries the
+	// sentence that explains it: the labels are short enough to be jargon on
+	// their own ("Private voter register", "Press desk").
 	const baseFeatures = [
-		'Custom page, neat link, QR code',
-		'Agentic AI chat on profile, campaign',
-		'Publish manifesto and past delivery',
-		'IEBC blue-check verification',
-		'Private voter register',
-		'Press desk: publish news, tag leaders, parties',
-		'Broadcast to citizens using credits*',
-		'Fundraising toolkit*',
-		'Free support and platform maintenance'
+		{ text: 'Custom page, neat link, QR code', tip: 'Your own page at vote.ke/your-name, plus a QR code to put on posters, banners and flyers.' },
+		{ text: 'Agentic AI chat on profile, campaign', tip: 'Citizens ask questions on your page and get answers drawn from your manifesto, posts and record, day or night.' },
+		{ text: 'Publish manifesto and past delivery', tip: 'List what you promise, then mark each pillar promised, in progress or delivered as you go. Citizens see the score.' },
+		{ text: 'IEBC blue-check verification', tip: 'A platform admin checks your candidacy against IEBC records; a verified page carries the badge citizens look for.' },
+		{ text: 'Private voter register', tip: 'Your own list of supporters and their contacts, visible to your team only, never on the public page.' },
+		{ text: 'Press desk: publish news, tag leaders, parties', tip: 'Publish your own articles and tag other leaders or parties, so your post also appears on their pages.' },
+		{ text: 'Broadcast to citizens using credits*', tip: 'Send SMS, WhatsApp or email to the citizens following you. Each send spends credits from your monthly allowance.' },
+		{ text: 'Fundraising toolkit*', tip: 'Collect donations online from your page. A flat 5% platform fee applies to every confirmed donation.' },
+		{ text: 'Free support and platform maintenance', tip: 'Updates, fixes and support are part of the package. There is no separate maintenance or hosting fee.' }
 	];
 
 	// Network-effect features: only real value once other leaders are on the
@@ -309,10 +318,15 @@
 				</p>
 
 				<ul class="mt-4 flex-1 space-y-2">
-					{#each packages[t].highlights as perk (perk)}
+					{#each packages[t].highlights as perk (perk.text)}
 						<li class="flex items-start gap-2 text-sm">
 							<span class="mt-0.5 text-primary">✓</span>
-							<span>{perk}</span>
+							<!-- Dotted underline at rest, not on hover: it's the only hint that
+							there's an explanation to read, so it has to be visible before the
+							pointer arrives. -->
+							<span use:tooltip={perk.tip} class="cursor-help underline decoration-border decoration-dotted underline-offset-4 transition hover:decoration-primary">
+								{perk.text}
+							</span>
 						</li>
 					{/each}
 				</ul>
@@ -345,10 +359,12 @@
 			</a>
 		</div>
 		<ul class="mt-4 grid gap-2 sm:grid-cols-3">
-			{#each baseFeatures as feature (feature)}
+			{#each baseFeatures as feature (feature.text)}
 				<li class="flex items-start gap-2 text-sm">
 					<span class="mt-0.5 text-primary">✓</span>
-					<span>{feature}</span>
+					<span use:tooltip={feature.tip} class="cursor-help underline decoration-border decoration-dotted underline-offset-4 transition hover:decoration-primary">
+						{feature.text}
+					</span>
 				</li>
 			{/each}
 		</ul>

@@ -1,13 +1,65 @@
 {
-	"$comment": "pricing-v2 (leaders.ke-pricing-v2.csv): one flat rate per tier, every office costs the same. Prices in KES; annual = 10 x monthly (2 months free). Caps: null = unlimited. creditsPerMonth funds metered broadcast sends (SMS = 1 credit, WhatsApp = 5 credits). knowledgeMb caps total Knowledge-tab text (docs/ai-chat-costs.md). analytics/prAiAgent/voterHeatmap/sentimentSuite/newsSourceControl are on/off perks shown as ✓/- on /pricing; perkLabels below is their single-source-of-truth display text, read by /pricing, /dashboard/admin/packages, and $lib/server/packages.ts alike.",
-	"kickstart": { "monthly": 2500, "annual": 25000, "managers": 2, "ambassadors": 10, "subscriptions": 10000, "creditsPerMonth": 500, "knowledgeMb": 10, "analytics": false, "prAiAgent": false, "voterHeatmap": false, "sentimentSuite": false, "newsSourceControl": false },
-	"mobilize": { "monthly": 12500, "annual": 125000, "managers": 5, "ambassadors": 100, "subscriptions": 100000, "creditsPerMonth": 3000, "knowledgeMb": 50, "analytics": true, "prAiAgent": true, "voterHeatmap": false, "sentimentSuite": false, "newsSourceControl": false },
-	"dominate": { "monthly": 50000, "annual": 500000, "managers": null, "ambassadors": null, "subscriptions": null, "creditsPerMonth": 15000, "knowledgeMb": 100, "analytics": true, "prAiAgent": true, "voterHeatmap": true, "sentimentSuite": true, "newsSourceControl": true },
-	"perkLabels": {
-		"analytics": "Analytics: page views, conversions, pledges",
-		"prAiAgent": "PR AI Agent for daily news research & response drafts",
-		"newsSourceControl": "Control your news: filter platforms that can tag you in news to avoid biased reporting",
-		"sentimentSuite": "Sentiment Intelligence Suite: distinguish media coverage that is helping vs hurting your campaign and that of your rivals",
-		"voterHeatmap": "Voter heatmap per ward: see where the numbers can tilt the outcome of the vote."
-	}
+  "$comment": "pricing-v2 (leaders.ke-pricing-v2.csv): one flat rate per tier, every office costs the same. Prices in KES; annual = 10 x monthly (2 months free). Caps: null = unlimited. creditsPerMonth funds metered broadcast sends (SMS = 1 credit, WhatsApp = 5 credits). knowledgeMb caps total Knowledge-tab text (docs/ai-chat-costs.md). analytics/prAiAgent/voterHeatmap/sentimentSuite/newsSourceControl are on/off perks shown as ✓/- on /pricing; perkLabels below is their single-source-of-truth display text, read by /pricing, /dashboard/admin/packages, and $lib/server/packages.ts alike. perkLabels/perkTooltips/capTooltips are the single source of that wording: the pricing table and the admin Packages page both read them.",
+  "kickstart": {
+    "monthly": 2500,
+    "annual": 25000,
+    "managers": 2,
+    "ambassadors": 10,
+    "subscriptions": 10000,
+    "creditsPerMonth": 500,
+    "knowledgeMb": 10,
+    "analytics": false,
+    "prAiAgent": false,
+    "voterHeatmap": false,
+    "sentimentSuite": false,
+    "newsSourceControl": false
+  },
+  "mobilize": {
+    "monthly": 12500,
+    "annual": 125000,
+    "managers": 5,
+    "ambassadors": 100,
+    "subscriptions": 100000,
+    "creditsPerMonth": 3000,
+    "knowledgeMb": 50,
+    "analytics": true,
+    "prAiAgent": true,
+    "voterHeatmap": false,
+    "sentimentSuite": false,
+    "newsSourceControl": false
+  },
+  "dominate": {
+    "monthly": 50000,
+    "annual": 500000,
+    "managers": null,
+    "ambassadors": null,
+    "subscriptions": null,
+    "creditsPerMonth": 15000,
+    "knowledgeMb": 100,
+    "analytics": true,
+    "prAiAgent": true,
+    "voterHeatmap": true,
+    "sentimentSuite": true,
+    "newsSourceControl": true
+  },
+  "perkLabels": {
+    "analytics": "Analytics: page views, conversions, pledges",
+    "prAiAgent": "PR AI Agent for daily news research & response drafts",
+    "newsSourceControl": "Control your news: filter platforms that can tag you in news to avoid biased reporting",
+    "sentimentSuite": "Sentiment Intelligence Suite: distinguish media coverage that is helping vs hurting your campaign and that of your rivals",
+    "voterHeatmap": "Voter heatmap per ward: see where the numbers can tilt the outcome of the vote."
+  },
+  "perkTooltips": {
+    "analytics": "Page views, where visitors came from, and which of them became followers or vote pledges, on your dashboard.",
+    "prAiAgent": "Every article that names you, gathered daily from Google News and Kenyan outlets, with its tone classified and a draft response you can edit and publish.",
+    "newsSourceControl": "Choose which outlets may tag you. An article from a source you exclude never reaches your profile or your press desk.",
+    "sentimentSuite": "Positive, neutral and negative coverage counted over time, for you and for everyone else contesting your seat.",
+    "voterHeatmap": "Registered voters and your support ward by ward, so you can see which wards decide the seat and which are still open."
+  },
+  "capTooltips": {
+    "managers": "Each manager runs your dashboard alongside you: publish news, reply to citizens, edit your manifesto and see every follower. Admin managers can also add or remove team members.",
+    "ambassadors": "Each ambassador recruits followers to your campaign. They cannot see each other's lists but managers can see all followers.",
+    "subscriptions": "Citizens who can follow this page and receive your broadcasts.",
+    "creditsPerMonth": "Spent on broadcasts (SMS, WhatsApp, email) and on AI answers to citizens who ask questions on your page."
+  }
 }
