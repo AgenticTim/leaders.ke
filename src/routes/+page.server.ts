@@ -29,6 +29,7 @@ type Article = {
 	authorInitials: string;
 	authorPhotoUrl: string | null;
 	authorUserId: number | null; // FollowCard target: the author's users.id
+	authorOffice: string | null; // seat shown beside the byline, e.g. "Governor, Nakuru"
 	authorPath: string;
 	href: string;
 	external: boolean;
@@ -69,12 +70,16 @@ export const load: PageServerLoad = async (event) => {
 	// whichever level(s) of geography the visitor picked.
 	const [verifiedLeaderRows, verifiedCampaignRows] = await Promise.all([
 		db
-			.select({ id: leaders.userId, region: positions.region, boundary: positions.boundary })
+			.select({ id: leaders.userId, title: positions.title, region: positions.region, boundary: positions.boundary, status: leaders.status })
 			.from(leaders)
 			.innerJoin(positions, eq(leaders.positionId, positions.id))
-			.where(and(isNull(leaders.deletedAt), isNotNull(leaders.verifiedAt))),
+			.where(and(isNull(leaders.deletedAt), isNotNull(leaders.verifiedAt)))
+			// Newest term first, so the byline's office falls back to a person's
+			// most recent past seat rather than whichever row postgres returned
+			// first (see officeByUserId, which keeps the first at each rank).
+			.orderBy(desc(leaders.startAt)),
 		db
-			.select({ id: campaigns.subjectUserId, region: positions.region, boundary: positions.boundary })
+			.select({ id: campaigns.subjectUserId, title: positions.title, region: positions.region, boundary: positions.boundary })
 			.from(campaigns)
 			.innerJoin(positions, eq(campaigns.positionId, positions.id))
 			.where(and(isNull(campaigns.deletedAt), isNotNull(campaigns.verifiedAt), eq(campaigns.cycleYear, ACTIVE_CYCLE)))
@@ -91,6 +96,24 @@ export const load: PageServerLoad = async (event) => {
 		list.push({ region: r.region, boundary: r.boundary });
 		seatsByUserId.set(r.id, list);
 	}
+
+	// The office shown beside a byline ("Governor, Nakuru"). One person can have
+	// several verified terms (a whole track record) plus a run, so this ranks
+	// them the way the rest of the platform resolves a lead seat rather than
+	// letting row order decide: the seat they hold now, else the one they're
+	// vying for, else their most recent past seat. National seats drop the
+	// region, which is always "Kenya".
+	const SEAT_RANK = { current: 0, run: 1, former: 2 } as const;
+	const officeByUserId = new Map<number, { label: string; rank: number }>();
+	const considerOffice = (id: number | null, title: string, region: string, rank: number) => {
+		if (id === null) return;
+		const existing = officeByUserId.get(id);
+		if (existing && existing.rank <= rank) return;
+		officeByUserId.set(id, { label: region && region !== 'Kenya' ? `${title}, ${region}` : title, rank });
+	};
+	for (const r of verifiedLeaderRows)
+		considerOffice(r.id, r.title, r.region, r.status === 'former' ? SEAT_RANK.former : SEAT_RANK.current);
+	for (const r of verifiedCampaignRows) considerOffice(r.id, r.title, r.region, SEAT_RANK.run);
 	// Whichever levels the visitor picked. Strictly local: a purely national
 	// story (President, presidential candidates) does NOT pass a county filter;
 	// national figures appear only when co-tagged with someone local (the
@@ -249,6 +272,7 @@ export const load: PageServerLoad = async (event) => {
 				authorInitials: initialsOf(authorName),
 				authorPhotoUrl: r.author.photoUrl,
 				authorUserId: r.author.id,
+				authorOffice: officeByUserId.get(r.author.id)?.label ?? null,
 				authorPath: leaderPath(r.author),
 				href: `/news/${r.post.slug}`,
 				external: false,
@@ -274,6 +298,7 @@ export const load: PageServerLoad = async (event) => {
 				authorInitials: initialsOf(authorName),
 				authorPhotoUrl: primary?.photoUrl ?? null,
 				authorUserId: primary?.id ?? null,
+				authorOffice: primary ? (officeByUserId.get(primary.id)?.label ?? null) : null,
 				authorPath: primary?.slug ? leaderPath({ slug: primary.slug }) : '#',
 				href: post.sourceUrl ?? '#',
 				external: true,

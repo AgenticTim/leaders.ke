@@ -162,9 +162,11 @@
 						<span class="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-on-primary">{data.activeTag}</span>
 					{/if}
 					{#if data.activeMention}
-						<span class="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-on-primary">
-							@{data.mentions.find((m) => m.slug === data.activeMention)?.name ?? data.activeMention}
-						</span>
+						<LeaderHoverCard path={`/${data.activeMention}`}>
+							<span class="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-on-primary">
+								@{data.mentions.find((m) => m.slug === data.activeMention)?.name ?? data.activeMention}
+							</span>
+						</LeaderHoverCard>
 					{/if}
 					<a href="/" class="font-semibold text-primary hover:underline">Clear</a>
 				</div>
@@ -173,15 +175,15 @@
 			<div class="divide-y divide-border">
 				{#each data.articles as article (article.kind + article.id)}
 					<article class="py-8 first:pt-0">
-						<div class="flex items-center gap-2.5">
-							{#if article.authorPath !== '#'}
-								<a href={article.authorPath} class="shrink-0">
+						<div class="flex items-center text-sm justify-between">
+							<div class="flex items-center gap-2.5">
+								{#if article.authorPath !== '#'}
+									<a href={article.authorPath} class="shrink-0">
+										<Avatar name={article.authorName} initials={article.authorInitials} photoUrl={article.authorPhotoUrl} sizeClass="size-9" textClass="text-sm" />
+									</a>
+								{:else}
 									<Avatar name={article.authorName} initials={article.authorInitials} photoUrl={article.authorPhotoUrl} sizeClass="size-9" textClass="text-sm" />
-								</a>
-							{:else}
-								<Avatar name={article.authorName} initials={article.authorInitials} photoUrl={article.authorPhotoUrl} sizeClass="size-9" textClass="text-sm" />
-							{/if}
-							<div class="text-sm">
+								{/if}
 								{#if article.authorPath !== '#'}
 									<LeaderHoverCard path={article.authorPath}>
 										<a href={article.authorPath} class="font-semibold text-heading hover:text-primary">{article.authorName}</a>
@@ -189,10 +191,15 @@
 								{:else}
 									<span class="font-semibold text-heading">{article.authorName}</span>
 								{/if}
-								<span class="text-muted"> · {dateFmt.format(new Date(article.createdAt))}</span>
+								{#if article.authorOffice}
+									<span class="text-muted"> · {article.authorOffice}</span>
+								{/if}
+							</div>
+							<div class="">
 								{#if article.kind === 'mention'}
 									<span class="rounded-full border border-border bg-surface-2 px-2 py-0.5 text-xs font-medium text-muted">Mention</span>
 								{/if}
+								<span class="text-muted"> · {dateFmt.format(new Date(article.createdAt))}</span>
 							</div>
 						</div>
 
@@ -346,15 +353,19 @@
 				</div>
 				<div class="mt-2 flex flex-col gap-1.5">
 					{#each sortedMentions as m (m.slug)}
-						<a
-							href={mentionHref(m.slug)}
-							class="flex items-center justify-between rounded-lg px-2 py-1 text-sm transition {data.activeMention === m.slug
-								? 'bg-primary-soft font-semibold text-on-primary'
-								: 'text-heading hover:bg-surface-2'}"
-						>
-							<span>@{m.name}</span>
-							<span class="text-xs opacity-70">{m.n}</span>
-						</a>
+						<!-- Right-aligned card: this list sits in the right-hand column, so a
+						left-hung card would run off the viewport. -->
+						<LeaderHoverCard path={`/${m.slug}`} align="right" wrapperClass="block">
+							<a
+								href={mentionHref(m.slug)}
+								class="flex items-center justify-between rounded-lg px-2 py-1 text-sm transition {data.activeMention === m.slug
+									? 'bg-primary-soft font-semibold text-on-primary'
+									: 'text-heading hover:bg-surface-2'}"
+							>
+								<span>@{m.name}</span>
+								<span class="text-xs opacity-70">{m.n}</span>
+							</a>
+						</LeaderHoverCard>
 					{:else}
 						<p class="text-sm text-muted">No mentions yet.</p>
 					{/each}

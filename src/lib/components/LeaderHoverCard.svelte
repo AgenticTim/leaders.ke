@@ -32,7 +32,17 @@
 	// Wraps a leader-name link: hovering (pointer devices only) pops the large
 	// LeaderCard beneath it, fetched async from /api/leader-card. On touch the
 	// wrapper is inert and a tap just follows the link inside.
-	let { path, children }: { path: string; children: Snippet } = $props();
+	//
+	// `align` picks which edge the (wide) card hangs from: 'left' suits a name in
+	// running text, 'right' keeps it on screen when the trigger sits in a
+	// right-hand column. `wrapperClass` overrides the wrapper's own display for
+	// triggers that aren't inline (e.g. a full-width sidebar row).
+	let {
+		path,
+		align = 'left',
+		wrapperClass = 'inline-block',
+		children
+	}: { path: string; align?: 'left' | 'right'; wrapperClass?: string; children: Snippet } = $props();
 
 	let open = $state(false);
 	let card = $state<HoverCard | null>(null);
@@ -67,14 +77,18 @@
 	}
 </script>
 
-<span class="relative inline-block" role="presentation" onmouseenter={enter} onmouseleave={leave}>
+<span class="relative {wrapperClass}" role="presentation" onmouseenter={enter} onmouseleave={leave}>
 	{@render children()}
 	{#if open && card}
-		<!-- Below the name, left-aligned. Sized to match a /compare grid column
-		(~38rem on a max-w-7xl two-column grid) so the large card lays out
-		identically there and here; the card's own stretched link makes it
-		clickable. -->
-		<div class="absolute top-full left-0 z-30 mt-1 w-[38rem] max-w-[85vw] rounded-2xl shadow-xl">
+		<!-- Below the trigger, hanging from whichever edge `align` names. Sized to
+		match a /compare grid column (~38rem on a max-w-7xl two-column grid) so the
+		large card lays out identically there and here; the card's own stretched
+		link makes it clickable. -->
+		<div
+			class="absolute top-full z-30 mt-1 w-[38rem] max-w-[85vw] rounded-2xl shadow-xl {align === 'right'
+				? 'right-0'
+				: 'left-0'}"
+		>
 			<LeaderCard
 				large
 				path={card.path}
