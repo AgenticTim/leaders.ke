@@ -7,6 +7,7 @@ import { readFlash } from '$lib/server/flash';
 import { env } from '$env/dynamic/private';
 import { runSubscriptionSweep } from '$lib/server/subscriptionSweep';
 import { ingestNews } from '$lib/server/newsIngest';
+import { sendDailyDigests } from '$lib/server/digest';
 import { sweepBroadcasts } from '$lib/server/broadcast';
 import { getPlatformSettings } from '$lib/server/settings';
 
@@ -43,10 +44,21 @@ if (!building) {
 	// for a once-a-day crawl.
 	const ingestEnabled = env.NEWS_INGEST === '1' || (process.env.NODE_ENV === 'production' && env.NEWS_INGEST !== '0');
 	if (ingestEnabled) {
+		// The daily brief goes out on the back of the crawl, not on its own timer:
+		// it reports what that crawl just found, so running them apart would email
+		// yesterday's news. A digest failure must never look like an ingest failure,
+		// hence its own catch.
 		const run = () =>
 			ingestNews()
-				.then(({ people, inserted, failed, skipped }) => {
-					if (!skipped) console.log(`[news] ingested ${inserted} mentions across ${people} leaders (${failed} feeds failed)`);
+				.then(async ({ people, inserted, failed, skipped }) => {
+					if (skipped) return;
+					console.log(`[news] ingested ${inserted} mentions across ${people} leaders (${failed} feeds failed)`);
+					try {
+						const { people: briefed, recipients } = await sendDailyDigests();
+						if (briefed) console.log(`[digest] daily brief for ${briefed} leaders to ${recipients} recipients`);
+					} catch (err) {
+						console.error('[digest] daily brief failed', err);
+					}
 				})
 				.catch((err) => console.error('[news] ingestion failed', err));
 
