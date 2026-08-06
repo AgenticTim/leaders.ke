@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { posts, tags, users, leaders, campaigns, positions } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, getDomainUser, leaderPath } from '$lib/server/leader';
@@ -166,6 +166,15 @@ export const load: PageServerLoad = async (event) => {
 	// same `tags` table, but with a null creatorId (the aggregation itself, not a
 	// team member's own @mention), see scripts/lib/seed-news.ts for the dev-seeded
 	// version of what a real scraping pipeline will produce.
+	// With a geo filter active the window itself is region-scoped in SQL: a
+	// low-coverage county gets its newest local articles however old, instead of
+	// whatever survives of the site-wide window (which a burst of national
+	// coverage can flush a quiet county out of entirely). Mentions all carry
+	// regions (stored at ingest, backfilled once), so the jsonb containment
+	// check is authoritative here; matchesGeo below stays for team posts.
+	const geoCondition = geoActive
+		? or(...[...acceptableRegions].map((key) => sql`${posts.regions} @> ${JSON.stringify([key])}::jsonb`))
+		: undefined;
 	const mentionPostFilter = and(
 		isNull(posts.creatorId),
 		eq(posts.medium, 'web'),
@@ -174,7 +183,8 @@ export const load: PageServerLoad = async (event) => {
 		isNull(posts.deletedAt),
 		isNull(tags.deletedAt),
 		isNull(tags.creatorId),
-		inArray(tags.subjectUserId, publicUserIds)
+		inArray(tags.subjectUserId, publicUserIds),
+		geoCondition
 	);
 	// Bounded hard: daily ingestion grows this table forever, and this page only
 	// ever shows a page-size slice. The mentions sidebar counts cover the 500

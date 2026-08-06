@@ -124,7 +124,7 @@
 
 <div class="border-b border-border bg-surface-2">
 	<div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
-		<h1 class="text-4xl font-bold tracking-tight text-heading">What Kenya's leaders are doing</h1>
+		<h1 class="text-4xl font-bold tracking-tight text-heading">What our leaders are up to</h1>
 		<p class="mt-3 text-lg leading-relaxed text-muted">
 			Updates straight from leaders and candidates, plus their mentions in the wider press, fresh every day.
 		</p>
