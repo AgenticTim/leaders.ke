@@ -120,7 +120,7 @@ async function toneLine(subjectUserId: number): Promise<string | null> {
 	const early = buckets.slice(0, half).reduce((sum, v) => sum + v, 0);
 	const late = buckets.slice(half).reduce((sum, v) => sum + v, 0);
 	const arrow = late > early ? '\u2197' : late < early ? '\u2198' : '\u2192';
-	return `${spark} ${arrow} ${share}% negative this month`;
+	return `${share}% negative this month. ${spark} ${arrow}`;
 }
 
 /**
@@ -157,7 +157,7 @@ export async function getLeaderBrief(slug: string, origin: string): Promise<Lead
 
 	// WhatsApp markup: *bold*, _italic_, bare URLs auto-link. No headings or
 	// link syntax, so the trailing URL is written plainly.
-	const lines = [`*${name}* · _Latest 5 stories_${tone ? `  ${tone}` : ''}`, ''];
+	const lines = [`*${name}* Latest News ·${tone ? `  ${tone}` : ''}`, ''];
 	// The model is told to write plain prose, but it reads article text that can
 	// contain URLs, so its output is stripped too: the only link in the whole
 	// message must be ours. A placeholder holds the TL;DR's place until the rest
