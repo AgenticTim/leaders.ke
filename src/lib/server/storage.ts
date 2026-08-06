@@ -1,12 +1,9 @@
-// Local-disk file storage for the campaign-application Documentation uploads
-// (photo, ID front/back, IEBC certificate). Writes under STORAGE_LOCAL_DIR
-// (default .uploads, kept outside src/ and gitignored) and returns a URL served
-// by src/routes/uploads/[...path]/+server.ts. Swap for real S3 presigned uploads
-// later, STORAGE_ENDPOINT/BUCKET/keys are already in .env for that, just unused so far.
+// File storage for uploads (campaign documentation, party logos, Knowledge-tab
+// sources). Objects go to the S3-compatible bucket when it's configured and to
+// local disk when it isn't, which objectStore.ts decides; either way the stored
+// URL is `/uploads/...`, served back by the routes under src/routes/uploads.
 import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
-import path from 'node:path';
-import { env } from '$env/dynamic/private';
+import { putObject } from '$lib/server/objectStore';
 import { extractText, getDocumentProxy } from 'unpdf';
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB, generous for a phone photo/scan or a short PDF
@@ -43,14 +40,9 @@ export async function saveLeaderDocument(subjectUserId: number, kind: UploadKind
 
 	const ext = EXT_BY_MIME[file.type] ?? 'bin';
 	const filename = `${randomUUID()}.${ext}`;
-	const localDir = env.STORAGE_LOCAL_DIR || '.uploads';
-	const dir = path.join(process.cwd(), localDir, 'leaders', String(subjectUserId));
-	await mkdir(dir, { recursive: true });
-
-	const buffer = Buffer.from(await file.arrayBuffer());
-	await writeFile(path.join(dir, filename), buffer);
-
-	return `/uploads/leaders/${subjectUserId}/${filename}`;
+	const key = `leaders/${subjectUserId}/${filename}`;
+	await putObject(key, Buffer.from(await file.arrayBuffer()), file.type);
+	return `/uploads/${key}`;
 }
 
 const PARTY_LOGO_MIME: Record<string, string> = {
@@ -69,13 +61,9 @@ export async function savePartyLogo(partyId: number, file: File): Promise<string
 	if (!ext) throw new Error('The logo must be a PNG, JPEG, WebP, or SVG image.');
 
 	const filename = `${randomUUID()}.${ext}`;
-	const localDir = env.STORAGE_LOCAL_DIR || '.uploads';
-	const dir = path.join(process.cwd(), localDir, 'parties', String(partyId));
-	await mkdir(dir, { recursive: true });
-
-	const buffer = Buffer.from(await file.arrayBuffer());
-	await writeFile(path.join(dir, filename), buffer);
-	return `/uploads/parties/${partyId}/${filename}`;
+	const key = `parties/${partyId}/${filename}`;
+	await putObject(key, Buffer.from(await file.arrayBuffer()), file.type);
+	return `/uploads/${key}`;
 }
 
 const KNOWLEDGE_MIME: Record<string, string> = {
@@ -103,12 +91,9 @@ export async function saveKnowledgeDocument(
 	}
 
 	const filename = `${randomUUID()}.${ext}`;
-	const localDir = env.STORAGE_LOCAL_DIR || '.uploads';
-	const dir = path.join(process.cwd(), localDir, 'knowledge', String(subjectUserId));
-	await mkdir(dir, { recursive: true });
-
+	const key = `knowledge/${subjectUserId}/${filename}`;
 	const buffer = Buffer.from(await file.arrayBuffer());
-	await writeFile(path.join(dir, filename), buffer);
+	await putObject(key, buffer, file.type);
 
 	let extractedText: string | null;
 	if (ext === 'pdf') {
@@ -124,5 +109,5 @@ export async function saveKnowledgeDocument(
 		extractedText = buffer.toString('utf-8');
 	}
 
-	return { fileUrl: `/uploads/knowledge/${subjectUserId}/${filename}`, extractedText };
+	return { fileUrl: `/uploads/${key}`, extractedText };
 }

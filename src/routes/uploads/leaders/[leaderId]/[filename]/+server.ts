@@ -5,12 +5,11 @@
 // what the public /[leader] page displays, so it's servable to anyone (no auth).
 import { error } from '@sveltejs/kit';
 import { and, eq, isNull } from 'drizzle-orm';
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import { campaigns, leaders, managers, profileClaims, users } from '$lib/server/db/schema';
 import { requireDashboardUser } from '$lib/server/dashboard';
+import { getObject } from '$lib/server/objectStore';
 import type { RequestHandler } from './$types';
 
 const EXT_CONTENT_TYPE: Record<string, string> = {
@@ -70,15 +69,10 @@ export const GET: RequestHandler = async (event) => {
 		}
 	}
 
-	const localDir = env.STORAGE_LOCAL_DIR || '.uploads';
-	const filePath = path.join(process.cwd(), localDir, 'leaders', String(subjectUserId), filename);
-
-	let buffer: Buffer;
-	try {
-		buffer = await readFile(filePath);
-	} catch {
-		error(404, 'Not found');
-	}
+	// Bucket first, disk second (see objectStore): uploads written before
+	// the bucket was configured still resolve.
+	const buffer = await getObject(`leaders/${subjectUserId}/${filename}`);
+	if (!buffer) error(404, 'Not found');
 
 	const ext = filename.split('.').pop()?.toLowerCase() ?? '';
 	return new Response(new Uint8Array(buffer), {

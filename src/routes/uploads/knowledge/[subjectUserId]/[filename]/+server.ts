@@ -4,12 +4,11 @@
 // platform admin may fetch one.
 import { error } from '@sveltejs/kit';
 import { and, eq, isNull } from 'drizzle-orm';
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import { managers } from '$lib/server/db/schema';
 import { requireDashboardUser } from '$lib/server/dashboard';
+import { getObject } from '$lib/server/objectStore';
 import type { RequestHandler } from './$types';
 
 const EXT_CONTENT_TYPE: Record<string, string> = {
@@ -34,15 +33,10 @@ export const GET: RequestHandler = async (event) => {
 		if (!membership) error(403, 'Not authorized to view this document.');
 	}
 
-	const localDir = env.STORAGE_LOCAL_DIR || '.uploads';
-	const filePath = path.join(process.cwd(), localDir, 'knowledge', String(subjectUserId), filename);
-
-	let buffer: Buffer;
-	try {
-		buffer = await readFile(filePath);
-	} catch {
-		error(404, 'Not found');
-	}
+	// Bucket first, disk second (see objectStore): uploads written before
+	// the bucket was configured still resolve.
+	const buffer = await getObject(`knowledge/${subjectUserId}/${filename}`);
+	if (!buffer) error(404, 'Not found');
 
 	const ext = filename.split('.').pop()?.toLowerCase() ?? '';
 	return new Response(new Uint8Array(buffer), {
