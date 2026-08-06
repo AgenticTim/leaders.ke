@@ -261,12 +261,14 @@ export const load: PageServerLoad = async (event) => {
 	const tagOptions = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).map(([tag, n]) => ({ tag, n }));
 	const mentionOptions = [...mentionCounts.entries()].sort((a, b) => b[1].n - a[1].n).map(([slug, v]) => ({ slug, name: v.name, n: v.n }));
 
-	// Coverage tone over the last 30 days, per leader in the mentions sidebar:
+	// Coverage tone over the last 90 days, per leader in the mentions sidebar:
 	// one grouped query for everyone on the list rather than one per name, since
 	// the sidebar can carry a hundred entries. Each row is a day's positive and
-	// negative counts; the component plots their difference (net tone), which is
-	// the only series that moves, two thirds of all coverage being neutral.
-	const TONE_DAYS = 30;
+	// negative counts; the component buckets them into weeks and plots their
+	// difference (net tone), the only series that moves when two thirds of all
+	// coverage is neutral. Ninety days rather than thirty because most leaders
+	// don't clear the component's minimum within a single month.
+	const TONE_DAYS = 90;
 	const toneRows = mentionOptions.length
 		? await db
 				.select({
@@ -284,7 +286,7 @@ export const load: PageServerLoad = async (event) => {
 						isNull(tags.deletedAt),
 						isNull(posts.deletedAt),
 						isNotNull(posts.sentiment),
-						sql`${posts.createdAt} > now() - interval '30 days'`
+						sql`${posts.createdAt} > now() - interval '90 days'`
 					)
 				)
 				.groupBy(users.slug, sql`date(${posts.createdAt})`)

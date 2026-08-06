@@ -188,16 +188,17 @@ export type LeaderHoverCardData = {
 	campaignPositionTitle: string | null;
 	campaignRegion: string | null;
 	campaignStatus: 'candidate' | 'aspirant' | null;
-	/** 30-day net coverage tone (positive minus negative per day), or null when
+	/** 90-day net coverage tone (positive minus negative per day), or null when
 	 * there's too little classified coverage to draw a trend. */
 	tone: number[] | null;
 };
 
 
-/** 30-day net coverage tone for one person, one entry per day, oldest first.
+/** 90-day net coverage tone for one person, one entry per day, oldest first.
+ * The component buckets these into weeks; days are what it needs to do that.
  * Null below a handful of classified articles: a two-point "trend" would look
  * confident about nothing. Same series the news sidebar plots. */
-const TONE_DAYS = 30;
+const TONE_DAYS = 90;
 const MIN_TONE_ARTICLES = 5;
 async function coverageTone(subjectUserId: number): Promise<number[] | null> {
 	const rows = await db
@@ -214,7 +215,7 @@ async function coverageTone(subjectUserId: number): Promise<number[] | null> {
 				isNull(tags.deletedAt),
 				isNull(posts.deletedAt),
 				isNotNull(posts.sentiment),
-				sql`${posts.createdAt} > now() - interval '30 days'`
+				sql`${posts.createdAt} > now() - interval '90 days'`
 			)
 		)
 		.groupBy(sql`date(${posts.createdAt})`);
