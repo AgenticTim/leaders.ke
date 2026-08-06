@@ -2,6 +2,7 @@
 	import { tooltip } from '$lib/effects';
 	import { goto } from '$app/navigation';
 	import Avatar from '$lib/components/Avatar.svelte';
+	import CopyBriefButton from '$lib/components/CopyBriefButton.svelte';
 	import VerifiedIcon from '$lib/components/svgs/VerifiedIcon.svelte';
 	import { compareSelection, clearCompareSelection } from '$lib/stores/compare.svelte';
 	import { plainText } from '$lib/utils/richtext';
@@ -29,6 +30,9 @@
 		campaignStatus?: string | null;
 		/** Header-card variant (e.g. /compare): card-height photo, bio in the right column. */
 		large?: boolean;
+		/** Large-only: this person's slug, which turns on the WhatsApp brief button
+		 * at the bottom of the card. Omitted where a brief makes no sense. */
+		briefSlug?: string | null;
 	};
 
 	let {
@@ -47,7 +51,8 @@
 		campaignPositionTitle = null,
 		campaignRegion = null,
 		campaignStatus = null,
-		large = false
+		large = false,
+		briefSlug = null
 	}: Props = $props();
 
 	const fmt = new Intl.NumberFormat('en-KE');
@@ -164,4 +169,10 @@ whole card is clickable, while the party name stays its own separate link on top
 			{/if}
 		</div>
 	</div>
+	{#if large && briefSlug}
+		<!-- Bottom-left of the card: share this person's latest coverage. -->
+		<div class="mt-3 flex">
+			<CopyBriefButton slug={briefSlug} {name} />
+		</div>
+	{/if}
 </div>

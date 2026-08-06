@@ -2,9 +2,11 @@
 	import Avatar from '$lib/components/Avatar.svelte';
 	import FollowCard from '$lib/components/FollowCard.svelte';
 	import LeaderHoverCard from '$lib/components/LeaderHoverCard.svelte';
+	import CopyBriefButton from '$lib/components/CopyBriefButton.svelte';
 	import QuickSearch from '$lib/components/QuickSearch.svelte';
 	import Pagination from '$lib/components/admin/Pagination.svelte';
 	import { goto } from '$app/navigation';
+	import { page as pageStore } from '$app/state';
 	import { counties, findConstituencyBySlug, findCountyBySlug, findWardBySlug, geoSlug } from '$lib/data/geo';
 	import type { PageProps } from './$types';
 
@@ -90,6 +92,33 @@
 		return [w?.name, con?.name, c ? `${c.name} County` : undefined].filter(Boolean).join(', ');
 	});
 
+	// Page identity and link preview. A ?mention= view is about one person, so it
+	// gets their name, seat and photo; everything else falls back to the site's
+	// own title and wordmark card. Absolute URLs throughout: Open Graph consumers
+	// (WhatsApp, Slack, X) don't resolve relative ones.
+	const canonicalUrl = $derived(
+		data.mentionSubject ? `${pageStore.url.origin}/?mention=${data.activeMention}` : pageStore.url.origin
+	);
+	const pageTitle = $derived(
+		data.mentionSubject
+			? `${data.mentionSubject.name} in the news · vote.ke`
+			: "vote.ke · Kenya's leaders, tracked daily"
+	);
+	const pageDescription = $derived.by(() => {
+		if (!data.mentionSubject) {
+			return 'Daily news and press mentions for every verified Kenyan leader and 2027 candidate. Filter by county, constituency, ward, or topic, then practise your ballot.';
+		}
+		const who = data.mentionSubject.office
+			? `${data.mentionSubject.name}, ${data.mentionSubject.office}`
+			: data.mentionSubject.name;
+		return `The latest news and press mentions about ${who}, tracked daily on vote.ke.`;
+	});
+	const ogImage = $derived(
+		data.mentionSubject?.photoUrl
+			? new URL(data.mentionSubject.photoUrl, pageStore.url.origin).href
+			: `${pageStore.url.origin}/og-default.png`
+	);
+
 	// Sidebar mentions ordering: by mention count (default, most first) or by
 	// name, either direction. A pure client-side reorder of the loaded list;
 	// clicking the active sort flips its direction.
@@ -115,11 +144,23 @@
 </script>
 
 <svelte:head>
-	<title>vote.ke · Kenya's leaders, tracked daily</title>
-	<meta
-		name="description"
-		content="Daily news and press mentions for every verified Kenyan leader and 2027 candidate. Filter by county, constituency, ward, or topic, then practise your ballot."
-	/>
+	<title>{pageTitle}</title>
+	<meta name="description" content={pageDescription} />
+	<link rel="canonical" href={canonicalUrl} />
+	<!-- Link preview (Open Graph + Twitter): every shared WhatsApp brief ends with
+	a ?mention= URL, so this page has to unfurl as that person's news, not as the
+	generic homepage. -->
+	<meta property="og:type" content={data.mentionSubject ? 'profile' : 'website'} />
+	<meta property="og:site_name" content="vote.ke" />
+	<meta property="og:title" content={pageTitle} />
+	<meta property="og:description" content={pageDescription} />
+	<meta property="og:url" content={canonicalUrl} />
+	<meta property="og:image" content={ogImage} />
+	<meta property="og:image:alt" content={data.mentionSubject?.name ?? 'vote.ke'} />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content={pageTitle} />
+	<meta name="twitter:description" content={pageDescription} />
+	<meta name="twitter:image" content={ogImage} />
 </svelte:head>
 
 <div class="border-b border-border bg-surface-2">
@@ -162,11 +203,13 @@
 						<span class="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-on-primary">{data.activeTag}</span>
 					{/if}
 					{#if data.activeMention}
+						{@const mentionName = data.mentions.find((m) => m.slug === data.activeMention)?.name ?? data.activeMention}
 						<LeaderHoverCard path={`/${data.activeMention}`}>
 							<span class="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-on-primary">
-								@{data.mentions.find((m) => m.slug === data.activeMention)?.name ?? data.activeMention}
+								@{mentionName}
 							</span>
 						</LeaderHoverCard>
+						<CopyBriefButton slug={data.activeMention} name={mentionName} />
 					{/if}
 					<a href="/" class="font-semibold text-primary hover:underline">Clear</a>
 				</div>
@@ -188,6 +231,7 @@
 									<LeaderHoverCard path={article.authorPath}>
 										<a href={article.authorPath} class="font-semibold text-heading hover:text-primary">{article.authorName}</a>
 									</LeaderHoverCard>
+									<CopyBriefButton slug={article.authorPath.slice(1)} name={article.authorName} />
 								{:else}
 									<span class="font-semibold text-heading">{article.authorName}</span>
 								{/if}
@@ -354,17 +398,21 @@
 				<div class="mt-2 flex flex-col gap-1.5">
 					{#each sortedMentions as m (m.slug)}
 						<!-- Right-aligned card: this list sits in the right-hand column, so a
-						left-hung card would run off the viewport. -->
+						left-hung card would run off the viewport. The copy button only appears
+						on row hover (`group`): a green icon on all ~100 rows would be noise. -->
 						<LeaderHoverCard path={`/${m.slug}`} align="right" wrapperClass="block">
-							<a
-								href={mentionHref(m.slug)}
-								class="flex items-center justify-between rounded-lg px-2 py-1 text-sm transition {data.activeMention === m.slug
-									? 'bg-primary-soft font-semibold text-on-primary'
-									: 'text-heading hover:bg-surface-2'}"
-							>
-								<span>@{m.name}</span>
-								<span class="text-xs opacity-70">{m.n}</span>
-							</a>
+							<span class="group flex items-center gap-1">
+								<a
+									href={mentionHref(m.slug)}
+									class="flex min-w-0 flex-1 items-center justify-between rounded-lg px-2 py-1 text-sm transition {data.activeMention === m.slug
+										? 'bg-primary-soft font-semibold text-on-primary'
+										: 'text-heading hover:bg-surface-2'}"
+								>
+									<span class="truncate">@{m.name}</span>
+									<span class="ml-2 shrink-0 text-xs opacity-70">{m.n}</span>
+								</a>
+								<CopyBriefButton slug={m.slug} name={m.name} class="opacity-0 transition group-hover:opacity-100 focus:opacity-100" />
+							</span>
 						</LeaderHoverCard>
 					{:else}
 						<p class="text-sm text-muted">No mentions yet.</p>

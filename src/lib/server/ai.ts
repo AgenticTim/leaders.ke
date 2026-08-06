@@ -326,3 +326,42 @@ export async function classifyMentionSentimentBatch(items: { leaderName: string;
 		return heuristicResults();
 	}
 }
+
+/** A ~300-character plain-language digest of a leader's latest coverage, the
+ * TL;DR line of the shareable WhatsApp brief (see $lib/server/leaderBrief.ts).
+ * Haiku for speed and cost: the brief is generated on a copy click, so latency
+ * is felt directly, and the output is short.
+ *
+ * Returns null rather than throwing on any failure (no API key, an error, an
+ * empty reply). The brief is a template that the TL;DR only decorates, so a
+ * model problem must degrade the message, never block the copy. */
+export async function summarizeLeaderNews(
+	leaderName: string,
+	items: { title: string; body: string }[]
+): Promise<string | null> {
+	if (!env.ANTHROPIC_API_KEY || items.length === 0) return null;
+	try {
+		const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+		const prompt = items
+			.map((it, i) => `${i + 1}. ${it.title}\n${it.body.slice(0, 500)}`)
+			.join('\n\n');
+		const response = await client.messages.create({
+			model: 'claude-haiku-4-5-20251001',
+			max_tokens: 200,
+			system:
+				`You write a one-paragraph digest of recent Kenyan news coverage about ${leaderName}, for readers sharing it on WhatsApp. ` +
+				'Summarize only what the articles below actually report, in at most 300 characters of plain prose. ' +
+				'No preamble, no bullet points, no markdown, no headline repetition, no speculation about motives, no opinion on whether the coverage is fair. ' +
+				'If the articles disagree or one is a fact-check, say so plainly. Reply with the paragraph only.',
+			messages: [{ role: 'user', content: prompt }]
+		});
+		const text = response.content.find((b) => b.type === 'text')?.text?.trim() ?? '';
+		if (!text) return null;
+		// The model usually honors the 300-character brief; this is the guarantee,
+		// since the whole message has a WhatsApp length budget to stay inside.
+		return text.length > 300 ? `${text.slice(0, 297).trimEnd()}…` : text;
+	} catch (err) {
+		console.error('[brief] TL;DR generation failed, sending the brief without it:', err instanceof Error ? err.message : err);
+		return null;
+	}
+}

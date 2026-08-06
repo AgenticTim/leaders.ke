@@ -9,7 +9,7 @@ import { db } from '$lib/server/db';
 import { rateEvents } from '$lib/server/db/schema';
 import type { RequestEvent } from '@sveltejs/kit';
 
-export type RateAction = 'follow' | 'pledge' | 'endorse' | 'donate' | 'ask';
+export type RateAction = 'follow' | 'pledge' | 'endorse' | 'donate' | 'ask' | 'brief';
 
 // Per-action window and max accepted submissions per bucket within it. Deliberately
 // generous: these stop scripted floods, not a person clicking twice.
@@ -19,7 +19,11 @@ const LIMITS: Record<RateAction, { windowMs: number; max: number }> = {
 	endorse: { windowMs: 60_000, max: 5 },
 	donate: { windowMs: 60_000, max: 10 },
 	// Team-routed guest questions (free AI answers exhausted), see aiRateLimit.ts.
-	ask: { windowMs: 60_000, max: 5 }
+	ask: { windowMs: 60_000, max: 5 },
+	// WhatsApp brief (leaderBrief.ts). Public and it can trigger a Haiku call on a
+	// cache miss, so this is what stops slug enumeration forcing a generation for
+	// every leader on the register. Generous for a person sharing a few briefs.
+	brief: { windowMs: 60_000, max: 20 }
 };
 
 /** The caller's IP as a rate-limit bucket, or a stable fallback when unavailable. */

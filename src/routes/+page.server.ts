@@ -139,6 +139,7 @@ export const load: PageServerLoad = async (event) => {
 	if (publicUserIds.length === 0) {
 		return {
 			articles: [],
+			mentionSubject: null,
 			total: 0,
 			page,
 			pageSize,
@@ -327,8 +328,28 @@ export const load: PageServerLoad = async (event) => {
 	const total = filtered.length;
 	const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
+	// Who a ?mention= view is about, for the page title and the link-preview
+	// (Open Graph) tags. This URL is the one every shared WhatsApp brief ends
+	// with, so it has to unfurl as that person's news rather than the generic
+	// homepage. Only queried when the filter is actually on.
+	let mentionSubject: { name: string; office: string | null; photoUrl: string | null } | null = null;
+	if (activeMention) {
+		const [row] = await db
+			.select({ id: users.id, firstName: users.firstName, otherNames: users.otherNames, photoUrl: users.photoUrl })
+			.from(users)
+			.where(and(eq(users.slug, activeMention), isNull(users.deletedAt)));
+		if (row) {
+			mentionSubject = {
+				name: fullName(row),
+				office: officeByUserId.get(row.id)?.label ?? null,
+				photoUrl: row.photoUrl
+			};
+		}
+	}
+
 	return {
 		articles: paged,
+		mentionSubject,
 		total,
 		page,
 		pageSize,
