@@ -78,7 +78,10 @@ export const GET: RequestHandler = async (event) => {
 	return new Response(new Uint8Array(buffer), {
 		headers: {
 			'content-type': EXT_CONTENT_TYPE[ext] ?? 'application/octet-stream',
-			'cache-control': isPublicPhoto ? 'public, max-age=3600' : 'private, no-store'
+			// Uploads are UUID-named and never rewritten in place (a replacement gets
+			// its own filename and the DB points at that), so the bytes behind a URL
+			// are immutable and a browser never needs to revalidate.
+			'cache-control': isPublicPhoto ? 'public, max-age=31536000, immutable' : 'private, no-store'
 		}
 	});
 };
