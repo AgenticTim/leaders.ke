@@ -9,7 +9,9 @@
 // real daily quota instead, tracked against their own account rather than a
 // spoofable cookie. Both limits are admin-editable
 // (platformSettings.guestAskLifetimeLimit / userAskDailyLimit, Settings → AI
-// Chat), not hardcoded. Platform admins are exempt from both.
+// Chat), not hardcoded. Platform admins are exempt from both, and the
+// `platformAdmin` flag on the result carries that exemption to the caller's own
+// gates (the profile wallet check).
 import { and, count, eq, gte, isNotNull } from 'drizzle-orm';
 import type { RequestEvent } from '@sveltejs/kit';
 import { getOrMintAnonId } from '$lib/server/anonId';
@@ -26,7 +28,12 @@ function startOfToday(): Date {
 
 // `teamOnly` = the question may proceed but must skip the AI and go straight
 // to the team (guest free answers exhausted).
-type RateLimitResult = { ok: true; teamOnly?: boolean } | { ok: false; error: string };
+// `platformAdmin` = this asker runs the platform, so callers skip their own
+// paid gates too (see the profile wallet gate in [leader]/+page.server.ts).
+// Surfaced from here so the admin lookup happens once per ask, not per gate.
+type RateLimitResult =
+	| { ok: true; teamOnly?: boolean; platformAdmin?: boolean }
+	| { ok: false; error: string };
 
 /** Signed-in path: a real daily quota against the citizen's own domain user id.
  * Can't be dodged by clearing cookies or switching devices the way the
@@ -97,7 +104,7 @@ export async function enforceAskRateLimit(event: RequestEvent, domainUserId: num
 	// against a cap for them.
 	if (domainUserId && (await isPlatformAdmin(domainUserId))) {
 		await db.insert(aiAskEvents).values({ userId: domainUserId });
-		return { ok: true };
+		return { ok: true, platformAdmin: true };
 	}
 
 	const settings = await getPlatformSettings();

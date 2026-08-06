@@ -251,11 +251,17 @@ export const actions: Actions = {
 		// a wallet pays to query is one per person, not per run. With no credit the
 		// question is still recorded and routed to the team. A human replies later
 		// rather than the citizen hitting a dead end.
+		//
+		// Platform admins pass this gate on any profile, funded or not (the
+		// platform absorbs the call, and nothing is deducted below). Without the
+		// exemption an admin can't exercise profile chat at all on the profiles
+		// that need checking most: the unfunded ones.
 		const [wallet] = await db
 			.select()
 			.from(wallets)
 			.where(eq(wallets.subjectUserId, lead.subjectId));
-		if (!wallet || wallet.balance < settings.aiChatCostCredits) {
+		const platformAdmin = !!rateLimit.platformAdmin;
+		if (!platformAdmin && (!wallet || wallet.balance < settings.aiChatCostCredits)) {
 			await recordQuestion(conversationId, viewer?.id ?? null, question, true);
 			return { asked: true, answered: false, question };
 		}
@@ -326,8 +332,9 @@ export const actions: Actions = {
 
 		await recordAiAnswer(conversationId, answer);
 
-		// Heuristic answers never call Anthropic, so nothing to charge for.
-		if (source === 'ai') {
+		// Heuristic answers never call Anthropic, so nothing to charge for, and an
+		// admin's ask is on the platform (it may not even have a wallet to bill).
+		if (source === 'ai' && !platformAdmin && wallet) {
 			const newBalance = wallet.balance - settings.aiChatCostCredits;
 			await db.transaction(async (tx) => {
 				await tx
