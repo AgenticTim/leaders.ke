@@ -209,7 +209,8 @@
 								@{mentionName}
 							</span>
 						</LeaderHoverCard>
-						<CopyBriefButton slug={data.activeMention} name={mentionName} />
+						<CopyBriefButton slug={data.activeMention} name={mentionName} action="copy" />
+						<CopyBriefButton slug={data.activeMention} name={mentionName} action="share" />
 					{/if}
 					<a href="/" class="font-semibold text-primary hover:underline">Clear</a>
 				</div>
@@ -219,7 +220,9 @@
 				{#each data.articles as article (article.kind + article.id)}
 					<article class="py-8 first:pt-0">
 						<div class="flex items-center text-sm justify-between">
-							<div class="flex items-center gap-2.5">
+							<!-- `group` so the brief buttons after the office line only appear
+							while the byline is hovered, keeping the feed uncluttered. -->
+							<div class="group flex items-center gap-2.5">
 								{#if article.authorPath !== '#'}
 									<a href={article.authorPath} class="shrink-0">
 										<Avatar name={article.authorName} initials={article.authorInitials} photoUrl={article.authorPhotoUrl} sizeClass="size-9" textClass="text-sm" />
@@ -231,12 +234,18 @@
 									<LeaderHoverCard path={article.authorPath}>
 										<a href={article.authorPath} class="font-semibold text-heading hover:text-primary">{article.authorName}</a>
 									</LeaderHoverCard>
-									<CopyBriefButton slug={article.authorPath.slice(1)} name={article.authorName} />
 								{:else}
 									<span class="font-semibold text-heading">{article.authorName}</span>
 								{/if}
 								{#if article.authorOffice}
 									<span class="text-muted"> · {article.authorOffice}</span>
+								{/if}
+								{#if article.authorPath !== '#'}
+									{@const briefSlug = article.authorPath.slice(1)}
+									<span class="flex items-center gap-1 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
+										<CopyBriefButton slug={briefSlug} name={article.authorName} action="copy" />
+										<CopyBriefButton slug={briefSlug} name={article.authorName} action="share" />
+									</span>
 								{/if}
 							</div>
 							<div class="">
@@ -411,7 +420,8 @@
 									<span class="truncate">@{m.name}</span>
 									<span class="ml-2 shrink-0 text-xs opacity-70">{m.n}</span>
 								</a>
-								<CopyBriefButton slug={m.slug} name={m.name} class="opacity-0 transition group-hover:opacity-100 focus:opacity-100" />
+								<CopyBriefButton slug={m.slug} name={m.name} action="copy" class="opacity-0 transition group-hover:opacity-100 focus:opacity-100" />
+								<CopyBriefButton slug={m.slug} name={m.name} action="share" class="opacity-0 transition group-hover:opacity-100 focus:opacity-100" />
 							</span>
 						</LeaderHoverCard>
 					{:else}

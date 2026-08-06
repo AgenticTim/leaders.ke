@@ -30,9 +30,6 @@
 		campaignStatus?: string | null;
 		/** Header-card variant (e.g. /compare): card-height photo, bio in the right column. */
 		large?: boolean;
-		/** Large-only: this person's slug, which turns on the WhatsApp brief button
-		 * at the bottom of the card. Omitted where a brief makes no sense. */
-		briefSlug?: string | null;
 	};
 
 	let {
@@ -52,7 +49,6 @@
 		campaignRegion = null,
 		campaignStatus = null,
 		large = false,
-		briefSlug = null
 	}: Props = $props();
 
 	const fmt = new Intl.NumberFormat('en-KE');
@@ -135,12 +131,20 @@ whole card is clickable, while the party name stays its own separate link on top
 		<!-- In the large variant the photo spans the card's height. -->
 		<Avatar {name} {initials} {photoUrl} sizeClass={large ? 'size-50' : 'size-30'} textClass={large ? 'text-4xl' : 'text-xl'} />
 		<div class="w-full min-w-0 {large? 'px-3 pt-4 lg:pt-0' : 'pr-0'}">
-			<a href={path} class="flex items-center gap-1 font-semibold text-heading after:absolute after:inset-0 group-hover:text-primary">
-				<span class="truncate">{name}</span>
-				{#if verified}
+			<div class="flex justify-between items-center gap-2">
+				<a href={path} class="flex items-center gap-1 font-semibold text-heading after:absolute after:inset-0 group-hover:text-primary">
+					<span class="truncate">{name}</span> 
+					{#if verified}
 					<VerifiedIcon class="size-4 shrink-0 text-primary" title="An admin has manually confirmed the facts on this seat/candidacy." />
+					{/if}
+				</a>
+				{#if large}
+					<!-- Share this person's latest coverage. Always present on the large
+					card (including /compare), since `path` is all the brief needs. -->
+					<CopyBriefButton slug={path} {name} action="copy" />
 				{/if}
-			</a>
+			</div>
+
 			{#if party}
 				<p class="relative z-10 truncate {large ? 'my-1 text-sm' : 'text-xs'} text-muted">
 					{#if partyPath}
@@ -157,9 +161,12 @@ whole card is clickable, while the party name stays its own separate link on top
 				<!-- Second seat line (large only): the person's own 2027 candidacy. -->
 				{@render seatLine(campaignStatus ?? 'aspirant', campaignPositionTitle ?? undefined, campaignRegion ?? undefined)}
 			{/if}
-			{#if followers !== undefined}
+			{#if !large}
 				<div class="mt-2 flex w-full items-center gap-2 text-xs text-muted justify-between">
-					<span>{fmt.format(followers)} followers</span>
+					<!-- Empty span keeps the icon right-aligned when there's no count. -->
+					<span>{followers !== undefined ? `${fmt.format(followers)} followers` : ''}</span>
+					<!-- Share this person's latest coverage. -->
+					<CopyBriefButton slug={path} {name} action="copy" />
 				</div>
 			{/if}
 			{#if large && bio}
@@ -169,10 +176,4 @@ whole card is clickable, while the party name stays its own separate link on top
 			{/if}
 		</div>
 	</div>
-	{#if large && briefSlug}
-		<!-- Bottom-left of the card: share this person's latest coverage. -->
-		<div class="mt-3 flex">
-			<CopyBriefButton slug={briefSlug} {name} />
-		</div>
-	{/if}
 </div>

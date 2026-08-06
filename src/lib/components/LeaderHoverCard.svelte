@@ -105,7 +105,6 @@
 				campaignStatus={card.campaignStatus}
 				status={card.status}
 				bio={card.bio}
-				briefSlug={card.path.replace(/^\//, '')}
 			/>
 		</div>
 	{/if}

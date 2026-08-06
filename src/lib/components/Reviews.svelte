@@ -358,7 +358,7 @@
 					</label>
 				</div>
 
-				<div class="flex flex-wrap items-center gap-3">
+				<div class="flex flex-wrap items-center gap-3 justify-end">
 					<!-- star rating -->
 					<div class="flex items-center gap-1" role="radiogroup" aria-label="Star rating">
 						{#each [1, 2, 3, 4, 5] as star (star)}

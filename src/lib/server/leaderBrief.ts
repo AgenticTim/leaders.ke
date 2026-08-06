@@ -17,11 +17,17 @@ import { newsSourceName, publisherFromTitle, readableOutlet, stripLinks } from '
  * behind "Read more", which would hide the trailing link, so the story count and
  * HEADLINE_MAX below are the two levers that keep the whole message visible. */
 const BRIEF_ITEMS = 5;
+/** Hard ceiling for the assembled message, a little under WhatsApp's collapse
+ * point. The TL;DR is the only elastic part, so it absorbs any overflow: the
+ * five headlines and the trailing link always survive intact. */
+const MESSAGE_MAX = 980;
 /** Real ingested headlines average ~140 characters (some are a scraped post body
  * running past 200), so they are truncated rather than trusted. */
-const HEADLINE_MAX = 80;
+const HEADLINE_MAX = 100;
 
-export type LeaderBrief = { text: string; count: number; name: string };
+// `tldr` is the AI paragraph on its own, returned separately from `text` so the
+// copy confirmation can show just that instead of the whole (tall) message.
+export type LeaderBrief = { text: string; count: number; name: string; tldr: string | null };
 
 const dateFmt = new Intl.DateTimeFormat('en-KE', { day: 'numeric', month: 'short' });
 
@@ -76,21 +82,38 @@ export async function getLeaderBrief(slug: string, origin: string): Promise<Lead
 
 	// WhatsApp markup: *bold*, _italic_, bare URLs auto-link. No headings or
 	// link syntax, so the trailing URL is written plainly.
-	const lines = [`*${name}*`, '_Latest 5 stories_', ''];
+	const lines = [`*${name}* · _Latest 5 stories_`, ''];
 	// The model is told to write plain prose, but it reads article text that can
 	// contain URLs, so its output is stripped too: the only link in the whole
-	// message must be ours.
-	if (tldr) lines.push(`TL;DR: ${stripLinks(tldr)}`, '');
+	// message must be ours. A placeholder holds the TL;DR's place until the rest
+	// of the message is measured (see the trim below).
+	const tldrIndex = tldr ? lines.push('', '') - 2 : -1;
 	for (const r of rows) {
 		const outlet = readableOutlet(newsSourceName(r.sourceUrl, decodeHtmlEntities(r.title)));
 		const when = dateFmt.format(r.createdAt);
-		lines.push(`- ${when}${outlet ? ` · ${outlet}` : ''}: ${tidyHeadline(r.title)}`);
+		// Blank line after each story: WhatsApp runs consecutive lines together,
+		// and a wrapped 100-character headline needs the separation to stay scannable.
+		lines.push(`- ${when}${outlet ? ` · ${outlet}` : ''}: ${tidyHeadline(r.title)}`, '');
 	}
 	// "Full coverage", not "More stories": a leader with exactly five articles has
-	// no more, but the feed page is still where all of them live.
-	lines.push('', `Full coverage: ${origin}/?mention=${slug}`);
+	// no more, but the feed page is still where all of them live. The loop above
+	// already left a blank line, so this appends directly.
+	lines.push(`Full coverage: ${origin}/?mention=${slug}`);
 
-	const brief: LeaderBrief = { text: lines.join('\n'), count: rows.length, name };
+	// Fit the TL;DR to whatever room the headlines left. A long name, long
+	// headlines or a verbose model reply can each eat the budget, and the link
+	// disappearing behind "Read more" would defeat the whole feature.
+	let finalTldr: string | null = null;
+	if (tldrIndex >= 0 && tldr) {
+		const fixed = lines.join('\n').length; // the two placeholder lines contribute nothing
+		const room = MESSAGE_MAX - fixed - 'TL;DR: '.length;
+		const text = stripLinks(tldr);
+		finalTldr = room <= 0 ? null : text.length > room ? `${text.slice(0, room - 1).trimEnd()}…` : text;
+		if (finalTldr) lines[tldrIndex] = `TL;DR: ${finalTldr}`;
+		else lines.splice(tldrIndex, 2); // no room at all: drop the block, blank line included
+	}
+
+	const brief: LeaderBrief = { text: lines.join('\n'), count: rows.length, name, tldr: finalTldr };
 	cache.set(slug, { newestPostId: rows[0].id, brief });
 	return brief;
 }
