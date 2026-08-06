@@ -182,7 +182,9 @@ async function main() {
 				continue;
 			}
 			const query = eligible.map((p) => `"${p.name}"`).join(' OR ');
-			const url = `https://news.google.com/rss/search?q=${encodeURIComponent(`(${query}) Kenya`)}&hl=en-KE&gl=KE&ceid=KE:en`;
+			// Same recency window as runIngest (see RECENCY_WINDOW in newsIngest.ts):
+			// without it Google ranks by relevance and most of each response is backlog.
+			const url = `https://news.google.com/rss/search?q=${encodeURIComponent(`(${query}) Kenya when:7d`)}&hl=en-KE&gl=KE&ceid=KE:en`;
 
 			const fetchStart = performance.now();
 			const res = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; vote.ke-news/1.0)' } });

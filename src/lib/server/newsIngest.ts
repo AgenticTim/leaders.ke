@@ -193,17 +193,24 @@ async function ingestArticles(items: FeedItem[], sourceId: string, people: Verif
 	return inserted;
 }
 
+/** Recency window on every Google News query. Google ranks its 100 results by
+ * relevance, not date: measured against the live feed, an unfiltered query
+ * returned only 17 articles from the past week, so ~83% of each response was
+ * backlog the crawl had usually seen already. `when:7d` returns ~66 items, all
+ * fresh. Seven days rather than one gives a wide margin: a few missed runs (or
+ * an outage) still get caught up on the next one. */
+const RECENCY_WINDOW = 'when:7d';
+
 /** One Google News search covering a BATCH of people at once (an OR'd quoted-name
  * query) instead of one request per person. The request volume at one-per-person
- * was risking rate-limiting/blocking from Google. The full response (not just a
- * lookahead slice) is handed to ingestArticles, so a person's older, lower-ranked
- * backlog articles get a chance too, not just whatever's in the top of that day's
- * ranking. */
+ * was risking rate-limiting/blocking from Google. The whole response (not just a
+ * lookahead slice) is handed to ingestArticles, so every person named in the
+ * batch's results gets tagged, not only the top-ranked few. */
 async function ingestForBatch(batch: VerifiedPerson[], people: VerifiedPerson[]): Promise<number> {
 	const eligible = batch.filter((p) => sourceAllowed(p, 'googleNews'));
 	if (eligible.length === 0) return 0;
 	const query = eligible.map((p) => `"${p.name}"`).join(' OR ');
-	const url = `https://news.google.com/rss/search?q=${encodeURIComponent(`(${query}) Kenya`)}&hl=en-KE&gl=KE&ceid=KE:en`;
+	const url = `https://news.google.com/rss/search?q=${encodeURIComponent(`(${query}) Kenya ${RECENCY_WINDOW}`)}&hl=en-KE&gl=KE&ceid=KE:en`;
 	const res = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; vote.ke-news/1.0)' } });
 	if (!res.ok) throw new Error(`feed ${res.status}`);
 	const items = parseRss(await res.text());
