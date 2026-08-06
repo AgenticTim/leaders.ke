@@ -227,7 +227,7 @@
 								</div>
 							{/if}
 							{#if article.external}
-								<a href={article.href} target="_blank" rel="noopener" class="ml-auto text-sm font-semibold text-primary hover:underline">Read on source site ↗</a>
+								<a href={article.href} target="_blank" rel="noopener" class="ml-auto text-sm font-semibold text-primary hover:underline">{article.sourceName ?? 'Read on source site'} ↗</a>
 							{:else}
 								<a href={article.href} class="ml-auto text-sm font-semibold text-primary hover:underline">Read more →</a>
 							{/if}

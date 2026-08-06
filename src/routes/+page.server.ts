@@ -7,6 +7,7 @@ import { findCountyBySlug, findConstituencyBySlug, findWardBySlug } from '$lib/d
 import { plainText } from '$lib/utils/richtext';
 import { getPageSize } from '$lib/server/settings';
 import { decodeHtmlEntities } from '$lib/utils/entities';
+import { newsSourceName } from '$lib/utils/newsSource';
 import type { PageServerLoad } from './$types';
 
 const initialsOf = (name: string) =>
@@ -31,6 +32,9 @@ type Article = {
 	authorPath: string;
 	href: string;
 	external: boolean;
+	// The outlet an external mention links out to (Google News title suffix, or
+	// the link's host). Null for team posts and when neither is derivable.
+	sourceName: string | null;
 	createdAt: string;
 	// The article's own "<boundary>:<region>" keys, stored at ingest from its
 	// tagged people's seats (posts.regions). Null for team posts and rows from
@@ -248,6 +252,7 @@ export const load: PageServerLoad = async (event) => {
 				authorPath: leaderPath(r.author),
 				href: `/news/${r.post.slug}`,
 				external: false,
+				sourceName: null,
 				createdAt: r.post.createdAt.toISOString(),
 				regions: r.post.regions ?? null
 			};
@@ -272,6 +277,7 @@ export const load: PageServerLoad = async (event) => {
 				authorPath: primary?.slug ? leaderPath({ slug: primary.slug }) : '#',
 				href: post.sourceUrl ?? '#',
 				external: true,
+				sourceName: newsSourceName(post.sourceUrl, post.title),
 				createdAt: post.createdAt.toISOString(),
 				regions: post.regions ?? null
 			};
