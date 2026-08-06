@@ -219,12 +219,19 @@
 
 			{#if !preview}
 				<!-- Latest News: the newest few pieces of coverage tagged to this
-				leader; the sidebar's "More news" link opens the full filtered feed. -->
+				leader, with "More news" opening the full feed filtered to them. -->
 				{#if data.news.length > 0}
 					<div class="mt-6 rounded-3xl border border-border bg-surface p-6 sm:p-8">
-						<h2 class="text-xl font-bold text-heading">Latest News</h2>
+						<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+							<h2 class="text-xl font-bold text-heading">Latest News</h2>
+							{#if leader.slug}
+								<a href="/?mention={leader.slug}" class="text-sm font-semibold text-primary hover:underline">
+									More news about {leader.name.split(' ')[0]} →
+								</a>
+							{/if}
+						</div>
 						<p class="mt-1 text-sm text-muted">
-							Coverage from verified media, tagged automatically.
+							Latest 5 pieces mentioning {leader.name}, from verified media, tagged automatically.
 						</p>
 						<div class="mt-5 space-y-4">
 							{#each data.news as item (item.id)}
@@ -360,20 +367,6 @@
 							</li>
 						</ul>
 					{/if}
-				</div>
-			{/if}
-
-			<!-- More news: the homepage feed filtered to this person, i.e. everything
-			the profile's own Latest News card only samples. -->
-			{#if !preview && leader.slug && data.news.length > 0}
-				<div class="rounded-3xl border border-border bg-surface p-6">
-					<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">More news</h2>
-					<a
-						href="/?mention={leader.slug}"
-						class="mt-3 block text-sm font-medium text-heading hover:text-primary"
-					>
-						📰 All coverage of {leader.name.split(' ')[0]} →
-					</a>
 				</div>
 			{/if}
 
