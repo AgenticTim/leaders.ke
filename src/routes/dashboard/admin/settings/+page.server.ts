@@ -128,13 +128,16 @@ export const actions: Actions = {
 		return { saved: true };
 	},
 
-	// Manual "Crawl now": runs the same ingestNews() the daily scheduler calls.
+	// Manual "Crawl now": the same ingestNews() the daily scheduler calls, but
+	// with `recency: null`, dropping the scheduled run's 7-day window so each
+	// query returns Google's full relevance-ranked 100. That's what backfills a
+	// newly added leader's history, which a 7-day crawl can never reach.
 	// ingestNews() itself guards against overlapping with a concurrent run (see
 	// its ingestInFlight lock), so clicking this while the scheduled crawl is
 	// mid-flight just no-ops instead of racing it.
 	runNewsIngestNow: async (event) => {
 		const admin = await requireAdmin(event);
-		const result = await ingestNews();
+		const result = await ingestNews({ recency: null });
 		if (result.skipped) return adminActionFailed(admin.domainUser.id, 409, { error: 'A crawl is already running, try again shortly.' });
 		return { crawled: true, ...result };
 	}

@@ -198,7 +198,11 @@ async function ingestArticles(items: FeedItem[], sourceId: string, people: Verif
  * returned only 17 articles from the past week, so ~83% of each response was
  * backlog the crawl had usually seen already. `when:7d` returns ~66 items, all
  * fresh. Seven days rather than one gives a wide margin: a few missed runs (or
- * an outage) still get caught up on the next one. */
+ * an outage) still get caught up on the next one.
+ *
+ * The scheduled crawl uses this; admins' manual "Crawl now" passes null to drop
+ * the window entirely and pull the full relevance-ranked 100 per query, which is
+ * how a new leader's back catalogue gets picked up (see ingestNews's `recency`). */
 const RECENCY_WINDOW = 'when:7d';
 
 /** One Google News search covering a BATCH of people at once (an OR'd quoted-name
@@ -206,11 +210,16 @@ const RECENCY_WINDOW = 'when:7d';
  * was risking rate-limiting/blocking from Google. The whole response (not just a
  * lookahead slice) is handed to ingestArticles, so every person named in the
  * batch's results gets tagged, not only the top-ranked few. */
-async function ingestForBatch(batch: VerifiedPerson[], people: VerifiedPerson[]): Promise<number> {
+async function ingestForBatch(
+	batch: VerifiedPerson[],
+	people: VerifiedPerson[],
+	recency: string | null
+): Promise<number> {
 	const eligible = batch.filter((p) => sourceAllowed(p, 'googleNews'));
 	if (eligible.length === 0) return 0;
 	const query = eligible.map((p) => `"${p.name}"`).join(' OR ');
-	const url = `https://news.google.com/rss/search?q=${encodeURIComponent(`(${query}) Kenya ${RECENCY_WINDOW}`)}&hl=en-KE&gl=KE&ceid=KE:en`;
+	const q = `(${query}) Kenya${recency ? ` ${recency}` : ''}`;
+	const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-KE&gl=KE&ceid=KE:en`;
 	const res = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; vote.ke-news/1.0)' } });
 	if (!res.ok) throw new Error(`feed ${res.status}`);
 	const items = parseRss(await res.text());
@@ -301,7 +310,7 @@ let ingestInFlight = false;
  * regardless of outcome, so a run that failed midway still shows as attempted
  * rather than silently stale. */
 export async function ingestNews(
-	opts: { limitPeople?: number; delayMs?: number } = {}
+	opts: { limitPeople?: number; delayMs?: number; recency?: string | null } = {}
 ): Promise<{ people: number; requests: number; inserted: number; failed: number; sentimentClassified: number; sentimentFailed: number; skipped?: true }> {
 	if (ingestInFlight) return { people: 0, requests: 0, inserted: 0, failed: 0, sentimentClassified: 0, sentimentFailed: 0, skipped: true };
 	ingestInFlight = true;
@@ -313,7 +322,7 @@ export async function ingestNews(
 }
 
 async function runIngest(
-	opts: { limitPeople?: number; delayMs?: number }
+	opts: { limitPeople?: number; delayMs?: number; recency?: string | null }
 ): Promise<{ people: number; requests: number; inserted: number; failed: number; sentimentClassified: number; sentimentFailed: number }> {
 	let people = await listVerifiedPeople();
 	// Freshest runs first feels right for an interrupted pass: recently created
@@ -323,6 +332,8 @@ async function runIngest(
 	const settings = await getPlatformSettings();
 	const sources = settings.newsSources;
 	const delayMs = opts.delayMs ?? FETCH_DELAY_MS;
+	// undefined means "use the scheduled window"; an explicit null means no window.
+	const recency = opts.recency === undefined ? RECENCY_WINDOW : opts.recency;
 
 	let requests = 0;
 	let inserted = 0;
@@ -332,7 +343,7 @@ async function runIngest(
 		for (const batch of chunk(people, Math.max(1, settings.newsBatchSize))) {
 			requests++;
 			try {
-				inserted += await ingestForBatch(batch, people);
+				inserted += await ingestForBatch(batch, people, recency);
 			} catch (err) {
 				failed++;
 				console.error(`[news] batch ingest failed (${batch.length} leaders):`, err instanceof Error ? err.message : err);

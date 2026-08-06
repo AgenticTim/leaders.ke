@@ -35,7 +35,9 @@
 	<div class="mt-8 rounded-2xl border border-border bg-surface p-5">
 		<h2 class="font-semibold text-heading">News crawl</h2>
 		<p class="mt-1 text-xs text-muted">
-			What time of day the news crawl runs automatically, and a manual trigger.
+			What time of day the news crawl runs automatically, and a manual trigger. The
+			scheduled run only looks at the last 7 days; a manual crawl searches without a
+			date limit, so it also picks up a newly added leader's back catalogue.
 		</p>
 		<div class="mt-3 flex flex-wrap items-center gap-4">
 			<form method="post" action="?/saveNewsFetchTime" use:enhance={withToast('Crawl time updated.')}>
@@ -88,7 +90,7 @@
 					disabled={crawling}
 					class="rounded-full border border-border px-4 py-1.5 text-sm font-semibold text-heading transition hover:bg-surface-2 disabled:opacity-60"
 				>
-					{crawling ? 'Crawling…' : 'Crawl now'}
+					{crawling ? 'Crawling…' : 'Deep crawl now'}
 				</button>
 			</form>
 
