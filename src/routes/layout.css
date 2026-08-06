@@ -20,6 +20,13 @@
 	--heading: #1f3547; /* headings */
 	--muted: #7a8894; /* secondary/caption text */
 	--border: #cfe0ee;
+	/* Coverage tone (diverging: two poles + a gray midpoint). Validated against
+	   this surface for CVD separation and 3:1 contrast; light-mode green/red sit
+	   in the CVD floor band, so marks using them carry a SHAPE too, never colour
+	   alone (see SentimentDot). */
+	--tone-positive: #008300;
+	--tone-negative: #e34948;
+	--tone-neutral: #7a8894;
 	--ring: #4da3e0;
 }
 
@@ -34,6 +41,10 @@
 	--heading: #eff6fc; /* near-white headings */
 	--muted: #8a99a6; /* brighter captions */
 	--border: #2c3e4e; /* visible separators */
+	/* Tone poles restepped for the dark surface (green holds, red lightens). */
+	--tone-positive: #008300;
+	--tone-negative: #e66767;
+	--tone-neutral: #8a99a6;
 	--ring: #5fb0e8;
 }
 
@@ -50,6 +61,9 @@
 	--color-heading: var(--heading);
 	--color-muted: var(--muted);
 	--color-border: var(--border);
+	--color-tone-positive: var(--tone-positive);
+	--color-tone-negative: var(--tone-negative);
+	--color-tone-neutral: var(--tone-neutral);
 	--color-ring: var(--ring);
 	--font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 	--text-xs: 0.9rem;

@@ -5,7 +5,7 @@
 //
 // Every brief ends with one vote.ke link, which is the point: a brief pasted
 // into a WhatsApp group carries a way back to the platform.
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { posts, tags, users } from '$lib/server/db/schema';
 import { fullName } from '$lib/server/leader';
@@ -29,6 +29,15 @@ const HEADLINE_MAX = 100;
 // copy confirmation can show just that instead of the whole (tall) message.
 export type LeaderBrief = { text: string; count: number; name: string; tldr: string | null };
 
+/** Days of coverage behind the brief's tone sparkline and its trend line. */
+const TONE_DAYS = 30;
+/** Unicode blocks, low to high: a WhatsApp message is plain text, so the only
+ * chart available is one made of characters. */
+const BLOCKS = ['\u2581', '\u2582', '\u2583', '\u2584', '\u2585', '\u2586', '\u2587'];
+/** Below this there is no trend worth stating, so the line is omitted rather
+ * than dressing up two articles as a movement. */
+const MIN_TONE_ARTICLES = 5;
+
 const dateFmt = new Intl.DateTimeFormat('en-KE', { day: 'numeric', month: 'short' });
 
 /** Cached briefs keyed by leader slug. The stored `newestPostId` is what makes a
@@ -47,6 +56,71 @@ function tidyHeadline(title: string): string {
 	if (publisher) text = text.slice(0, text.length - publisher.length - 3).trim();
 	text = stripLinks(text);
 	return text.length > HEADLINE_MAX ? `${text.slice(0, HEADLINE_MAX - 1).trimEnd()}…` : text;
+}
+
+
+/** A leader's 30-day tone as a text sparkline plus a plain-language trend, for
+ * the brief's header line. Returns null when there isn't enough classified
+ * coverage to claim a trend. Net tone (positive minus negative) per day, the
+ * same series the on-site sparkline plots, since two thirds of coverage is
+ * neutral and raw volume would be a flat line. */
+async function toneLine(subjectUserId: number): Promise<string | null> {
+	const rows = await db
+		.select({
+			day: sql<string>`date(${posts.createdAt})`.as('day'),
+			positive: sql<number>`count(*) filter (where ${posts.sentiment} = 'positive')`.mapWith(Number),
+			negative: sql<number>`count(*) filter (where ${posts.sentiment} = 'negative')`.mapWith(Number)
+		})
+		.from(tags)
+		.innerJoin(posts, eq(tags.postId, posts.id))
+		.where(
+			and(
+				eq(tags.subjectUserId, subjectUserId),
+				isNull(tags.deletedAt),
+				isNull(posts.deletedAt),
+				isNotNull(posts.sentiment),
+				sql`${posts.createdAt} > now() - interval '30 days'`
+			)
+		)
+		.groupBy(sql`date(${posts.createdAt})`);
+
+	const totals = rows.reduce((sum, r) => sum + r.positive + r.negative, 0);
+	if (totals < MIN_TONE_ARTICLES) return null;
+
+	// Dense buckets so quiet days read as zero rather than closing the gap.
+	const byDay = new Map(rows.map((r) => [String(r.day).slice(0, 10), r.positive - r.negative]));
+	const series: number[] = [];
+	for (let i = TONE_DAYS - 1; i >= 0; i--) {
+		const d = new Date();
+		d.setHours(0, 0, 0, 0);
+		d.setDate(d.getDate() - i);
+		series.push(byDay.get(d.toISOString().slice(0, 10)) ?? 0);
+	}
+
+	// One block per ~4 days: 30 characters of sparkline would wrap on a phone.
+	const BUCKETS = 8;
+	const size = Math.ceil(series.length / BUCKETS);
+	const buckets: number[] = [];
+	for (let i = 0; i < series.length; i += size) {
+		buckets.push(series.slice(i, i + size).reduce((sum, v) => sum + v, 0));
+	}
+	// Blocks encode magnitude only (they have no below-baseline half), so the
+	// scale is shifted to run from the most negative bucket to the most positive
+	// and the direction is spelled out in words after it.
+	const lo = Math.min(...buckets);
+	const hi = Math.max(...buckets);
+	const span = hi - lo || 1;
+	const spark = buckets
+		.map((v) => BLOCKS[Math.min(BLOCKS.length - 1, Math.round(((v - lo) / span) * (BLOCKS.length - 1)))])
+		.join('');
+
+	const negatives = rows.reduce((sum, r) => sum + r.negative, 0);
+	const share = Math.round((negatives / totals) * 100);
+	const half = Math.ceil(buckets.length / 2);
+	const early = buckets.slice(0, half).reduce((sum, v) => sum + v, 0);
+	const late = buckets.slice(half).reduce((sum, v) => sum + v, 0);
+	const arrow = late > early ? '\u2197' : late < early ? '\u2198' : '\u2192';
+	return `${spark} ${arrow} ${share}% negative this month`;
 }
 
 /**
@@ -74,6 +148,7 @@ export async function getLeaderBrief(slug: string, origin: string): Promise<Lead
 	if (cached && cached.newestPostId === rows[0].id) return cached.brief;
 
 	const name = fullName(person);
+	const tone = await toneLine(person.id);
 	// Never blocks the message: a null TL;DR just drops that paragraph.
 	const tldr = await summarizeLeaderNews(
 		name,
@@ -82,7 +157,7 @@ export async function getLeaderBrief(slug: string, origin: string): Promise<Lead
 
 	// WhatsApp markup: *bold*, _italic_, bare URLs auto-link. No headings or
 	// link syntax, so the trailing URL is written plainly.
-	const lines = [`*${name}* · _Latest 5 stories_`, ''];
+	const lines = [`*${name}* · _Latest 5 stories_${tone ? `  ${tone}` : ''}`, ''];
 	// The model is told to write plain prose, but it reads article text that can
 	// contain URLs, so its output is stripped too: the only link in the whole
 	// message must be ours. A placeholder holds the TL;DR's place until the rest

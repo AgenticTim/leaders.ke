@@ -3,6 +3,8 @@
 	import FollowCard from '$lib/components/FollowCard.svelte';
 	import LeaderHoverCard from '$lib/components/LeaderHoverCard.svelte';
 	import CopyBriefButton from '$lib/components/CopyBriefButton.svelte';
+	import SentimentDot from '$lib/components/SentimentDot.svelte';
+	import SentimentSparkline from '$lib/components/SentimentSparkline.svelte';
 	import QuickSearch from '$lib/components/QuickSearch.svelte';
 	import Pagination from '$lib/components/admin/Pagination.svelte';
 	import { goto } from '$app/navigation';
@@ -261,7 +263,7 @@
 									</span>
 								{/if}
 							</div>
-							<div class="">
+							<div class="flex items-center gap-1.5">
 								{#if article.kind === 'mention'}
 									<span class="rounded-full border border-border bg-surface-2 px-2 py-0.5 text-xs font-medium text-muted">Mention</span>
 								{/if}
@@ -269,7 +271,10 @@
 							</div>
 						</div>
 
-						<h2 class="mt-4 text-2xl font-bold text-heading">
+						<h2 class="mt-4 flex items-start gap-2 text-2xl font-bold text-heading">
+							<!-- Tone of this article toward the leader, classified at ingest.
+							Nudged down to sit on the headline's first line rather than its box top. -->
+							<SentimentDot sentiment={article.sentiment} class="mt-2" />
 							{#if article.external}
 								<a href={article.href} target="_blank" rel="noopener" class="hover:text-primary">{article.title} ↗</a>
 							{:else}
@@ -431,7 +436,12 @@
 										: 'text-heading hover:bg-surface-2'}"
 								>
 									<span class="truncate">@{m.name}</span>
-									<span class="ml-2 shrink-0 text-xs opacity-70">{m.n}</span>
+									<span class="ml-2 flex shrink-0 items-center gap-1.5">
+										{#if m.tone}
+											<SentimentSparkline series={m.tone} name={m.name} />
+										{/if}
+										<span class="text-xs opacity-70">{m.n}</span>
+									</span>
 								</a>
 								<CopyBriefButton slug={m.slug} name={m.name} action="copy" class="opacity-0 transition group-hover:opacity-100 focus:opacity-100" />
 								<CopyBriefButton slug={m.slug} name={m.name} action="share" class="opacity-0 transition group-hover:opacity-100 focus:opacity-100" />

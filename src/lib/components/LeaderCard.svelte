@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import Avatar from '$lib/components/Avatar.svelte';
 	import CopyBriefButton from '$lib/components/CopyBriefButton.svelte';
+	import SentimentSparkline from '$lib/components/SentimentSparkline.svelte';
 	import VerifiedIcon from '$lib/components/svgs/VerifiedIcon.svelte';
 	import { compareSelection, clearCompareSelection } from '$lib/stores/compare.svelte';
 	import { plainText } from '$lib/utils/richtext';
@@ -30,6 +31,9 @@
 		campaignStatus?: string | null;
 		/** Header-card variant (e.g. /compare): card-height photo, bio in the right column. */
 		large?: boolean;
+		/** Large-only: 30-day net coverage tone, one entry per day. Null when the
+		 * person has too little classified coverage to show a trend. */
+		tone?: number[] | null;
 	};
 
 	let {
@@ -49,6 +53,7 @@
 		campaignRegion = null,
 		campaignStatus = null,
 		large = false,
+		tone = null
 	}: Props = $props();
 
 	const fmt = new Intl.NumberFormat('en-KE');
@@ -173,6 +178,20 @@ whole card is clickable, while the party name stays its own separate link on top
 				<!-- Large variant: the bio sits in the right column, under name/seat/party. -->
 				{@const text = plainText(bio)}
 				<p class="mt-2 text-xs leading-relaxed">{text.slice(0, 200)}{text.length > 200 ? '…' : ''}</p>
+			{/if}
+			{#if large && tone}
+				<!-- Coverage tone, free and public: what the paid PR desk does with the
+				same data is the upsell beneath it. Awareness here, diagnosis there. -->
+				<div class="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted">
+					<span class="font-medium">Coverage tone, 30 days</span>
+					<SentimentSparkline series={tone} {name} />
+				</div>
+				<a
+					href="/for-leaders"
+					class="relative z-10 mt-1 block text-xs font-semibold text-primary hover:underline"
+				>
+					See which outlets present you well and how you compare to rivals →
+				</a>
 			{/if}
 		</div>
 	</div>

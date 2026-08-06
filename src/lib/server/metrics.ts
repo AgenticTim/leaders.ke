@@ -11,6 +11,7 @@ import {
 	pledges,
 	positions,
 	posts,
+	tags,
 	users
 } from '$lib/server/db/schema';
 import { ACTIVE_CYCLE, fullName, leaderPath, resolveCurrentTerm, slugify } from '$lib/server/leader';
@@ -187,7 +188,46 @@ export type LeaderHoverCardData = {
 	campaignPositionTitle: string | null;
 	campaignRegion: string | null;
 	campaignStatus: 'candidate' | 'aspirant' | null;
+	/** 30-day net coverage tone (positive minus negative per day), or null when
+	 * there's too little classified coverage to draw a trend. */
+	tone: number[] | null;
 };
+
+
+/** 30-day net coverage tone for one person, one entry per day, oldest first.
+ * Null below a handful of classified articles: a two-point "trend" would look
+ * confident about nothing. Same series the news sidebar plots. */
+const TONE_DAYS = 30;
+const MIN_TONE_ARTICLES = 5;
+async function coverageTone(subjectUserId: number): Promise<number[] | null> {
+	const rows = await db
+		.select({
+			day: sql<string>`date(${posts.createdAt})`.as('day'),
+			positive: sql<number>`count(*) filter (where ${posts.sentiment} = 'positive')`.mapWith(Number),
+			negative: sql<number>`count(*) filter (where ${posts.sentiment} = 'negative')`.mapWith(Number)
+		})
+		.from(tags)
+		.innerJoin(posts, eq(tags.postId, posts.id))
+		.where(
+			and(
+				eq(tags.subjectUserId, subjectUserId),
+				isNull(tags.deletedAt),
+				isNull(posts.deletedAt),
+				isNotNull(posts.sentiment),
+				sql`${posts.createdAt} > now() - interval '30 days'`
+			)
+		)
+		.groupBy(sql`date(${posts.createdAt})`);
+
+	if (rows.reduce((sum, r) => sum + r.positive + r.negative, 0) < MIN_TONE_ARTICLES) return null;
+	const byDay = new Map(rows.map((r) => [String(r.day).slice(0, 10), r.positive - r.negative]));
+	return Array.from({ length: TONE_DAYS }, (_, i) => {
+		const d = new Date();
+		d.setHours(0, 0, 0, 0);
+		d.setDate(d.getDate() - (TONE_DAYS - 1 - i));
+		return byDay.get(d.toISOString().slice(0, 10)) ?? 0;
+	});
+}
 
 /** The large LeaderCard's props for one person WITHOUT the engagement metrics,
  * the async payload behind the hover preview (/api/leader-card). Kept light so
@@ -211,7 +251,8 @@ export async function getLeaderCardBySlug(slug: string): Promise<LeaderHoverCard
 		bio: row.users.bio ?? '',
 		campaignPositionTitle: campaignSeat?.title ?? null,
 		campaignRegion: campaignSeat?.region ?? null,
-		campaignStatus: campaignSeat?.status ?? null
+		campaignStatus: campaignSeat?.status ?? null,
+		tone: await coverageTone(row.users.id)
 	};
 }
 

@@ -17,6 +17,7 @@
 		campaignPositionTitle: string | null;
 		campaignRegion: string | null;
 		campaignStatus: string | null;
+		tone: number[] | null;
 	};
 
 	// Session-wide cache: one fetch per slug across every hover instance on the
@@ -105,6 +106,7 @@
 				campaignStatus={card.campaignStatus}
 				status={card.status}
 				bio={card.bio}
+				tone={card.tone}
 			/>
 		</div>
 	{/if}

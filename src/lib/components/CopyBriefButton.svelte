@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from '$lib/stores/toast';
+	import { tooltip } from '$lib/effects';
 	import NewsIcon from '$lib/components/svgs/NewsIcon.svelte';
 	import WhatsappIcon from '$lib/components/svgs/WhatsappIcon.svelte';
 
@@ -113,7 +114,7 @@
 	onclick={onClick}
 	disabled={busy}
 	aria-label={label}
-	title={label}
+	use:tooltip={label}
 	class="relative z-10 inline-flex shrink-0 items-center rounded-full p-0.5 align-middle text-muted transition disabled:cursor-wait disabled:opacity-50 {action ===
 	'share'
 		? 'hover:text-[#25D366]'

@@ -36,6 +36,9 @@ type Article = {
 	// The outlet an external mention links out to (Google News title suffix, or
 	// the link's host). Null for team posts and when neither is derivable.
 	sourceName: string | null;
+	// Tone toward the tagged leader, classified at ingest. Null for team posts
+	// and for mentions the classifier hasn't reached yet.
+	sentiment: string | null;
 	createdAt: string;
 	// The article's own "<boundary>:<region>" keys, stored at ingest from its
 	// tagged people's seats (posts.regions). Null for team posts and rows from
@@ -258,6 +261,52 @@ export const load: PageServerLoad = async (event) => {
 	const tagOptions = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).map(([tag, n]) => ({ tag, n }));
 	const mentionOptions = [...mentionCounts.entries()].sort((a, b) => b[1].n - a[1].n).map(([slug, v]) => ({ slug, name: v.name, n: v.n }));
 
+	// Coverage tone over the last 30 days, per leader in the mentions sidebar:
+	// one grouped query for everyone on the list rather than one per name, since
+	// the sidebar can carry a hundred entries. Each row is a day's positive and
+	// negative counts; the component plots their difference (net tone), which is
+	// the only series that moves, two thirds of all coverage being neutral.
+	const TONE_DAYS = 30;
+	const toneRows = mentionOptions.length
+		? await db
+				.select({
+					slug: users.slug,
+					day: sql<string>`date(${posts.createdAt})`.as('day'),
+					positive: sql<number>`count(*) filter (where ${posts.sentiment} = 'positive')`.mapWith(Number),
+					negative: sql<number>`count(*) filter (where ${posts.sentiment} = 'negative')`.mapWith(Number)
+				})
+				.from(tags)
+				.innerJoin(posts, eq(tags.postId, posts.id))
+				.innerJoin(users, eq(tags.subjectUserId, users.id))
+				.where(
+					and(
+						inArray(users.slug, mentionOptions.map((m) => m.slug)),
+						isNull(tags.deletedAt),
+						isNull(posts.deletedAt),
+						isNotNull(posts.sentiment),
+						sql`${posts.createdAt} > now() - interval '30 days'`
+					)
+				)
+				.groupBy(users.slug, sql`date(${posts.createdAt})`)
+		: [];
+
+	// Dense day buckets (a day with no coverage is a real zero, not a gap), oldest
+	// first, so the sparkline's x-axis is time rather than "days that happened".
+	const dayKeys = Array.from({ length: TONE_DAYS }, (_, i) => {
+		const d = new Date();
+		d.setHours(0, 0, 0, 0);
+		d.setDate(d.getDate() - (TONE_DAYS - 1 - i));
+		return d.toISOString().slice(0, 10);
+	});
+	const toneBySlug = new Map<string, number[]>();
+	for (const r of toneRows) {
+		if (!r.slug) continue;
+		const series = toneBySlug.get(r.slug) ?? Array(TONE_DAYS).fill(0);
+		const idx = dayKeys.indexOf(String(r.day).slice(0, 10));
+		if (idx >= 0) series[idx] = r.positive - r.negative;
+		toneBySlug.set(r.slug, series);
+	}
+
 	const articles: Article[] = [
 		...postRows.map((r) => {
 			const authorName = fullName(r.author);
@@ -278,6 +327,7 @@ export const load: PageServerLoad = async (event) => {
 				href: `/news/${r.post.slug}`,
 				external: false,
 				sourceName: null,
+				sentiment: null,
 				createdAt: r.post.createdAt.toISOString(),
 				regions: r.post.regions ?? null
 			};
@@ -304,6 +354,7 @@ export const load: PageServerLoad = async (event) => {
 				href: post.sourceUrl ?? '#',
 				external: true,
 				sourceName: newsSourceName(post.sourceUrl, post.title),
+				sentiment: post.sentiment,
 				createdAt: post.createdAt.toISOString(),
 				regions: post.regions ?? null
 			};
@@ -354,7 +405,7 @@ export const load: PageServerLoad = async (event) => {
 		page,
 		pageSize,
 		tags: tagOptions,
-		mentions: mentionOptions,
+		mentions: mentionOptions.map((m) => ({ ...m, tone: toneBySlug.get(m.slug) ?? null })),
 		activeTag,
 		activeMention,
 		countySlug,
