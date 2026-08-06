@@ -13,6 +13,10 @@ import { getFlaggedReviewCounts, getMyReview, listApprovedReviews, listReviewPil
 import { isFollowingAsAccount } from '$lib/server/follow';
 import { decodeHtmlEntities } from '$lib/utils/entities';
 
+/** How many mentions the profile's "Latest News" card shows before sending the
+ * reader to the full feed filtered to this person. */
+const PROFILE_NEWS_LIMIT = 5;
+
 export type PublicProfileData = NonNullable<Awaited<ReturnType<typeof loadPublicProfileData>>>;
 
 export async function loadPublicProfileData(
@@ -127,13 +131,15 @@ export async function loadPublicProfileData(
 			.orderBy(desc(posts.createdAt))
 			.limit(1),
 		db.select({ deliveryStatus: pillars.deliveryStatus }).from(pillars).where(and(eq(pillars.campaignId, leadCampaignId), isNull(pillars.deletedAt))),
+		// A taste of the coverage, not an archive: the profile shows the newest
+		// few and links out to the full, filterable feed (/?mention=<slug>).
 		db
 			.select({ id: posts.id, title: posts.title, summary: posts.aiSummary, body: posts.body, createdAt: posts.createdAt })
 			.from(tags)
 			.innerJoin(posts, eq(tags.postId, posts.id))
 			.where(and(eq(tags.subjectUserId, row.users.id), isNull(tags.deletedAt), isNull(posts.deletedAt)))
 			.orderBy(desc(posts.createdAt))
-			.limit(10),
+			.limit(PROFILE_NEWS_LIMIT),
 		db
 			.select({ id: experience.id, type: experience.type, title: experience.title, institution: experience.institution, description: experience.description, from: experience.startAt, to: experience.endAt })
 			.from(experience)

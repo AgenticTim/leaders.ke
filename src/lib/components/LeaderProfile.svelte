@@ -17,7 +17,7 @@
 	// The public /[leader] page body, shared with two admin preview contexts
 	// (a pending application, a pending claim) via `preview`, same look citizens
 	// will eventually see, so what an admin approves is what actually ships.
-	// In preview mode: "Manage", "In the news", Reviews, Ask, and the claim/managed
+	// In preview mode: "Manage", "Latest News", Reviews, Ask, and the claim/managed
 	// cards are all hidden (nothing meant only for a live, public profile); the
 	// campaign link and everything else render the same either way.
 
@@ -218,10 +218,11 @@
 			{/if}
 
 			{#if !preview}
-				<!-- In the news: aggregated coverage tagged to this leader -->
+				<!-- Latest News: the newest few pieces of coverage tagged to this
+				leader; the sidebar's "More news" link opens the full filtered feed. -->
 				{#if data.news.length > 0}
 					<div class="mt-6 rounded-3xl border border-border bg-surface p-6 sm:p-8">
-						<h2 class="text-xl font-bold text-heading">In the news</h2>
+						<h2 class="text-xl font-bold text-heading">Latest News</h2>
 						<p class="mt-1 text-sm text-muted">
 							Coverage from verified media, tagged automatically.
 						</p>
@@ -359,6 +360,20 @@
 							</li>
 						</ul>
 					{/if}
+				</div>
+			{/if}
+
+			<!-- More news: the homepage feed filtered to this person, i.e. everything
+			the profile's own Latest News card only samples. -->
+			{#if !preview && leader.slug && data.news.length > 0}
+				<div class="rounded-3xl border border-border bg-surface p-6">
+					<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">More news</h2>
+					<a
+						href="/?mention={leader.slug}"
+						class="mt-3 block text-sm font-medium text-heading hover:text-primary"
+					>
+						📰 All coverage of {leader.name.split(' ')[0]} →
+					</a>
 				</div>
 			{/if}
 

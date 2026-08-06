@@ -2,7 +2,7 @@
 // leaders per search, and stores matches as aggregated mention posts. The exact
 // shape the seeded demo mentions use (posts with a null creatorId + a null-creator
 // tags row per mentioned person), so the PR desk, crisis banner, /news mentions and
-// profile "In the news" sections all read them with zero changes.
+// profile "Latest News" sections all read them with zero changes.
 //
 // Precision over recall: an item only lands if a leader's FULL name appears in its
 // title or snippet. Unlike an earlier version, an article now tags EVERY verified
