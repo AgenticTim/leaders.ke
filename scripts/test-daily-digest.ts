@@ -11,6 +11,7 @@ import { and, desc, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { conversations, managers, messages, posts, tags, users } from '../src/lib/server/db/schema';
+import { user as authUsers } from '../src/lib/server/db/auth.schema';
 
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
 const client = postgres(process.env.DATABASE_URL, { max: 1 });
@@ -74,7 +75,15 @@ for (const id of ids) {
 		.select({ userId: managers.userId })
 		.from(managers)
 		.where(and(eq(managers.subjectUserId, id), eq(managers.isActive, true), isNull(managers.deletedAt)));
-	const recipients = new Set([...team.map((t) => t.userId), id]).size;
+	// Same verified-email rule digest.ts applies: seeded accounts carry addresses
+	// on a domain that doesn't exist, so counting them would overstate the send.
+	const targets = [...new Set([...team.map((t) => t.userId), id])];
+	const reachable = await db
+		.select({ id: users.id })
+		.from(users)
+		.innerJoin(authUsers, eq(users.authUserId, authUsers.id))
+		.where(and(inArray(users.id, targets), isNull(users.deletedAt), eq(authUsers.emailVerified, true)));
+	const recipients = reachable.length;
 	totalRecipients += recipients;
 
 	const crisis = (m?.mentions ?? 0) >= 3 || (m?.negative ?? 0) >= 2;
@@ -84,5 +93,5 @@ for (const id of ids) {
 	if (inbox) console.log(`   ${inbox.unanswered} citizen question(s) waiting`);
 	console.log();
 }
-console.log(`Would notify ${totalRecipients} recipients across ${ids.length} leaders.`);
+console.log(`Would notify ${totalRecipients} recipient(s) across ${ids.length} leaders (verified emails only).`);
 await client.end();
