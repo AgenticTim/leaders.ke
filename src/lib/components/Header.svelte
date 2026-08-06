@@ -65,7 +65,6 @@
 		{ href: '/compare', label: 'Compare' },
 		{ href: '/ballot', label: 'Ballot' },
 		{ href: '/education', label: 'Learn' },
-		{ href: '/for-leaders', label: 'For Leaders' }
 	];
 
 	// Mobile nav: the desktop links (and the desktop switcher/bell) are hidden below

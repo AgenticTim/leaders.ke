@@ -9,6 +9,7 @@
 	import { page as pageStore } from '$app/state';
 	import { counties, findConstituencyBySlug, findCountyBySlug, findWardBySlug, geoSlug } from '$lib/data/geo';
 	import type { PageProps } from './$types';
+	import Countdown from '$lib/components/Countdown.svelte';
 
 	let { data }: PageProps = $props();
 
@@ -164,11 +165,23 @@
 </svelte:head>
 
 <div class="border-b border-border bg-surface-2">
-	<div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
-		<h1 class="text-4xl font-bold tracking-tight text-heading">What our leaders are up to</h1>
-		<p class="mt-3 text-lg leading-relaxed text-muted">
-			Updates straight from leaders and candidates, plus their mentions in the wider press, fresh every day.
-		</p>
+	<div class="mx-auto flex max-w-7xl items-center justify-between gap-10 px-4 py-10 sm:px-6 sm:py-14">
+		<div class="min-w-0">
+			<h1 class="text-4xl font-bold tracking-tight text-heading">What our leaders are up to</h1>
+			<p class="mt-3 text-lg leading-relaxed text-muted">
+				Updates straight from leaders and candidates, plus their mentions in the wider press, fresh every day.
+			</p>
+		</div>
+		<!-- Election countdown doubling as the booth's entry point. Desktop only:
+		on mobile the banner has no room beside the headline, and the ballot card
+		above the feed already carries the funnel there. -->
+		<a
+			href="/ballot"
+			aria-label="Practise your 2027 ballot"
+			class="hidden shrink-0 rounded-2xl p-2 transition hover:bg-surface-3 lg:block"
+		>
+			<Countdown />
+		</a>
 	</div>
 </div>
 
