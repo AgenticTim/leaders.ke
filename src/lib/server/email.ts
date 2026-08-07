@@ -30,12 +30,12 @@ export function stripLinks(html: string): string {
 }
 
 /**
- * Sends a transactional email. With POSTMARK_TOKEN set it posts to Postmark;
+ * Sends a transactional email. With EMAIL_TOKEN set it posts to Postmark;
  * otherwise (dev) it logs the message to the console so email flows stay testable
  * without a provider, copy the link from the terminal.
  */
 export async function sendEmail({ to, subject, text, html }: Mail): Promise<void> {
-	const token = env.POSTMARK_TOKEN;
+	const token = env.EMAIL_TOKEN;
 	const from = env.EMAIL_FROM || 'noreply@vote.ke';
 
 	if (!token) {

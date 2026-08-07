@@ -1,5 +1,5 @@
 // Contact form: relays the message to the platform inbox via sendEmail
-// (Postmark when POSTMARK_TOKEN is set, console stub in dev).
+// (Postmark when EMAIL_TOKEN is set, console stub in dev).
 import { fail } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { sendEmail } from '$lib/server/email';
