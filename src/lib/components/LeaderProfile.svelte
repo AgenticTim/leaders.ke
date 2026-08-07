@@ -266,11 +266,15 @@
 		<div class="space-y-6">
 			{#if data.isVying}
 				<div class="rounded-3xl border border-border bg-surface p-6 flex flex-col gap-3">
+					<!-- isVying only means "not a former officeholder", so a sitting leader
+					with no campaign row reaches here with data.campaign null. Every read
+					is optional; the seat falls back to the one they hold. -->
 					<h2 class="text-sm font-semibold tracking-wide text-muted uppercase">
-						Running for {data.campaign.positionTitle}{data.campaign.regionLabel &&
-							data.campaign.regionLabel !== 'Kenya'
-								? `, ${data.campaign.regionLabel}`
-								: ''} in {data.campaign?.year ?? 2027} 
+						Running for {data.campaign?.positionTitle ?? leader.positionTitle}{(data.campaign?.regionLabel ??
+							leader.regionLabel) &&
+						(data.campaign?.regionLabel ?? leader.regionLabel) !== 'Kenya'
+							? `, ${data.campaign?.regionLabel ?? leader.regionLabel}`
+							: ''} in {data.campaign?.year ?? 2027}
 					</h2>
 					{#if data.campaign?.positionTitle}
 						<a
