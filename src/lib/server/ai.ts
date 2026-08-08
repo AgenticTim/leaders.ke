@@ -13,6 +13,13 @@ export type LeaderGrounding = {
 	bio: string;
 	pillars: { title: string; summary: string; deliveryStatus?: string; evidence?: string | null }[];
 	posts: { title: string; body: string }[];
+	// Press mentions ingested from news sources (posts with a null creatorId,
+	// linked through `tags`), NOT the leader's own words. Kept separate from
+	// `posts` for exactly that reason: the prompt has to tell the model these are
+	// journalists reporting, so it never answers "I said X" from a paraphrase or
+	// recites hostile coverage as the campaign's own position. Optional, older
+	// call sites keep working with less grounding.
+	news?: { title: string; body: string; outlet: string | null; date: string }[];
 	// Knowledge tab (see $lib/server/knowledge.ts). A team-curated FAQ plus
 	// extracted text from uploaded source documents. Optional: older call sites
 	// that haven't been updated to fetch these still work, just with less grounding.
@@ -51,6 +58,9 @@ function groundingText(leader: LeaderGrounding, maxChars: number): string {
 		.join('\n');
 	const posts = leader.posts.map((p) => `- ${p.title}: ${p.body}`).join('\n');
 	const faqs = (leader.faqs ?? []).map((f) => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n');
+	const news = (leader.news ?? [])
+		.map((n) => `- ${n.date}${n.outlet ? ` · ${n.outlet}` : ''}: ${n.title}${n.body ? ` ${n.body}` : ''}`)
+		.join('\n');
 
 	// Profile, manifesto, posts and FAQ: the identity of the leader, never
 	// truncated. A citizen's basic "who is this person" answer must never go
@@ -60,6 +70,12 @@ function groundingText(leader: LeaderGrounding, maxChars: number): string {
 		leader.bio ? `Bio: ${leader.bio}` : '',
 		pillars ? `Manifesto pillars:\n${pillars}` : 'No manifesto published yet.',
 		posts ? `Recent public updates:\n${posts}` : 'No public updates yet.',
+		// Explicitly framed as third-party reporting. Without this line the model
+		// blends coverage into the leader's own voice, which on a hostile article
+		// would put a journalist's characterisation in the campaign's mouth.
+		news
+			? `Recent press coverage mentioning ${leader.name}. These are news reports by OTHER people, not ${leader.name}'s own statements. You may say what was reported and by whom, but never present them as ${leader.name}'s words or position, and never repeat an allegation as fact:\n${news}`
+			: '',
 		// FAQs take priority over free-form documents. A team member wrote these
 		// answers exactly as they want a citizen to read them.
 		faqs ? `Team-written FAQ (prefer this wording when it answers the question):\n${faqs}` : ''

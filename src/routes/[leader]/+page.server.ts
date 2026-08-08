@@ -17,7 +17,7 @@ import { handleDeleteReviewAction, handleReviewAction } from '$lib/server/review
 import { PlatformOutOfCreditsError, answerConstituentQuestion, toChatTurns } from '$lib/server/ai';
 import { enforceAskRateLimit } from '$lib/server/aiRateLimit';
 import { enforceRateLimit, ipBucket } from '$lib/server/rateLimit';
-import { getGroundingExtras } from '$lib/server/knowledge';
+import { getGroundingExtras, getNewsGrounding } from '$lib/server/knowledge';
 import { clientAddress, getOrMintAnonId } from '$lib/server/anonId';
 import {
 	getOrCreateWebConversation,
@@ -278,7 +278,7 @@ export const actions: Actions = {
 			false
 		);
 
-		const [pillarRows, postRows, extras] = await Promise.all([
+		const [pillarRows, postRows, extras, news] = await Promise.all([
 			lead.leadCampaignId
 				? db
 						.select({
@@ -303,7 +303,8 @@ export const actions: Actions = {
 				)
 				.orderBy(desc(posts.createdAt))
 				.limit(10),
-			getGroundingExtras(lead.subjectId)
+			getGroundingExtras(lead.subjectId),
+			getNewsGrounding(lead.subjectId)
 		]);
 		const grounding = {
 			name: lead.name,
@@ -313,6 +314,7 @@ export const actions: Actions = {
 			bio: lead.bio,
 			pillars: pillarRows,
 			posts: postRows,
+			news,
 			...extras
 		};
 
