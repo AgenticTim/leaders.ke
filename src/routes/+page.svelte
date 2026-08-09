@@ -436,15 +436,15 @@
 										: 'text-heading hover:bg-surface-2'}"
 								>
 									<span class="truncate">@{m.name}</span>
-									<span class="ml-2 flex shrink-0 items-center gap-1.5">
-										{#if m.tone}
-											<SentimentSparkline series={m.tone} name={m.name} />
-										{/if}
-										<span class="text-xs opacity-70">{m.n}</span>
-									</span>
 								</a>
 								<CopyBriefButton slug={m.slug} name={m.name} action="copy" class="opacity-0 transition group-hover:opacity-100 focus:opacity-100" />
 								<CopyBriefButton slug={m.slug} name={m.name} action="share" class="opacity-0 transition group-hover:opacity-100 focus:opacity-100" />
+								<span class="ml-2 flex shrink-0 items-center gap-1.5">
+									{#if m.tone}
+										<SentimentSparkline series={m.tone} name={m.name} />
+									{/if}
+									<span class="text-xs opacity-70">{m.n}</span>
+								</span>
 							</span>
 						</LeaderHoverCard>
 					{:else}
