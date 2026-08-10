@@ -31,6 +31,19 @@
 			cancelled = true;
 		};
 	});
+
+	// DialAnApp dial widget: the server only hands out dialToken to platform
+	// admins, so this injects the builder-agent button for them alone.
+	$effect(() => {
+		if (!data.dialToken || typeof document === 'undefined') return;
+		if (document.getElementById('dialanapp-sdk')) return;
+		const s = document.createElement('script');
+		s.id = 'dialanapp-sdk';
+		s.src = 'https://dialanapp.com/sdk.js';
+		s.dataset.dialToken = data.dialToken;
+		s.defer = true;
+		document.body.appendChild(s);
+	});
 </script>
 
 <svelte:head>
