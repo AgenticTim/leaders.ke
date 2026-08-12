@@ -6,8 +6,6 @@
 import { and, asc, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { faqEntries, knowledgeDocuments, posts, tags } from '$lib/server/db/schema';
-import { getPersonTier } from '$lib/server/invites';
-import { getPackageFeatures } from '$lib/server/packages';
 import { decodeHtmlEntities } from '$lib/utils/entities';
 import { newsSourceName, readableOutlet } from '$lib/utils/newsSource';
 
@@ -45,14 +43,14 @@ export async function getGroundingExtras(subjectUserId: number) {
  * own posts query (keyed on posts.subjectUserId, i.e. what the TEAM wrote)
  * never sees them.
  *
- * Gated on the PR AI Agent perk, the same way the dashboard News tab and the
- * daily brief gate coverage: a profile that hasn't paid for press monitoring
- * shouldn't get it through the chat instead. Returns [] when locked.
+ * Ungated, unlike the dashboard News tab and the daily brief. Those two sell
+ * tone classification and drafted responses, which stay behind the PR AI Agent
+ * perk. What this returns is the headline, excerpt, outlet and date already
+ * printed to every visitor in the profile's Latest News section, so withholding
+ * it only makes the assistant deny coverage the reader can see further down the
+ * same page.
  */
 export async function getNewsGrounding(subjectUserId: number, limit = 10) {
-	const tier = await getPersonTier(subjectUserId);
-	if (!(await getPackageFeatures(tier))?.prAiAgent) return [];
-
 	const rows = await db
 		.select({ title: posts.title, body: posts.body, sourceUrl: posts.sourceUrl, createdAt: posts.createdAt })
 		.from(tags)
