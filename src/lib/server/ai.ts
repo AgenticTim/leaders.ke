@@ -292,8 +292,21 @@ export async function answerPlatformQuestion(
 
 export type MentionSentiment = 'positive' | 'neutral' | 'negative';
 
-// Heuristic fallback lexicon for keyless dev: crude, but it keeps the PR desk's
-// sentiment surfaces testable without an API key. Kenyan-press verbs included.
+/**
+ * Whether the ingest may spend Anthropic tokens classifying tone.
+ *
+ * OFF unless NEWS_SENTIMENT_AI=1. The daily crawl runs whether or not anyone is
+ * paying, and this is the one platform-billed LLM call in the system with no
+ * metering and no revenue behind it, so it stays opt-in rather than opt-out.
+ * Turning it off costs accuracy, not function: every mention still gets a
+ * sentiment from the keyword lexicon below, so the tone dots, the sparklines
+ * and the crisis banner all keep working.
+ */
+const aiSentimentEnabled = () => env.NEWS_SENTIMENT_AI === '1';
+
+// The keyword lexicon behind the heuristic. Used whenever the model isn't:
+// no API key, the AI pass switched off, or a per-item parse miss. Crude, but it
+// keeps every sentiment surface populated. Kenyan-press verbs included.
 const NEGATIVE_WORDS = /scandal|corrupt|probe|arrest|slam|blast|fraud|court|sued|impeach|critici[sz]|accus|attack|fail|loss|graft|misuse|crisis|protest|clash|fake|stolen|bribe|dismiss|reject|condemn|storm out|walked out|heckle/i;
 const POSITIVE_WORDS = /launch|win|won|praise|commission|award|deliver|celebrat|endors|donat|unveil|boost|champion|honou?r|graduat|empower|support|open(s|ed) (a|the|new)|lauded|applaud/i;
 
@@ -316,7 +329,7 @@ function heuristicSentiment(text: string): MentionSentiment {
 export async function classifyMentionSentimentBatch(items: { leaderName: string; title: string; body: string }[]): Promise<MentionSentiment[]> {
 	const texts = items.map((it) => `${it.title}\n${it.body}`.slice(0, 1000));
 	const heuristicResults = () => texts.map(heuristicSentiment);
-	if (!env.ANTHROPIC_API_KEY) return heuristicResults();
+	if (!aiSentimentEnabled() || !env.ANTHROPIC_API_KEY) return heuristicResults();
 
 	try {
 		const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
