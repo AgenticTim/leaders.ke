@@ -84,3 +84,27 @@ export function runStatus(verified: Date | string | boolean | null | undefined):
 export function isRunStatus(status: string | null | undefined): boolean {
 	return status === 'aspirant' || status === 'candidate';
 }
+
+/** The seat as it should read in a page title or meta description, with the
+ * person's relationship to it made explicit: someone who no longer holds a seat
+ * and someone merely running for one must not both read as plain "Governor,
+ * Siaya". A sitting holder needs no qualifier, so `current` returns the bare
+ * seat. Search results are the main consumer here, where the qualifier is
+ * often the only thing separating an incumbent from a challenger.
+ *
+ *   current   -> "Governor, Siaya"
+ *   former    -> "Former Governor, Siaya"
+ *   candidate -> "Candidate for Governor, Siaya"
+ *   aspirant  -> "Aspirant for Governor, Siaya"
+ */
+export function seatTitlePhrase(
+	status: string | null | undefined,
+	positionTitle: string,
+	regionLabel?: string | null
+): string {
+	const seat = regionLabel ? `${positionTitle}, ${regionLabel}` : positionTitle;
+	if (status === 'former') return `Former ${seat}`;
+	if (status === 'candidate') return `Candidate for ${seat}`;
+	if (status === 'aspirant') return `Aspirant for ${seat}`;
+	return seat;
+}
