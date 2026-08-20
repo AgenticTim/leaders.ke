@@ -1,17 +1,19 @@
 <script lang="ts">
-	// Platform-wide AI chat (plans/10-platform-wide-ai-chat.md): a sparkle button
-	// in the header opens a slide-over panel that answers any civic or platform
-	// question, grounded in vote.ke's own data via /api/platform-ask.
+	// Platform-wide AI chat (plans/10-platform-wide-ai-chat.md): a floating
+	// sparkle button, bottom-right, opens a panel that answers any civic or
+	// platform question, grounded in vote.ke's own data via /api/platform-ask.
 	//
 	// Unlike the per-leader Ask block (a form action on that leader's page, with
 	// its thread server-rendered into the page data), this lives in the shared
 	// Header on every route, so it owns its own fetch/state and loads its thread
-	// lazily the first time it's opened.
+	// lazily the first time it's opened. The component is MOUNTED in the header
+	// but neither the button nor the panel RENDERS there: both are portaled, so
+	// the header's backdrop-blur can't become their containing block.
 	import { page } from '$app/state';
 	import AuthModal from '$lib/components/auth/AuthModal.svelte';
 	import TypingDots from '$lib/components/TypingDots.svelte';
 	import CloseIcon from '$lib/components/svgs/CloseIcon.svelte';
-	import { portal } from '$lib/effects';
+	import { portal, tooltip } from '$lib/effects';
 	import { formatChatTime } from '$lib/utils/chatTime';
 
 	type Message = { id: number; sender: string; body: string; createdAt: string };
@@ -123,7 +125,10 @@
 		limitReached = false;
 		// Optimistic: the citizen's own question appears immediately, with a
 		// negative temp id so it can't collide with a real messages.id.
-		messages = [...messages, { id: -Date.now(), sender: 'follower', body, createdAt: new Date().toISOString() }];
+		messages = [
+			...messages,
+			{ id: -Date.now(), sender: 'follower', body, createdAt: new Date().toISOString() }
+		];
 		question = '';
 
 		try {
@@ -136,12 +141,20 @@
 			if (!res.ok) {
 				errorText = data.error ?? 'Something went wrong. Try again.';
 			} else if (data.answered && data.answer) {
-				messages = [...messages, { id: -Date.now() - 1, sender: 'ai', body: data.answer, createdAt: new Date().toISOString() }];
+				messages = [
+					...messages,
+					{
+						id: -Date.now() - 1,
+						sender: 'ai',
+						body: data.answer,
+						createdAt: new Date().toISOString()
+					}
+				];
 			} else if (data.reason === 'guest-limit') {
 				// Nothing is broken here. The free guest allowance is simply spent,
 				// so say that plainly and point at the way to get more answers.
 				limitReached = true;
-				errorText = "You have hit your daily limit for guests.";
+				errorText = 'You have hit your daily limit for guests.';
 			} else {
 				// Recorded but genuinely unanswerable right now (no AI configured, or
 				// the call failed): it's in the platform inbox for a human.
@@ -176,29 +189,46 @@
 	}}
 />
 
+<!-- Floating trigger, bottom-right, the position people already look for a help
+chat in. Mounted from the root layout rather than the header, so no filtered
+ancestor can steal its containing block and no portal is needed here. It sits
+BELOW the panel's z-index so an open panel is never overlapped by it, and it
+swaps to a close icon while open so the same target both opens and dismisses. -->
 <button
 	type="button"
 	onclick={toggle}
-	aria-label="Ask vote.ke"
+	aria-label={open ? 'Close Ask vote.ke' : 'Ask vote.ke'}
 	aria-expanded={open}
-	class="grid size-9 place-items-center rounded-full border border-border bg-surface-2 text-heading transition hover:bg-surface-3 focus:ring-0 focus:ring-ring focus:outline-none"
+	use:tooltip={{ tip: open ? '' : 'Ask vote.ke', side: 'top' }}
+	class="fixed right-4 bottom-4 z-40 grid size-14 place-items-center rounded-full bg-primary text-on-primary shadow-lg transition hover:brightness-95 focus:ring-0 focus:outline-none"
 >
-	<!-- sparkle -->
-	<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="size-4.5">
-		<path
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			d="M12 3.5 13.6 8.4 18.5 10 13.6 11.6 12 16.5 10.4 11.6 5.5 10 10.4 8.4 12 3.5Z"
-		/>
-		<path stroke-linecap="round" stroke-linejoin="round" d="M18 16l.7 2.1 2.1.7-2.1.7-.7 2.1-.7-2.1-2.1-.7 2.1-.7L18 16Z" />
-	</svg>
+	{#if open}
+		<CloseIcon class="size-6" />
+	{:else}
+		<!-- sparkle -->
+		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="size-7">
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				d="M12 3.5 13.6 8.4 18.5 10 13.6 11.6 12 16.5 10.4 11.6 5.5 10 10.4 8.4 12 3.5Z"
+			/>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				d="M18 16l.7 2.1 2.1.7-2.1.7-.7 2.1-.7-2.1-2.1-.7 2.1-.7L18 16Z"
+			/>
+		</svg>
+	{/if}
 </button>
 
 {#if open}
 	<!-- Anchored bottom-right like a help chat, not a modal: no dimming backdrop
 	and no aria-modal, so the page behind stays readable and usable while the
 	panel is open (a citizen asking "who is my MP" is often mid-page on a profile
-	or seat listing they want to keep looking at). Closes on Escape or the X.
+	or seat listing they want to keep looking at). Closes on Escape, the X, or the
+	floating button. Sits directly above that button (bottom-22 clears its 3.5rem
+	height plus the 1rem inset), and its height cap subtracts the same space so a
+	full thread still can't run off the top of a short viewport.
 	use:portal is required, not cosmetic: this component is mounted inside the
 	sticky header, whose backdrop-blur would otherwise make IT the containing
 	block for this fixed panel, anchoring it to the header instead of the screen. -->
@@ -206,12 +236,14 @@
 		use:portal
 		role="dialog"
 		aria-label="Ask vote.ke"
-		class="fixed right-4 bottom-4 z-50 flex max-h-[min(32rem,70vh)] w-[calc(100vw-2rem)] flex-col rounded-3xl border border-border bg-surface shadow-2xl sm:w-104"
+		class="fixed right-4 bottom-22 z-50 flex max-h-[min(32rem,70vh-5rem)] w-[calc(100vw-2rem)] flex-col rounded-3xl border border-border bg-surface shadow-2xl sm:w-104"
 	>
 		<div class="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
 			<div>
 				<p class="font-semibold text-heading">Ask vote.ke</p>
-				<p class="mt-0.5 text-xs text-muted">Candidates, seats, elections, and how this platform works.</p>
+				<p class="mt-0.5 text-xs text-muted">
+					Candidates, seats, elections, and how this platform works.
+				</p>
 			</div>
 			<button
 				type="button"
@@ -225,7 +257,9 @@
 
 		<div bind:this={scroller} class="flex-1 space-y-2.5 overflow-y-auto px-5 py-4">
 			{#if messages.length === 0}
-				<p class="text-sm text-muted">Ask anything about Kenyan elections, your leaders, or vote.ke.</p>
+				<p class="text-sm text-muted">
+					Ask anything about Kenyan elections, your leaders, or vote.ke.
+				</p>
 				<div class="flex flex-wrap gap-1.5 pt-1">
 					{#each starters as starter (starter)}
 						<button
@@ -252,7 +286,9 @@
 							: 'bg-surface-2 text-heading'}"
 					>
 						<p class="flex items-baseline justify-between gap-3 text-[11px]">
-							<span class="font-semibold opacity-70">{message.sender === 'follower' ? 'You' : 'vote.ke'}</span>
+							<span class="font-semibold opacity-70"
+								>{message.sender === 'follower' ? 'You' : 'vote.ke'}</span
+							>
 							<span class="opacity-60">{formatChatTime(message.createdAt)}</span>
 						</p>
 						{message.body}
@@ -262,7 +298,9 @@
 
 			{#if asking}
 				<div class="flex justify-start">
-					<div class="rounded-2xl bg-surface-2 px-3.5 py-2 text-sm text-muted">Thinking<TypingDots /></div>
+					<div class="rounded-2xl bg-surface-2 px-3.5 py-2 text-sm text-muted">
+						Thinking<TypingDots />
+					</div>
 				</div>
 			{/if}
 
@@ -310,7 +348,9 @@
 				</button>
 			</div>
 			<p class="mt-1.5 flex items-baseline justify-between gap-3 text-[11px] text-muted">
-				<span>AI answers can be wrong. Check anything that matters against the official source.</span>
+				<span
+					>AI answers can be wrong. Check anything that matters against the official source.</span
+				>
 				<!-- Only once it's close to mattering, so the counter isn't noise on a
 				short question. -->
 				{#if question.length > maxChars * 0.75}

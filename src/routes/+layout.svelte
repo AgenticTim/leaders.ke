@@ -2,6 +2,7 @@
 	import './layout.css';
 	import { env } from '$env/dynamic/public';
 	import favicon from '$lib/assets/favicon.svg';
+	import AskSparkle from '$lib/components/AskSparkle.svelte';
 	import Header from '$lib/components/Header.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import { FlatToast, ToastContainer } from 'svelte-toasts';
@@ -70,6 +71,12 @@
 	</main>
 	<Footer />
 </div>
+
+<!-- Platform-wide AI chat: a floating bottom-right button on every route. Sits
+OUTSIDE the header on purpose. The header is backdrop-blurred, and a filtered
+ancestor becomes the containing block for position:fixed, which would anchor
+this to the header instead of the viewport until hydration moved it. -->
+<AskSparkle />
 
 <!-- Global toast host (toast.ts wraps svelte-toasts), mounted once here so any
 page/component can call toast.info/success/warn/error without its own container. -->

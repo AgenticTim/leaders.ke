@@ -2,7 +2,6 @@
 	import type { User } from 'better-auth';
 	import { page } from '$app/state';
 	import { computeDashboardModes, type DashboardModesInput } from '$lib/utils/dashboardModes';
-	import AskSparkle from './AskSparkle.svelte';
 	import NotificationsPanel from './NotificationsPanel.svelte';
 	import QuickSearch from './QuickSearch.svelte';
 	import CloseIcon from './svgs/CloseIcon.svelte';
@@ -117,9 +116,6 @@
 		</div>
 
 		<div class="flex items-center gap-2">
-			<!-- Platform-wide AI chat: available on every route, so it lives here
-			beside the theme toggle rather than on any one page. -->
-			<AskSparkle />
 			<ThemeToggle />
 			<!-- Mobile search toggle: the full-width search row below only renders
 			while this is on, so the bar doesn't permanently tax mobile height. -->
