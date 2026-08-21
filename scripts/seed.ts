@@ -16,7 +16,8 @@
 //
 // Dependency order: system-user -> positions -> parties -> leaders -> mcas -> photos
 // -> scraped -> campaigns -> pillars -> issues -> news -> admin-fixture -> notable-knowledge
-// -> notable-deliveries -> demo-logins (admin-fixture needs system-user + positions: it
+// -> notable-deliveries -> notable-profiles -> demo-logins (admin-fixture needs system-user
+// + positions: it
 // turns the ADMIN_EMAIL account into a dev-only demo leader, visible only to a signed-in
 // admin since it stays unverified). (leaders/mcas look up parties by title and seed each
 // person's `leadership[]` terms as extra `leaders` rows in the same pass; photos matches
@@ -25,8 +26,10 @@
 // seedScrapedPipeline below; campaigns/pillars look up leaders; issues only needs
 // positions and the system user as creatorId; notable-knowledge (Knowledge tab FAQ +
 // documents), notable-deliveries (Delivery-tab items, pinned — see
-// scripts/data/notable-deliveries.ts), and demo-logins (grants a real, loginable account
-// to specific notable already-seeded profiles, sharing ADMIN_PASSWORD) all look up their
+// scripts/data/notable-deliveries.ts), notable-profiles (whole deep profiles — see
+// scripts/data/notable-profiles.ts, the one phase that CREATES a person the register
+// misses entirely), and demo-logins (grants a real, loginable account to specific
+// notable already-seeded profiles, sharing ADMIN_PASSWORD) all look up their
 // target people by slug, so they run last. system-user runs first, unconditionally, so on
 // a fresh DB its id is the lowest/first user id — it's also the ADMIN_EMAIL/PASSWORD
 // account. pillar-templates and platform-settings have no
@@ -117,6 +120,7 @@ const { values } = parseArgs({
 		'admin-fixture': { type: 'boolean', default: false },
 		'notable-knowledge': { type: 'boolean', default: false },
 		'notable-deliveries': { type: 'boolean', default: false },
+		'notable-profiles': { type: 'boolean', default: false },
 		'demo-logins': { type: 'boolean', default: false }
 	},
 	strict: true
@@ -174,6 +178,11 @@ if (runAll || values['admin-fixture']) await seedAdminFixture(db);
 // profiles (looked up by slug) — runs last for that reason.
 if (runAll || values['notable-knowledge']) await seedNotableKnowledge(db);
 if (runAll || values['notable-deliveries']) await seedNotableDeliveries(db);
+// Deep profiles for a handful of high-profile people (bio, full timeline, pinned
+// deliveries, Knowledge-tab FAQ and documents). Shells out like the scraped
+// pipeline above: it owns its own DB connection and --apply/--slug flags, and it
+// CREATES the person when the register has no row for them at all.
+if (runAll || values['notable-profiles']) await runStep('./seed-notable-profiles.ts', ['--apply']);
 if (runAll || values['demo-logins']) await seedDemoLogins(db);
 
 await client.end();
