@@ -26,7 +26,7 @@
 // seedScrapedPipeline below; campaigns/pillars look up leaders; issues only needs
 // positions and the system user as creatorId; notable-knowledge (Knowledge tab FAQ +
 // documents), notable-deliveries (Delivery-tab items, pinned — see
-// scripts/data/notable-deliveries.ts), notable-profiles (whole deep profiles — see
+// scripts/data/notable-deliveries.ts), notable-profiles (whole deep profiles, see
 // scripts/data/notable-profiles.ts, the one phase that CREATES a person the register
 // misses entirely), and demo-logins (grants a real, loginable account to specific
 // notable already-seeded profiles, sharing ADMIN_PASSWORD) all look up their
